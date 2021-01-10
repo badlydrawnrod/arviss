@@ -22,19 +22,19 @@ enum
     OP_SYSTEM = 0b1110011
 };
 
-inline int32_t IImmediate(uint32_t instruction)
+static inline int32_t IImmediate(uint32_t instruction)
 {
     return (int32_t)instruction >> 20; // inst[31:20]
 }
 
-inline int32_t SImmediate(uint32_t instruction)
+static inline int32_t SImmediate(uint32_t instruction)
 {
     return ((int32_t)instruction & 0xfe000000) >> 20 // inst[31:25]
             | (instruction & 0x00000f80) >> 7        // inst[11:7]
             ;
 }
 
-inline int32_t BImmediate(uint32_t instruction)
+static inline int32_t BImmediate(uint32_t instruction)
 {
     return ((int32_t)instruction & 0x80000000) >> 19 // inst[31]
             | (instruction & 0x00000080) << 4        // inst[7]
@@ -43,12 +43,12 @@ inline int32_t BImmediate(uint32_t instruction)
             ;
 }
 
-inline int32_t UImmediate(uint32_t instruction)
+static inline int32_t UImmediate(uint32_t instruction)
 {
     return instruction & 0xfffff000; // inst[31:12]
 }
 
-inline int32_t JImmediate(uint32_t instruction)
+static inline int32_t JImmediate(uint32_t instruction)
 {
     return ((int32_t)instruction & 0x80000000) >> 11 // inst[31]
             | (instruction & 0x000ff000)             // inst[19:12]
