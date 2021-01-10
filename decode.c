@@ -32,7 +32,6 @@ void Decode(CPU* cpu, uint32_t instruction)
 
     switch (opcode)
     {
-
     case OP_LUI: {
         int32_t upper = (int32_t)instruction & 0xfffff000;
         printf("LUI r%d, %d\n", rd, upper >> 12);
@@ -44,17 +43,105 @@ void Decode(CPU* cpu, uint32_t instruction)
         printf("AUIPC r%d, %d\n", rd, upper >> 12);
     }
     break;
-        
-    case OP_JAL:
-        break;
-    case OP_JALR:
-        break;
-    case OP_BRANCH:
-        break;
-    case OP_LOAD:
-        break;
-    case OP_STORE:
-        break;
+
+    case OP_JAL: {
+        int32_t imm = ((int32_t)instruction >> 11) | (instruction & 0x000ff000) | (instruction & (1 << 20) >> 9)
+                | ((instruction >> 20) & 0x7fe);
+        printf("JAL r%d, %d\n", rd, imm);
+    }
+    break;
+
+    case OP_JALR: {
+        int32_t imm = (int32_t)instruction >> 20;
+        uint32_t funct3 = (instruction >> 12) & 7;
+        if (funct3 == 0b000)
+        {
+            printf("JALR r%d, r%d, %d\n", rd, rs1, imm);
+        }
+        else
+        {
+        }
+    }
+    break;
+
+    case OP_BRANCH: {
+        uint32_t funct3 = (instruction >> 12) & 7;
+        uint32_t rs2 = (instruction >> 20) & 0x1f;
+        // TODO: this is _definitely_ wrong.
+        int32_t imm = ((int32_t)instruction & (1 << 31) >> 19) | ((instruction & 0x7f000000) >> 20)
+                | ((instruction & (1 << 7)) << 4) | ((instruction & (0xf00)) >> 7);
+        switch (funct3)
+        {
+        case 0b000: // BEQ
+            printf("BEQ r%d, r%d, %d\n", rs1, rs2, imm);
+            break;
+        case 0b001: // BNE
+            printf("BNE r%d, r%d, %d\n", rs1, rs2, imm);
+            break;
+        case 0b100: // BLT
+            printf("BLT r%d, r%d, %d\n", rs1, rs2, imm);
+            break;
+        case 0b101: // BGE
+            printf("BGE r%d, r%d, %d\n", rs1, rs2, imm);
+            break;
+        case 0b110: // BLTU
+            printf("BLTU r%d, r%d, %d\n", rs1, rs2, imm);
+            break;
+        case 0b111: // BGEU
+            printf("BGEU r%d, r%d, %d\n", rs1, rs2, imm);
+            break;
+        default:
+            break;
+        }
+    }
+    break;
+
+    case OP_LOAD: {
+        uint32_t funct3 = (instruction >> 12) & 7;
+        int32_t imm = (int32_t)instruction >> 20;
+        switch (funct3)
+        {
+        case 0b000: // LB
+            printf("LB r%d, %d(r%d)\n", rd, imm, rs1);
+            break;
+        case 0b001: // LH
+            printf("LH r%d, %d(r%d)\n", rd, imm, rs1);
+            break;
+        case 0b010: // LW
+            printf("LW r%d, %d(r%d)\n", rd, imm, rs1);
+            break;
+        case 0b100: // LBU
+            printf("LBU r%d, %d(r%d)\n", rd, imm, rs1);
+            break;
+        case 0b101: // LHU
+            printf("LHU r%d, %d(r%d)\n", rd, imm, rs1);
+            break;
+        default:
+            break;
+        }
+    }
+    break;
+
+    case OP_STORE: {
+        uint32_t funct3 = (instruction >> 12) & 7;
+        uint32_t rs2 = (instruction >> 20) & 0x1f;
+        int32_t imm = (((int32_t)instruction >> 20) & 0b111111100000) | (instruction >> 7) & 0x1f;
+        switch (funct3)
+        {
+        case 0b000: // SB
+            printf("SB r%d, %d(r%d)\n", rs2, imm, rs1);
+            break;
+        case 0b001: // SH
+            printf("SH r%d, %d(r%d)\n", rs2, imm, rs1);
+            break;
+        case 0b010: // SW
+            printf("SW r%d, %d(r%d)\n", rs2, imm, rs1);
+            break;
+        default:
+            break;
+        }
+    }
+    break;
 
     case OP_OPIMM: {
         uint32_t funct3 = (instruction >> 12) & 7;
@@ -153,10 +240,42 @@ void Decode(CPU* cpu, uint32_t instruction)
         }
     }
     break;
-    case OP_MISCMEM:
-        break;
-    case OP_SYSTEM:
-        break;
+
+    case OP_MISCMEM: {
+        uint32_t funct3 = (instruction >> 12) & 7;
+        if (funct3 == 0b000)
+        {
+            // TODO: fm, pred, succ.
+            printf("FENCE\n");
+        }
+        else
+        {
+        }
+    }
+    break;
+
+    case OP_SYSTEM: {
+        if ((instruction & 0b00000000000011111111111110000000) == 0)
+        {
+            int32_t imm = (int32_t)instruction >> 20;
+            switch (imm)
+            {
+            case 0b000000000000:
+                printf("ECALL\n");
+                break;
+            case 0b000000000001:
+                printf("EBREAK\n");
+                break;
+            default:
+                break;
+            }
+        }
+        else
+        {
+        }
+    }
+    break;
+
     default:
         break;
     }
@@ -171,6 +290,55 @@ int main()
 
     // AUIPC
     Decode(&cpu, (65535 << 12) | (2 << 7) | OP_AUIPC);
+
+    // JAL
+    Decode(&cpu, (2 << 7) | OP_JAL);
+
+    // JALR
+    Decode(&cpu, (123 << 20) | (1 << 15) | (0b000 < 12) | (2 << 7) | OP_JALR);
+    Decode(&cpu, (-123 << 20) | (1 << 15) | (0b000 < 12) | (2 << 7) | OP_JALR);
+
+    // BEQ
+    Decode(&cpu, (3 << 20) | (6 << 15) | (0b000 << 12) | OP_BRANCH);
+
+    // BNE
+    Decode(&cpu, (3 << 20) | (6 << 15) | (0b001 << 12) | OP_BRANCH);
+
+    // BLT
+    Decode(&cpu, (3 << 20) | (6 << 15) | (0b100 << 12) | OP_BRANCH);
+
+    // BGE
+    Decode(&cpu, (3 << 20) | (6 << 15) | (0b101 << 12) | OP_BRANCH);
+
+    // BLTU
+    Decode(&cpu, (3 << 20) | (6 << 15) | (0b110 << 12) | OP_BRANCH);
+
+    // BGEU
+    Decode(&cpu, (3 << 20) | (6 << 15) | (0b111 << 12) | OP_BRANCH);
+
+    // LB
+    Decode(&cpu, (55 << 20) | (9 << 15) | (0b000 << 12) | (2 << 7) | OP_LOAD);
+
+    // LH
+    Decode(&cpu, (55 << 20) | (9 << 15) | (0b001 << 12) | (2 << 7) | OP_LOAD);
+
+    // LW
+    Decode(&cpu, (55 << 20) | (9 << 15) | (0b010 << 12) | (2 << 7) | OP_LOAD);
+
+    // LBU
+    Decode(&cpu, (55 << 20) | (9 << 15) | (0b100 << 12) | (2 << 7) | OP_LOAD);
+
+    // LHU
+    Decode(&cpu, (55 << 20) | (9 << 15) | (0b101 << 12) | (2 << 7) | OP_LOAD);
+
+    // SB
+    Decode(&cpu, (3 << 20) | (5 << 15) | (0b000 << 12) | (2 << 7) | OP_STORE);
+
+    // SH
+    Decode(&cpu, (3 << 20) | (5 << 15) | (0b001 << 12) | (2 << 7) | OP_STORE);
+
+    // SW
+    Decode(&cpu, (3 << 20) | (5 << 15) | (0b010 << 12) | (2 << 7) | OP_STORE);
 
     // ADDI
     Decode(&cpu, (123 << 20) | (1 << 15) | (0b000 << 12) | (2 << 7) | OP_OPIMM);
@@ -234,6 +402,15 @@ int main()
 
     // AND
     Decode(&cpu, (0 << 25) | (8 << 20) | (3 << 15) | (0b111 << 12) | (2 << 7) | OP_OP);
+
+    // FENCE
+    Decode(&cpu, (0b000 << 12) | OP_MISCMEM);
+
+    // ECALL
+    Decode(&cpu, (0 << 20) | (0 << 15) | (0b000 << 12) | (0 << 7) | OP_SYSTEM);
+
+    // EBREAK
+    Decode(&cpu, (1 << 20) | (0 << 15) | (0b000 << 12) | (0 << 7) | OP_SYSTEM);
 
     return 0;
 }
