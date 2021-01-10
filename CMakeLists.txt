@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.13)
 project(0x38_arviss C)
 
 set(CMAKE_C_STANDARD 99)
