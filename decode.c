@@ -22,6 +22,41 @@ enum
     OP_SYSTEM = 0b1110011
 };
 
+inline int32_t IImmediate(uint32_t instruction)
+{
+    return (int32_t)instruction >> 20; // inst[31:20]
+}
+
+inline int32_t SImmediate(uint32_t instruction)
+{
+    return ((int32_t)instruction & 0xfe000000) >> 20 // inst[31:25]
+            | (instruction & 0x00000f80) >> 7        // inst[11:7]
+            ;
+}
+
+inline int32_t BImmediate(uint32_t instruction)
+{
+    return ((int32_t)instruction & 0x80000000) >> 19 // inst[31]
+            | (instruction & 0x00000080) << 4        // inst[7]
+            | (instruction & 0x7e000000) >> 20       // inst[30:25]
+            | (instruction & 0x00000f00) >> 7        // inst[11:8]
+            ;
+}
+
+inline int32_t UImmediate(uint32_t instruction)
+{
+    return instruction & 0xfffff000; // inst[31:12]
+}
+
+inline int32_t JImmediate(uint32_t instruction)
+{
+    return ((int32_t)instruction & 0x80000000) >> 11 // inst[31]
+            | (instruction & 0x000ff000)             // inst[19:12]
+            | (instruction & 0x00100000) >> 9        // inst[20]
+            | (instruction & 0x7fe00000) >> 20       // inst[30:21]
+            ;
+}
+
 // See: http://www.five-embeddev.com/riscv-isa-manual/latest/gmaps.html#rv3264g-instruction-set-listings
 // or riscv-spec-209191213.pdf.
 void Decode(CPU* cpu, uint32_t instruction)
@@ -33,26 +68,25 @@ void Decode(CPU* cpu, uint32_t instruction)
     switch (opcode)
     {
     case OP_LUI: {
-        int32_t upper = (int32_t)instruction & 0xfffff000;
+        int32_t upper = UImmediate(instruction);
         printf("LUI r%d, %d\n", rd, upper >> 12);
     }
     break;
 
     case OP_AUIPC: {
-        int32_t upper = (int32_t)instruction & 0xfffff000;
+        int32_t upper = UImmediate(instruction);
         printf("AUIPC r%d, %d\n", rd, upper >> 12);
     }
     break;
 
     case OP_JAL: {
-        int32_t imm = ((int32_t)instruction >> 11) | (instruction & 0x000ff000) | (instruction & (1 << 20) >> 9)
-                | ((instruction >> 20) & 0x7fe);
+        int32_t imm = JImmediate(instruction);
         printf("JAL r%d, %d\n", rd, imm);
     }
     break;
 
     case OP_JALR: {
-        int32_t imm = (int32_t)instruction >> 20;
+        int32_t imm = IImmediate(instruction);
         uint32_t funct3 = (instruction >> 12) & 7;
         if (funct3 == 0b000)
         {
@@ -67,9 +101,7 @@ void Decode(CPU* cpu, uint32_t instruction)
     case OP_BRANCH: {
         uint32_t funct3 = (instruction >> 12) & 7;
         uint32_t rs2 = (instruction >> 20) & 0x1f;
-        // TODO: this is _definitely_ wrong.
-        int32_t imm = ((int32_t)instruction & (1 << 31) >> 19) | ((instruction & 0x7f000000) >> 20)
-                | ((instruction & (1 << 7)) << 4) | ((instruction & (0xf00)) >> 7);
+        int32_t imm = BImmediate(instruction);
         switch (funct3)
         {
         case 0b000: // BEQ
@@ -98,7 +130,7 @@ void Decode(CPU* cpu, uint32_t instruction)
 
     case OP_LOAD: {
         uint32_t funct3 = (instruction >> 12) & 7;
-        int32_t imm = (int32_t)instruction >> 20;
+        int32_t imm = IImmediate(instruction);
         switch (funct3)
         {
         case 0b000: // LB
@@ -125,7 +157,7 @@ void Decode(CPU* cpu, uint32_t instruction)
     case OP_STORE: {
         uint32_t funct3 = (instruction >> 12) & 7;
         uint32_t rs2 = (instruction >> 20) & 0x1f;
-        int32_t imm = (((int32_t)instruction >> 20) & 0b111111100000) | (instruction >> 7) & 0x1f;
+        int32_t imm = SImmediate(instruction);
         switch (funct3)
         {
         case 0b000: // SB
@@ -145,9 +177,9 @@ void Decode(CPU* cpu, uint32_t instruction)
 
     case OP_OPIMM: {
         uint32_t funct3 = (instruction >> 12) & 7;
-        int32_t imm = (int32_t)instruction >> 20;
+        int32_t imm = IImmediate(instruction);
         uint32_t shamt = imm & 0x1f;
-        uint32_t bit30 = instruction >> 25;
+        uint32_t funct7 = instruction >> 25;
         switch (funct3)
         {
         case 0b000: // ADDI
@@ -172,7 +204,7 @@ void Decode(CPU* cpu, uint32_t instruction)
             printf("SLLI r%d, r%d, %d\n", rd, rs1, shamt);
             break;
         case 0b101:
-            switch (bit30)
+            switch (funct7)
             {
             case 0b0000000: // SRLI
                 printf("SRLI r%d, r%d, %d\n", rd, rs1, shamt);
@@ -192,17 +224,20 @@ void Decode(CPU* cpu, uint32_t instruction)
     case OP_OP: {
         uint32_t funct3 = (instruction >> 12) & 7;
         uint32_t rs2 = (instruction >> 20) & 0x1f;
-        uint32_t bit30 = instruction >> 25;
+        uint32_t funct7 = instruction >> 25;
         switch (funct3)
         {
-        case 0b000:     // ADD / SUB
-            if (!bit30) // ADD
+        case 0b000: // ADD / SUB
+            switch (funct7)
             {
+            case 0b0000000: // ADD
                 printf("ADD r%d, r%d, r%d\n", rd, rs1, rs2);
-            }
-            else // SUB
-            {
+                break;
+            case 0b0000001: // SUB
                 printf("SUB r%d, r%d, r%d\n", rd, rs1, rs2);
+                break;
+            default:
+                break;
             }
             break;
         case 0b001: // SLL
@@ -218,7 +253,7 @@ void Decode(CPU* cpu, uint32_t instruction)
             printf("XOR r%d, r%d, r%d\n", rd, rs1, rs2);
             break;
         case 0b101: // SRL / SRA
-            switch (bit30)
+            switch (funct7)
             {
             case 0b0000000: // SRL
                 printf("SRL r%d, r%d, r%d\n", rd, rs1, rs2);
