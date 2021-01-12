@@ -68,24 +68,28 @@ void Decode(CPU* cpu, uint32_t instruction)
     switch (opcode)
     {
     case OP_LUI: {
+        // rd <- imm_u, pc += 4
         int32_t upper = UImmediate(instruction);
         printf("LUI r%d, %d\n", rd, upper >> 12);
     }
     break;
 
     case OP_AUIPC: {
+        // rd <- pc + imm_u, pc += 4
         int32_t upper = UImmediate(instruction);
         printf("AUIPC r%d, %d\n", rd, upper >> 12);
     }
     break;
 
     case OP_JAL: {
+        // rd <- pc + 4, pc <- pc + imm_j
         int32_t imm = JImmediate(instruction);
         printf("JAL r%d, %d\n", rd, imm);
     }
     break;
 
     case OP_JALR: {
+        // rd <- pc + 4, pc <- (rs1 + imm_i) & ~1
         int32_t imm = IImmediate(instruction);
         uint32_t funct3 = (instruction >> 12) & 7;
         if (funct3 == 0b000)
@@ -105,21 +109,27 @@ void Decode(CPU* cpu, uint32_t instruction)
         switch (funct3)
         {
         case 0b000: // BEQ
+            // pc <- pc + ((rs1 == rs2) ? imm_b : 4)
             printf("BEQ r%d, r%d, %d\n", rs1, rs2, imm);
             break;
         case 0b001: // BNE
+            // pc <- pc + ((rs1 != rs2) ? imm_b : 4)
             printf("BNE r%d, r%d, %d\n", rs1, rs2, imm);
             break;
         case 0b100: // BLT
+            // pc <- pc + ((rs1 < rs2) ? imm_b : 4)
             printf("BLT r%d, r%d, %d\n", rs1, rs2, imm);
             break;
         case 0b101: // BGE
+            // pc <- pc + ((rs1 >= rs2) ? imm_b : 4)
             printf("BGE r%d, r%d, %d\n", rs1, rs2, imm);
             break;
         case 0b110: // BLTU
+            // pc <- pc + ((rs1 < rs2) ? imm_b : 4)
             printf("BLTU r%d, r%d, %d\n", rs1, rs2, imm);
             break;
         case 0b111: // BGEU
+            // pc <- pc + ((rs1 >= rs2) ? imm_b : 4)
             printf("BGEU r%d, r%d, %d\n", rs1, rs2, imm);
             break;
         default:
@@ -134,18 +144,23 @@ void Decode(CPU* cpu, uint32_t instruction)
         switch (funct3)
         {
         case 0b000: // LB
+            // rd <- sx(m8(rs1 + imm_i)), pc += 4
             printf("LB r%d, %d(r%d)\n", rd, imm, rs1);
             break;
         case 0b001: // LH
+            // rd <- sx(m16(rs1 + imm_i)), pc += 4
             printf("LH r%d, %d(r%d)\n", rd, imm, rs1);
             break;
         case 0b010: // LW
+            // rd <- sx(m32(rs1 + imm_i)), pc += 4
             printf("LW r%d, %d(r%d)\n", rd, imm, rs1);
             break;
         case 0b100: // LBU
+            // rd <- zx(m8(rs1 + imm_i)), pc += 4
             printf("LBU r%d, %d(r%d)\n", rd, imm, rs1);
             break;
         case 0b101: // LHU
+            // rd <- zx(m16(rs1 + imm_i)), pc += 4
             printf("LHU r%d, %d(r%d)\n", rd, imm, rs1);
             break;
         default:
@@ -161,12 +176,15 @@ void Decode(CPU* cpu, uint32_t instruction)
         switch (funct3)
         {
         case 0b000: // SB
+            // m8(rs1 + imm_s) <- rs2[7:0], pc += 4
             printf("SB r%d, %d(r%d)\n", rs2, imm, rs1);
             break;
         case 0b001: // SH
+            // m16(rs1 + imm_s) <- rs2[15:0], pc += 4
             printf("SH r%d, %d(r%d)\n", rs2, imm, rs1);
             break;
         case 0b010: // SW
+            // m32(rs1 + imm_s) <- rs2[31:0], pc += 4
             printf("SW r%d, %d(r%d)\n", rs2, imm, rs1);
             break;
         default:
@@ -183,33 +201,42 @@ void Decode(CPU* cpu, uint32_t instruction)
         switch (funct3)
         {
         case 0b000: // ADDI
+            // rd <- rs1 + imm_i, pc += 4
             printf("ADDI r%d, r%d, %d\n", rd, rs1, imm);
             break;
         case 0b010: // SLTI
+            // rd <- (rs1 < imm_i) ? 1 : 0, pc += 4
             printf("SLTI r%d, r%d, %d\n", rd, rs1, imm);
             break;
         case 0b011: // SLTIU
+            // rd <- (rs1 < imm_i) ? 1 : 0, pc += 4
             printf("SLTIU r%d, r%d, %u\n", rd, rs1, imm);
             break;
         case 0b100: // XORI
+            // rd <- rs1 ^ imm_i, pc += 4
             printf("XORI r%d, r%d, %d\n", rd, rs1, imm);
             break;
         case 0b110: // ORI
+            // rd <- rs1 | imm_i, pc += 4
             printf("ORI r%d, r%d, %d\n", rd, rs1, imm);
             break;
         case 0b111: // ANDI
+            // rd <- rs1 & imm_i, pc += 4
             printf("ANDI r%d, r%d, %d\n", rd, rs1, imm);
             break;
         case 0b001: // SLLI / SRAI
+            // rd <- rs1 << shamt_i, pc += 4
             printf("SLLI r%d, r%d, %d\n", rd, rs1, shamt);
             break;
         case 0b101:
             switch (funct7)
             {
             case 0b0000000: // SRLI
+                // rd <- rs1 >> shamt_i, pc += 4
                 printf("SRLI r%d, r%d, %d\n", rd, rs1, shamt);
                 break;
             case 0b0100000: // SRAI
+                // rd <- rs1 >> shamt_i, pc += 4
                 printf("SRAI r%d, r%d, %d\n", rd, rs1, shamt);
             default:
                 break;
@@ -231,9 +258,11 @@ void Decode(CPU* cpu, uint32_t instruction)
             switch (funct7)
             {
             case 0b0000000: // ADD
+                // rd <- rs1 + rs2, pc += 4
                 printf("ADD r%d, r%d, r%d\n", rd, rs1, rs2);
                 break;
             case 0b0000001: // SUB
+                // rd <- rs1 - rs2, pc += 4
                 printf("SUB r%d, r%d, r%d\n", rd, rs1, rs2);
                 break;
             default:
@@ -241,33 +270,41 @@ void Decode(CPU* cpu, uint32_t instruction)
             }
             break;
         case 0b001: // SLL
+            // rd <- rs1 << (rs2 % XLEN), pc += 4
             printf("SLL r%d, r%d, r%d\n", rd, rs1, rs2);
             break;
         case 0b010: // SLT
+            // rd <- (rs1 < rs2) ? 1 : 0, pc += 4
             printf("SLT r%d, r%d, r%d\n", rd, rs1, rs2);
             break;
         case 0b011: // SLTU
+            // rd <- (rs1 < rs2) ? 1 : 0, pc += 4
             printf("SLTU r%d, r%d, r%d\n", rd, rs1, rs2);
             break;
         case 0b100: // XOR
+            // rd <- rs1 ^ rs2, pc += 4
             printf("XOR r%d, r%d, r%d\n", rd, rs1, rs2);
             break;
         case 0b101: // SRL / SRA
             switch (funct7)
             {
             case 0b0000000: // SRL
+                // rd <- rs1 >> (rs2 % XLEN), pc += 4
                 printf("SRL r%d, r%d, r%d\n", rd, rs1, rs2);
                 break;
             case 0b0100000: // SRA
+                // rd <- rs1 >> (rs2 % XLEN), pc += 4
                 printf("SRA r%d, r%d, r%d\n", rd, rs1, rs2);
             default:
                 break;
             }
             break;
         case 0b110: // OR
+            // rd <- rs1 | rs2, pc += 4
             printf("OR r%d, r%d, r%d\n", rd, rs1, rs2);
             break;
         case 0b111: // AND
+            // rd <- rs1 & rs2, pc += 4
             printf("AND r%d, r%d, r%d\n", rd, rs1, rs2);
             break;
         default:
