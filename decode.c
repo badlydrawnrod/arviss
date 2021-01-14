@@ -4,7 +4,7 @@
 typedef struct CPU
 {
     uint32_t pc;
-    uint32_t reg[32];
+    uint32_t xreg[32];
 
     uint8_t (*ReadByte)(uint32_t addr);
     uint16_t (*ReadHalfword)(uint32_t addr);
@@ -29,6 +29,9 @@ enum
     OP_MISCMEM = 0b0001111,
     OP_SYSTEM = 0b1110011
 };
+
+static char* abiNames[] = {"zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", "s0", "s1", "a0",  "a1",  "a2", "a3", "a4", "a5",
+                           "a6",   "a7", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"};
 
 static inline int32_t IImmediate(uint32_t instruction)
 {
@@ -78,8 +81,8 @@ void Decode(CPU* cpu, uint32_t instruction)
     case OP_LUI: {
         // rd <- imm_u, pc += 4
         int32_t upper = UImmediate(instruction);
-        printf("LUI x%d, %d\n", rd, upper >> 12);
-        cpu->reg[rd] = upper;
+        printf("LUI %s, %d\n", abiNames[rd], upper >> 12);
+        cpu->xreg[rd] = upper;
         cpu->pc += 4;
     }
     break;
@@ -87,8 +90,8 @@ void Decode(CPU* cpu, uint32_t instruction)
     case OP_AUIPC: {
         // rd <- pc + imm_u, pc += 4
         int32_t upper = UImmediate(instruction);
-        printf("AUIPC x%d, %d\n", rd, upper >> 12);
-        cpu->reg[rd] = cpu->pc + upper;
+        printf("AUIPC %s, %d\n", abiNames[rd], upper >> 12);
+        cpu->xreg[rd] = cpu->pc + upper;
         cpu->pc += 4;
     }
     break;
@@ -96,8 +99,8 @@ void Decode(CPU* cpu, uint32_t instruction)
     case OP_JAL: {
         // rd <- pc + 4, pc <- pc + imm_j
         int32_t imm = JImmediate(instruction);
-        printf("JAL x%d, %d\n", rd, imm);
-        cpu->reg[rd] = cpu->pc + 4;
+        printf("JAL %s, %d\n", abiNames[rd], imm);
+        cpu->xreg[rd] = cpu->pc + 4;
         cpu->pc += imm;
     }
     break;
@@ -108,9 +111,9 @@ void Decode(CPU* cpu, uint32_t instruction)
         uint32_t funct3 = (instruction >> 12) & 7;
         if (funct3 == 0b000)
         {
-            printf("JALR x%d, x%d, %d\n", rd, rs1, imm);
-            cpu->reg[rd] = cpu->pc + 4;
-            cpu->pc = (cpu->reg[rs1] + imm) & ~1;
+            printf("JALR %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
+            cpu->xreg[rd] = cpu->pc + 4;
+            cpu->pc = (cpu->xreg[rs1] + imm) & ~1;
         }
         else
         {
@@ -126,32 +129,32 @@ void Decode(CPU* cpu, uint32_t instruction)
         {
         case 0b000: // BEQ
             // pc <- pc + ((rs1 == rs2) ? imm_b : 4)
-            printf("BEQ x%d, x%d, %d\n", rs1, rs2, imm);
+            printf("BEQ %s, %s, %d\n", abiNames[rs1], abiNames[rs2], imm);
             cpu->pc += ((rs1 == rs2) ? imm : 4);
             break;
         case 0b001: // BNE
             // pc <- pc + ((rs1 != rs2) ? imm_b : 4)
-            printf("BNE x%d, x%d, %d\n", rs1, rs2, imm);
+            printf("BNE %s, %s, %d\n", abiNames[rs1], abiNames[rs2], imm);
             cpu->pc += ((rs1 != rs2) ? imm : 4);
             break;
         case 0b100: // BLT
             // pc <- pc + ((rs1 < rs2) ? imm_b : 4)
-            printf("BLT x%d, x%d, %d\n", rs1, rs2, imm);
+            printf("BLT %s, %s, %d\n", abiNames[rs1], abiNames[rs2], imm);
             cpu->pc += (((int32_t)rs1 < (int32_t)rs2) ? imm : 4);
             break;
         case 0b101: // BGE
             // pc <- pc + ((rs1 >= rs2) ? imm_b : 4)
-            printf("BGE x%d, x%d, %d\n", rs1, rs2, imm);
+            printf("BGE %s, %s, %d\n", abiNames[rs1], abiNames[rs2], imm);
             cpu->pc += (((int32_t)rs1 >= (int32_t)rs2) ? imm : 4);
             break;
         case 0b110: // BLTU
             // pc <- pc + ((rs1 < rs2) ? imm_b : 4)
-            printf("BLTU x%d, x%d, %d\n", rs1, rs2, imm);
+            printf("BLTU %s, %s, %d\n", abiNames[rs1], abiNames[rs2], imm);
             cpu->pc += ((rs1 < rs2) ? imm : 4);
             break;
         case 0b111: // BGEU
             // pc <- pc + ((rs1 >= rs2) ? imm_b : 4)
-            printf("BGEU x%d, x%d, %d\n", rs1, rs2, imm);
+            printf("BGEU %s, %s, %d\n", abiNames[rs1], abiNames[rs2], imm);
             cpu->pc += ((rs1 >= rs2) ? imm : 4);
             break;
         default:
@@ -167,28 +170,28 @@ void Decode(CPU* cpu, uint32_t instruction)
         {
         case 0b000: // LB
             // rd <- sx(m8(rs1 + imm_i)), pc += 4
-            printf("LB x%d, %d(x%d)\n", rd, imm, rs1);
-            cpu->reg[rd] = (int32_t)(int16_t)(int8_t)cpu->ReadByte(cpu->reg[rs1] + imm);
+            printf("LB %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
+            cpu->xreg[rd] = (int32_t)(int16_t)(int8_t)cpu->ReadByte(cpu->xreg[rs1] + imm);
             break;
         case 0b001: // LH
             // rd <- sx(m16(rs1 + imm_i)), pc += 4
-            printf("LH x%d, %d(x%d)\n", rd, imm, rs1);
-            cpu->reg[rd] = (int32_t)(int16_t)cpu->ReadHalfword(cpu->reg[rs1] + imm);
+            printf("LH %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
+            cpu->xreg[rd] = (int32_t)(int16_t)cpu->ReadHalfword(cpu->xreg[rs1] + imm);
             break;
         case 0b010: // LW
             // rd <- sx(m32(rs1 + imm_i)), pc += 4
-            printf("LW x%d, %d(x%d)\n", rd, imm, rs1);
-            cpu->reg[rd] = (int32_t)cpu->ReadWord(cpu->reg[rs1] + imm);
+            printf("LW %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
+            cpu->xreg[rd] = (int32_t)cpu->ReadWord(cpu->xreg[rs1] + imm);
             break;
         case 0b100: // LBU
             // rd <- zx(m8(rs1 + imm_i)), pc += 4
             printf("LBU x%d, %d(x%d)\n", rd, imm, rs1);
-            cpu->reg[rd] = cpu->ReadByte(cpu->reg[rs1] + imm);
+            cpu->xreg[rd] = cpu->ReadByte(cpu->xreg[rs1] + imm);
             break;
         case 0b101: // LHU
             // rd <- zx(m16(rs1 + imm_i)), pc += 4
-            printf("LHU x%d, %d(x%d)\n", rd, imm, rs1);
-            cpu->reg[rd] = cpu->ReadHalfword(cpu->reg[rs1] + imm);
+            printf("LHU %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
+            cpu->xreg[rd] = cpu->ReadHalfword(cpu->xreg[rs1] + imm);
             break;
         default:
             break;
@@ -204,18 +207,18 @@ void Decode(CPU* cpu, uint32_t instruction)
         {
         case 0b000: // SB
             // m8(rs1 + imm_s) <- rs2[7:0], pc += 4
-            printf("SB x%d, %d(x%d)\n", rs2, imm, rs1);
-            cpu->WriteByte(cpu->reg[rs1] + imm, cpu->reg[rs2] & 0xff);
+            printf("SB %s, %d(%s)\n", abiNames[rs2], imm, abiNames[rs1]);
+            cpu->WriteByte(cpu->xreg[rs1] + imm, cpu->xreg[rs2] & 0xff);
             break;
         case 0b001: // SH
             // m16(rs1 + imm_s) <- rs2[15:0], pc += 4
-            printf("SH x%d, %d(x%d)\n", rs2, imm, rs1);
-            cpu->WriteHalfword(cpu->reg[rs1] + imm, cpu->reg[rs2] & 0xffff);
+            printf("SH %s, %d(%s)\n", abiNames[rs2], imm, abiNames[rs1]);
+            cpu->WriteHalfword(cpu->xreg[rs1] + imm, cpu->xreg[rs2] & 0xffff);
             break;
         case 0b010: // SW
             // m32(rs1 + imm_s) <- rs2[31:0], pc += 4
-            printf("SW x%d, %d(x%d)\n", rs2, imm, rs1);
-            cpu->WriteWord(cpu->reg[rs1] + imm, cpu->reg[rs2]);
+            printf("SW %s, %d(%s)\n", abiNames[rs2], imm, abiNames[rs1]);
+            cpu->WriteWord(cpu->xreg[rs1] + imm, cpu->xreg[rs2]);
             break;
         default:
             break;
@@ -232,51 +235,51 @@ void Decode(CPU* cpu, uint32_t instruction)
         {
         case 0b000: // ADDI
             // rd <- rs1 + imm_i, pc += 4
-            printf("ADDI x%d, x%d, %d\n", rd, rs1, imm);
-            cpu->reg[rd] = cpu->reg[rs1] + imm;
+            printf("ADDI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
+            cpu->xreg[rd] = cpu->xreg[rs1] + imm;
             break;
         case 0b010: // SLTI
             // rd <- (rs1 < imm_i) ? 1 : 0, pc += 4
-            printf("SLTI x%d, x%d, %d\n", rd, rs1, imm);
-            cpu->reg[rd] = ((int32_t)cpu->reg[rs1] < imm) ? 1 : 0;
+            printf("SLTI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
+            cpu->xreg[rd] = ((int32_t)cpu->xreg[rs1] < imm) ? 1 : 0;
             break;
         case 0b011: // SLTIU
             // rd <- (rs1 < imm_i) ? 1 : 0, pc += 4
-            printf("SLTIU x%d, x%d, %u\n", rd, rs1, imm);
-            cpu->reg[rd] = (cpu->reg[rs1] < imm) ? 1 : 0;
+            printf("SLTIU %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
+            cpu->xreg[rd] = (cpu->xreg[rs1] < imm) ? 1 : 0;
             break;
         case 0b100: // XORI
             // rd <- rs1 ^ imm_i, pc += 4
-            printf("XORI x%d, x%d, %d\n", rd, rs1, imm);
-            cpu->reg[rd] = cpu->reg[rs1] ^ imm;
+            printf("XORI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
+            cpu->xreg[rd] = cpu->xreg[rs1] ^ imm;
             break;
         case 0b110: // ORI
             // rd <- rs1 | imm_i, pc += 4
-            printf("ORI x%d, x%d, %d\n", rd, rs1, imm);
-            cpu->reg[rd] = cpu->reg[rs1] | imm;
+            printf("ORI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
+            cpu->xreg[rd] = cpu->xreg[rs1] | imm;
             break;
         case 0b111: // ANDI
             // rd <- rs1 & imm_i, pc += 4
-            printf("ANDI x%d, x%d, %d\n", rd, rs1, imm);
-            cpu->reg[rd] = cpu->reg[rs1] & imm;
+            printf("ANDI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
+            cpu->xreg[rd] = cpu->xreg[rs1] & imm;
             break;
         case 0b001: // SLLI / SRAI
             // rd <- rs1 << shamt_i, pc += 4
-            printf("SLLI x%d, x%d, %d\n", rd, rs1, shamt);
-            cpu->reg[rd] = cpu->reg[rd] << shamt;
+            printf("SLLI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
+            cpu->xreg[rd] = cpu->xreg[rd] << shamt;
             break;
         case 0b101:
             switch (funct7)
             {
             case 0b0000000: // SRLI
                 // rd <- rs1 >> shamt_i, pc += 4
-                printf("SRLI x%d, x%d, %d\n", rd, rs1, shamt);
-                cpu->reg[rd] = cpu->reg[rd] >> shamt;
+                printf("SRLI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
+                cpu->xreg[rd] = cpu->xreg[rd] >> shamt;
                 break;
             case 0b0100000: // SRAI
                 // rd <- rs1 >> shamt_i, pc += 4
-                printf("SRAI x%d, x%d, %d\n", rd, rs1, shamt);
-                cpu->reg[rd] = (int32_t)cpu->reg[rd] >> shamt;
+                printf("SRAI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
+                cpu->xreg[rd] = (int32_t)cpu->xreg[rd] >> shamt;
                 break;
             default:
                 break;
@@ -299,13 +302,13 @@ void Decode(CPU* cpu, uint32_t instruction)
             {
             case 0b0000000: // ADD
                 // rd <- rs1 + rs2, pc += 4
-                printf("ADD x%d, x%d, x%d\n", rd, rs1, rs2);
-                cpu->reg[rd] = cpu->reg[rs1] + cpu->reg[rs2];
+                printf("ADD %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                cpu->xreg[rd] = cpu->xreg[rs1] + cpu->xreg[rs2];
                 break;
             case 0b0000001: // SUB
                 // rd <- rs1 - rs2, pc += 4
-                printf("SUB x%d, x%d, x%d\n", rd, rs1, rs2);
-                cpu->reg[rd] = cpu->reg[rs1] - cpu->reg[rs2];
+                printf("SUB %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                cpu->xreg[rd] = cpu->xreg[rs1] - cpu->xreg[rs2];
                 break;
             default:
                 break;
@@ -313,49 +316,49 @@ void Decode(CPU* cpu, uint32_t instruction)
             break;
         case 0b001: // SLL
             // rd <- rs1 << (rs2 % XLEN), pc += 4
-            printf("SLL x%d, x%d, x%d\n", rd, rs1, rs2);
-            cpu->reg[rd] = cpu->reg[rs1] << (cpu->reg[rs2] % 32);
+            printf("SLL %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+            cpu->xreg[rd] = cpu->xreg[rs1] << (cpu->xreg[rs2] % 32);
             break;
         case 0b010: // SLT
             // rd <- (rs1 < rs2) ? 1 : 0, pc += 4
-            printf("SLT x%d, x%d, x%d\n", rd, rs1, rs2);
-            cpu->reg[rd] = ((int32_t)cpu->reg[rs1] < (int32_t)cpu->reg[rs2]) ? 1 : 0;
+            printf("SLT %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+            cpu->xreg[rd] = ((int32_t)cpu->xreg[rs1] < (int32_t)cpu->xreg[rs2]) ? 1 : 0;
             break;
         case 0b011: // SLTU
             // rd <- (rs1 < rs2) ? 1 : 0, pc += 4
-            printf("SLTU x%d, x%d, x%d\n", rd, rs1, rs2);
-            cpu->reg[rd] = (cpu->reg[rs1] < cpu->reg[rs2]) ? 1 : 0;
+            printf("SLTU %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+            cpu->xreg[rd] = (cpu->xreg[rs1] < cpu->xreg[rs2]) ? 1 : 0;
             break;
         case 0b100: // XOR
             // rd <- rs1 ^ rs2, pc += 4
-            printf("XOR x%d, x%d, x%d\n", rd, rs1, rs2);
-            cpu->reg[rd] = cpu->reg[rs1] ^ cpu->reg[rs2];
+            printf("XOR %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+            cpu->xreg[rd] = cpu->xreg[rs1] ^ cpu->xreg[rs2];
             break;
         case 0b101: // SRL / SRA
             switch (funct7)
             {
             case 0b0000000: // SRL
                 // rd <- rs1 >> (rs2 % XLEN), pc += 4
-                printf("SRL x%d, x%d, x%d\n", rd, rs1, rs2);
-                cpu->reg[rd] = cpu->reg[rs1] >> (cpu->reg[rs2] % 32);
+                printf("SRL %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                cpu->xreg[rd] = cpu->xreg[rs1] >> (cpu->xreg[rs2] % 32);
                 break;
             case 0b0100000: // SRA
                 // rd <- rs1 >> (rs2 % XLEN), pc += 4
-                printf("SRA x%d, x%d, x%d\n", rd, rs1, rs2);
-                cpu->reg[rd] = (int32_t)cpu->reg[rs1] >> (cpu->reg[rs2] % 32);
+                printf("SRA %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                cpu->xreg[rd] = (int32_t)cpu->xreg[rs1] >> (cpu->xreg[rs2] % 32);
             default:
                 break;
             }
             break;
         case 0b110: // OR
             // rd <- rs1 | rs2, pc += 4
-            printf("OR x%d, x%d, x%d\n", rd, rs1, rs2);
-            cpu->reg[rd] = cpu->reg[rs1] | cpu->reg[rs2];
+            printf("OR %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+            cpu->xreg[rd] = cpu->xreg[rs1] | cpu->xreg[rs2];
             break;
         case 0b111: // AND
             // rd <- rs1 & rs2, pc += 4
-            printf("AND x%d, x%d, x%d\n", rd, rs1, rs2);
-            cpu->reg[rd] = cpu->reg[rs1] & cpu->reg[rs2];
+            printf("AND %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+            cpu->xreg[rd] = cpu->xreg[rs1] & cpu->xreg[rs2];
             break;
         default:
             break;
@@ -569,18 +572,18 @@ int main()
     Decode(&cpu, (1 << 20) | (0 << 15) | (0b000 << 12) | (0 << 7) | OP_SYSTEM);
 
     printf("Decoding a compiled program.\n");
-    Decode(&cpu, 0xfe010113); // 13 01 01 fe   addi    sp, sp, -32      ADDI x2, x2, -32
-    Decode(&cpu, 0x00112e23); // 23 2e 11 00   sw      ra, 28(sp)       SW x1, 28(x2)
-    Decode(&cpu, 0x00812c23); // 23 2c 81 00   sw      s0, 24(sp)       SW x8, 24(x2)
-    Decode(&cpu, 0x02010413); // 13 04 01 02   addi    s0, sp, 32       ADDI x8, x2, 32
-    Decode(&cpu, 0x00000613); // 13 06 00 00   mv      a2, zero         ADDI x12, x0, 0
-    Decode(&cpu, 0xfec42a23); // 23 2a c4 fe   sw      a2, -12(s0)      SW x12, -12(x8)
-    Decode(&cpu, 0xfea42823); // 23 28 a4 fe   sw      a0, -16(s0)      SW x10, -16(x8)
-    Decode(&cpu, 0xfeb42623); // 23 26 b4 fe   sw      a1, -20(s0)      SW x11, -20(x8)
-    Decode(&cpu, 0x00001537); // 37 15 00 00   lui     a0, 1            LUI x10, 1
-    Decode(&cpu, 0x24350513); // 13 05 35 24   addi    a0, a0, 579      ADDI x10, x10, 579
-    Decode(&cpu, 0x01812403); // 03 24 81 01   lw      s0, 24(sp)       LW x8, 24(x2)
-    Decode(&cpu, 0x01c12083); // 83 20 c1 01   lw      ra, 28(sp)       LW x1, 28(x2)
-    Decode(&cpu, 0x02010113); // 13 01 01 02   addi    sp, sp, 32       ADDI x2, x2, 32
-    Decode(&cpu, 0x00008067); // 67 80 00 00   ret                      JALR x0, x1, 0
+    Decode(&cpu, 0xfe010113); // 13 01 01 fe   addi    sp, sp, -32      ADDI sp, sp, -32
+    Decode(&cpu, 0x00112e23); // 23 2e 11 00   sw      ra, 28(sp)       SW ra, 28(sp)
+    Decode(&cpu, 0x00812c23); // 23 2c 81 00   sw      s0, 24(sp)       SW s0, 24(sp)
+    Decode(&cpu, 0x02010413); // 13 04 01 02   addi    s0, sp, 32       ADDI s0, sp, 32
+    Decode(&cpu, 0x00000613); // 13 06 00 00   mv      a2, zero         ADDI a2, zero, 0
+    Decode(&cpu, 0xfec42a23); // 23 2a c4 fe   sw      a2, -12(s0)      SW a2, -12(s0)
+    Decode(&cpu, 0xfea42823); // 23 28 a4 fe   sw      a0, -16(s0)      SW a0, -16(s0)
+    Decode(&cpu, 0xfeb42623); // 23 26 b4 fe   sw      a1, -20(s0)      SW a1, -20(s0)
+    Decode(&cpu, 0x00001537); // 37 15 00 00   lui     a0, 1            LUI a0, 1
+    Decode(&cpu, 0x24350513); // 13 05 35 24   addi    a0, a0, 579      ADDI a0, a0, 579
+    Decode(&cpu, 0x01812403); // 03 24 81 01   lw      s0, 24(sp)       LW s0, 24(sp)
+    Decode(&cpu, 0x01c12083); // 83 20 c1 01   lw      ra, 28(sp)       LW ra, 28(sp)
+    Decode(&cpu, 0x02010113); // 13 01 01 02   addi    sp, sp, 32       ADDI sp, sp, 32
+    Decode(&cpu, 0x00008067); // 67 80 00 00   ret                      JALR zero, ra, 0
 }
