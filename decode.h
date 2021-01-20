@@ -36,8 +36,9 @@ extern "C" {
 #endif
 
 void Decode(CPU* cpu, uint32_t instruction);
+uint32_t Fetch(CPU* cpu);
+void Run(CPU* cpu, int count);
 
 #ifdef __cplusplus
 }
 #endif
-

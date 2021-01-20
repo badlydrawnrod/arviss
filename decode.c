@@ -437,3 +437,17 @@ void Decode(CPU* cpu, uint32_t instruction)
         break;
     }
 }
+
+uint32_t Fetch(CPU* cpu)
+{
+    return cpu->ReadWord(cpu->pc);
+}
+
+void Run(CPU* cpu, int count)
+{
+    for (int i = 0; i < count; i++)
+    {
+        uint32_t instruction = Fetch(cpu);
+        Decode(cpu, instruction);
+    }
+}
