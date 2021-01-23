@@ -148,35 +148,35 @@ void Decode(CPU* cpu, uint32_t instruction)
         case 0b000: // LB
             // rd <- sx(m8(rs1 + imm_i)), pc += 4
             printf("LB %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
-            cpu->xreg[rd] = (int32_t)(int16_t)(int8_t)cpu->ReadByte(cpu->xreg[rs1] + imm);
+            cpu->xreg[rd] = (int32_t)(int16_t)(int8_t)ReadByte(cpu->memory, cpu->xreg[rs1] + imm);
             cpu->pc += 4;
             cpu->xreg[0] = 0;
             break;
         case 0b001: // LH
             // rd <- sx(m16(rs1 + imm_i)), pc += 4
             printf("LH %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
-            cpu->xreg[rd] = (int32_t)(int16_t)cpu->ReadHalfword(cpu->xreg[rs1] + imm);
+            cpu->xreg[rd] = (int32_t)(int16_t)ReadHalfword(cpu->memory, cpu->xreg[rs1] + imm);
             cpu->pc += 4;
             cpu->xreg[0] = 0;
             break;
         case 0b010: // LW
             // rd <- sx(m32(rs1 + imm_i)), pc += 4
             printf("LW %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
-            cpu->xreg[rd] = (int32_t)cpu->ReadWord(cpu->xreg[rs1] + imm);
+            cpu->xreg[rd] = (int32_t)ReadWord(cpu->memory, cpu->xreg[rs1] + imm);
             cpu->pc += 4;
             cpu->xreg[0] = 0;
             break;
         case 0b100: // LBU
             // rd <- zx(m8(rs1 + imm_i)), pc += 4
             printf("LBU x%d, %d(x%d)\n", rd, imm, rs1);
-            cpu->xreg[rd] = cpu->ReadByte(cpu->xreg[rs1] + imm);
+            cpu->xreg[rd] = ReadByte(cpu->memory, cpu->xreg[rs1] + imm);
             cpu->pc += 4;
             cpu->xreg[0] = 0;
             break;
         case 0b101: // LHU
             // rd <- zx(m16(rs1 + imm_i)), pc += 4
             printf("LHU %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
-            cpu->xreg[rd] = cpu->ReadHalfword(cpu->xreg[rs1] + imm);
+            cpu->xreg[rd] = ReadHalfword(cpu->memory, cpu->xreg[rs1] + imm);
             cpu->pc += 4;
             cpu->xreg[0] = 0;
             break;
@@ -195,19 +195,19 @@ void Decode(CPU* cpu, uint32_t instruction)
         case 0b000: // SB
             // m8(rs1 + imm_s) <- rs2[7:0], pc += 4
             printf("SB %s, %d(%s)\n", abiNames[rs2], imm, abiNames[rs1]);
-            cpu->WriteByte(cpu->xreg[rs1] + imm, cpu->xreg[rs2] & 0xff);
+            WriteByte(cpu->memory, cpu->xreg[rs1] + imm, cpu->xreg[rs2] & 0xff);
             cpu->pc += 4;
             break;
         case 0b001: // SH
             // m16(rs1 + imm_s) <- rs2[15:0], pc += 4
             printf("SH %s, %d(%s)\n", abiNames[rs2], imm, abiNames[rs1]);
-            cpu->WriteHalfword(cpu->xreg[rs1] + imm, cpu->xreg[rs2] & 0xffff);
+            WriteHalfword(cpu->memory, cpu->xreg[rs1] + imm, cpu->xreg[rs2] & 0xffff);
             cpu->pc += 4;
             break;
         case 0b010: // SW
             // m32(rs1 + imm_s) <- rs2[31:0], pc += 4
             printf("SW %s, %d(%s)\n", abiNames[rs2], imm, abiNames[rs1]);
-            cpu->WriteWord(cpu->xreg[rs1] + imm, cpu->xreg[rs2]);
+            WriteWord(cpu->memory, cpu->xreg[rs1] + imm, cpu->xreg[rs2]);
             cpu->pc += 4;
             break;
         default:
@@ -440,7 +440,7 @@ void Decode(CPU* cpu, uint32_t instruction)
 
 uint32_t Fetch(CPU* cpu)
 {
-    return cpu->ReadWord(cpu->pc);
+    return ReadWord(cpu->memory, cpu->pc);
 }
 
 void Run(CPU* cpu, int count)

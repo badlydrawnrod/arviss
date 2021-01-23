@@ -2,17 +2,25 @@
 
 #include "gtest/gtest.h"
 
+struct Memory
+{
+    static constexpr uint32_t rambase = 0x1000;
+    static constexpr uint32_t ramsize = 0x1000;
+    uint8_t ram[ramsize];
+};
+
 class TestDecoder : public ::testing::Test
 {
 protected:
     void SetUp();
 
-    static uint8_t ReadByte(uint32_t addr);
-    static uint16_t ReadHalfword(uint32_t addr);
-    static uint32_t ReadWord(uint32_t addr);
-    static void WriteByte(uint32_t addr, uint8_t byte);
-    static void WriteHalfword(uint32_t addr, uint16_t halfword);
-    static void WriteWord(uint32_t addr, uint32_t word);
+    static uint8_t ReadByte(Memory* memory, uint32_t addr);
+    static uint16_t ReadHalfword(Memory* memory, uint32_t addr);
+    static uint32_t ReadWord(Memory* memory, uint32_t addr);
+    static void WriteByte(Memory* memory, uint32_t addr, uint8_t byte);
+    static void WriteHalfword(Memory* memory, uint32_t addr, uint16_t halfword);
+    static void WriteWord(Memory* memory, uint32_t addr, uint32_t word);
+
     static uint32_t EncodeRd(uint32_t n);
     static uint32_t EncodeRs1(uint32_t n);
     static uint32_t EncodeRs2(uint32_t n);
@@ -26,17 +34,14 @@ protected:
 
     CPU cpu;
 
-    inline static uint8_t ram[ramsize];
+    inline static Memory memory;
+    inline static MemoryVtbl vtbl = {ReadByte, ReadHalfword, ReadWord, WriteByte, WriteHalfword, WriteWord};
 };
 
 void TestDecoder::SetUp()
 {
-    cpu.ReadByte = ReadByte;
-    cpu.ReadHalfword = ReadHalfword;
-    cpu.ReadWord = ReadWord;
-    cpu.WriteByte = WriteByte;
-    cpu.WriteHalfword = WriteHalfword;
-    cpu.WriteWord = WriteWord;
+    cpu.memory.vtbl = &vtbl;
+    cpu.memory.mem = &memory;
 
     // Clear the registers.
     cpu.pc = 0;
@@ -46,65 +51,65 @@ void TestDecoder::SetUp()
     }
 
     // Clear the RAM.
-    for (auto& b : ram)
+    for (auto& b : memory.ram)
     {
         b = 0;
     }
 }
 
-uint8_t TestDecoder::ReadByte(uint32_t addr)
+uint8_t TestDecoder::ReadByte(Memory* memory, uint32_t addr)
 {
     if (addr >= rambase && addr < rambase + ramsize)
     {
-        return ram[addr - rambase];
+        return memory->ram[addr - rambase];
     }
     return 0;
 }
 
-uint16_t TestDecoder::ReadHalfword(uint32_t addr)
+uint16_t TestDecoder::ReadHalfword(Memory* memory, uint32_t addr)
 {
     if (addr >= rambase && addr < rambase + ramsize - 1)
     {
-        return ram[addr - rambase] | (ram[addr + 1 - rambase] << 8);
+        return memory->ram[addr - rambase] | (memory->ram[addr + 1 - rambase] << 8);
     }
     return 0;
 }
 
-uint32_t TestDecoder::ReadWord(uint32_t addr)
+uint32_t TestDecoder::ReadWord(Memory* memory, uint32_t addr)
 {
     if (addr >= rambase && addr < rambase + ramsize - 3)
     {
-        return ram[addr - rambase] | (ram[addr + 1 - rambase] << 8) | (ram[addr + 2 - rambase] << 16)
-                | (ram[addr + 3 - rambase] << 24);
+        return memory->ram[addr - rambase] | (memory->ram[addr + 1 - rambase] << 8) | (memory->ram[addr + 2 - rambase] << 16)
+                | (memory->ram[addr + 3 - rambase] << 24);
     }
     return 0;
 }
 
-void TestDecoder::WriteByte(uint32_t addr, uint8_t byte)
+void TestDecoder::WriteByte(Memory* memory, uint32_t addr, uint8_t byte)
 {
     if (addr >= rambase && addr < rambase + ramsize)
     {
-        ram[addr - rambase] = byte;
+        memory->ram[addr - rambase] = byte;
     }
 }
 
-void TestDecoder::WriteHalfword(uint32_t addr, uint16_t halfword)
+void TestDecoder::WriteHalfword(Memory* memory, uint32_t addr, uint16_t halfword)
 {
     if (addr >= rambase && addr < rambase + ramsize - 1)
     {
-        ram[addr - rambase] = halfword & 0xff;
-        ram[addr + 1 - rambase] = (halfword >> 8) & 0xff;
+        memory->ram[addr - rambase] = halfword & 0xff;
+        memory->ram[addr + 1 - rambase] = (halfword >> 8) & 0xff;
     }
 }
 
-void TestDecoder::WriteWord(uint32_t addr, uint32_t word)
+void TestDecoder::WriteWord(Memory* memory, uint32_t addr, uint32_t word)
 {
     if (addr >= rambase && addr < rambase + ramsize - 3)
     {
-        ram[addr - rambase] = word & 0xff;
-        ram[addr + 1 - rambase] = (word >> 8) & 0xff;
-        ram[addr + 2 - rambase] = (word >> 16) & 0xff;
-        ram[addr + 3 - rambase] = (word >> 24) & 0xff;
+        memory->ram[addr - rambase] = word & 0xff;
+        memory->ram[addr + 1 - rambase] = (word >> 8) & 0xff;
+        memory->ram[addr + 2 - rambase] = (word >> 16) & 0xff;
+        memory->ram[addr + 3 - rambase] = (word >> 24) & 0xff;
     }
 }
 
@@ -453,7 +458,7 @@ TEST_F(TestDecoder, Load_Lb)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 7 is zero.
-    WriteByte(cpu.xreg[rs1] + imm_i, 123);
+    ::WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 123);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m8(rs1 + imm_i))
@@ -464,7 +469,7 @@ TEST_F(TestDecoder, Load_Lb)
 
     // Sign extend when bit 7 is one.
     pc = cpu.pc;
-    WriteByte(cpu.xreg[rs1] + imm_i, 0xff);
+    ::WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 0xff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m8(rs1 + imm_i))
@@ -484,7 +489,7 @@ TEST_F(TestDecoder, Load_Lh)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 15 is zero.
-    WriteHalfword(cpu.xreg[rs1] + imm_i, 0x7fff);
+    ::WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m16(rs1 + imm_i))
@@ -495,7 +500,7 @@ TEST_F(TestDecoder, Load_Lh)
 
     // Sign extend when bit 15 is one.
     pc = cpu.pc;
-    WriteHalfword(cpu.xreg[rs1] + imm_i, 0xffff);
+    ::WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m16(rs1 + imm_i))
@@ -515,7 +520,7 @@ TEST_F(TestDecoder, Load_Lw)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 31 is zero.
-    WriteWord(cpu.xreg[rs1] + imm_i, 0x7fffffff);
+    ::WriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fffffff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m32(rs1 + imm_i))
@@ -526,7 +531,7 @@ TEST_F(TestDecoder, Load_Lw)
 
     // Sign extend when bit 31 is one.
     pc = cpu.pc;
-    WriteWord(cpu.xreg[rs1] + imm_i, 0xffffffff);
+    ::WriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffffffff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m32(rs1 + imm_i))
@@ -546,7 +551,7 @@ TEST_F(TestDecoder, Load_Lbu)
     cpu.xreg[rs1] = rambase + ramsize / 2;
 
     // Zero extend when bit 7 is zero.
-    WriteByte(cpu.xreg[rs1] + imm_i, 123);
+    ::WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 123);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m8(rs1 + imm_i))
@@ -557,7 +562,7 @@ TEST_F(TestDecoder, Load_Lbu)
 
     // Zero extend when bit 7 is zero.
     pc = cpu.pc;
-    WriteByte(cpu.xreg[rs1] + imm_i, 0xff);
+    ::WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 0xff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m8(rs1 + imm_i))
@@ -577,7 +582,7 @@ TEST_F(TestDecoder, Load_Lhu)
     cpu.xreg[rs1] = rambase + ramsize / 2;
 
     // Zero extend when bit 15 is zero.
-    WriteHalfword(cpu.xreg[rs1] + imm_i, 0x7fff);
+    ::WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m16(rs1 + imm_i))
@@ -588,7 +593,7 @@ TEST_F(TestDecoder, Load_Lhu)
 
     // Zero extend when bit 15 is one.
     pc = cpu.pc;
-    WriteHalfword(cpu.xreg[rs1] + imm_i, 0xffff);
+    ::WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m16(rs1 + imm_i))
@@ -600,12 +605,12 @@ TEST_F(TestDecoder, Load_Lhu)
 
 TEST_F(TestDecoder, Load_x0_Is_Zero)
 {
-    WriteWord(rambase, 0x12345678);
+    ::WriteWord(cpu.memory, rambase, 0x12345678);
 
     // LB
     uint32_t rs1 = 13;
     cpu.xreg[rs1] = rambase;
-    WriteByte(rambase, 0xff);
+    ::WriteByte(cpu.memory, rambase, 0xff);
     Decode(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(0) | OP_LOAD);
 
     // x0 <- 0
@@ -648,7 +653,7 @@ TEST_F(TestDecoder, Store_Sb)
     Decode(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | OP_STORE);
 
     // m8(rs1 + imm_s) <- rs2[7:0]
-    ASSERT_EQ(ReadByte(cpu.xreg[rs1] + imm_s), cpu.xreg[rs2] & 0xff);
+    ASSERT_EQ(::ReadByte(cpu.memory, cpu.xreg[rs1] + imm_s), cpu.xreg[rs2] & 0xff);
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
@@ -666,7 +671,7 @@ TEST_F(TestDecoder, Store_Sh)
     Decode(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | OP_STORE);
 
     // m16(rs1 + imm_s) <- rs2[15:0]
-    ASSERT_EQ(ReadHalfword(cpu.xreg[rs1] + imm_s), cpu.xreg[rs2] & 0xffff);
+    ASSERT_EQ(::ReadHalfword(cpu.memory, cpu.xreg[rs1] + imm_s), cpu.xreg[rs2] & 0xffff);
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
@@ -684,7 +689,7 @@ TEST_F(TestDecoder, Store_Sw)
     Decode(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | OP_STORE);
 
     // m32(rs1 + imm_s) <- rs2[31:0]
-    ASSERT_EQ(ReadWord(cpu.xreg[rs1] + imm_s), cpu.xreg[rs2] & 0xffff);
+    ASSERT_EQ(::ReadWord(cpu.memory, cpu.xreg[rs1] + imm_s), cpu.xreg[rs2] & 0xffff);
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);

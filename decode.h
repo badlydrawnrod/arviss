@@ -2,18 +2,60 @@
 
 #include <stdint.h>
 
+typedef struct Memory Memory;
+
+typedef struct
+{
+    uint8_t (*ReadByte)(Memory* memory, uint32_t addr);
+    uint16_t (*ReadHalfword)(Memory* memory, uint32_t addr);
+    uint32_t (*ReadWord)(Memory* memory, uint32_t addr);
+
+    void (*WriteByte)(Memory* memory, uint32_t addr, uint8_t byte);
+    void (*WriteHalfword)(Memory* memory, uint32_t addr, uint16_t halfword);
+    void (*WriteWord)(Memory* memory, uint32_t addr, uint32_t word);
+} MemoryVtbl;
+
+typedef struct FatMem
+{
+    Memory* mem;
+    MemoryVtbl* vtbl;
+} FatMem;
+
+static inline uint8_t ReadByte(FatMem mem, uint32_t addr)
+{
+    return mem.vtbl->ReadByte(mem.mem, addr);
+}
+
+static inline uint16_t ReadHalfword(FatMem mem, uint32_t addr)
+{
+    return mem.vtbl->ReadHalfword(mem.mem, addr);
+}
+
+static inline uint32_t ReadWord(FatMem mem, uint32_t addr)
+{
+    return mem.vtbl->ReadWord(mem.mem, addr);
+}
+
+static inline void WriteByte(FatMem mem, uint32_t addr, uint8_t byte)
+{
+    mem.vtbl->WriteByte(mem.mem, addr, byte);
+}
+
+static inline void WriteHalfword(FatMem mem, uint32_t addr, uint16_t halfword)
+{
+    mem.vtbl->WriteHalfword(mem.mem, addr, halfword);
+}
+
+static inline void WriteWord(FatMem mem, uint32_t addr, uint32_t word)
+{
+    mem.vtbl->WriteWord(mem.mem, addr, word);
+}
+
 typedef struct CPU
 {
     uint32_t pc;
     uint32_t xreg[32];
-
-    uint8_t (*ReadByte)(uint32_t addr);
-    uint16_t (*ReadHalfword)(uint32_t addr);
-    uint32_t (*ReadWord)(uint32_t addr);
-
-    void (*WriteByte)(uint32_t addr, uint8_t byte);
-    void (*WriteHalfword)(uint32_t addr, uint16_t halfword);
-    void (*WriteWord)(uint32_t addr, uint32_t word);
+    FatMem memory;
 } CPU;
 
 enum

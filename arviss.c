@@ -3,31 +3,65 @@
 #include <stdint.h>
 #include <stdio.h>
 
-uint8_t ReadByte(uint32_t addr)
+const uint32_t rambase = 0x8000;
+const uint32_t ramsize = 0x8000;
+
+static uint8_t ram[ramsize];
+
+static uint8_t ReadByte(uint32_t addr)
 {
+    if (addr >= rambase && addr < rambase + ramsize)
+    {
+        return ram[addr - rambase];
+    }
     return 0;
 }
 
-uint16_t ReadHalfword(uint32_t addr)
+static uint16_t ReadHalfword(uint32_t addr)
 {
+    if (addr >= rambase && addr < rambase + ramsize - 1)
+    {
+        return ram[addr - rambase] | (ram[addr + 1 - rambase] << 8);
+    }
     return 0;
 }
 
-uint32_t ReadWord(uint32_t addr)
+static uint32_t ReadWord(uint32_t addr)
 {
+    if (addr >= rambase && addr < rambase + ramsize - 3)
+    {
+        return ram[addr - rambase] | (ram[addr + 1 - rambase] << 8) | (ram[addr + 2 - rambase] << 16)
+                | (ram[addr + 3 - rambase] << 24);
+    }
     return 0;
 }
 
-void WriteByte(uint32_t addr, uint8_t byte)
+static void WriteByte(uint32_t addr, uint8_t byte)
 {
+    if (addr >= rambase && addr < rambase + ramsize)
+    {
+        ram[addr - rambase] = byte;
+    }
 }
 
-void WriteHalfword(uint32_t addr, uint16_t halfword)
+static void WriteHalfword(uint32_t addr, uint16_t halfword)
 {
+    if (addr >= rambase && addr < rambase + ramsize - 1)
+    {
+        ram[addr - rambase] = halfword & 0xff;
+        ram[addr + 1 - rambase] = (halfword >> 8) & 0xff;
+    }
 }
 
-void WriteWord(uint32_t addr, uint32_t word)
+static void WriteWord(uint32_t addr, uint32_t word)
 {
+    if (addr >= rambase && addr < rambase + ramsize - 3)
+    {
+        ram[addr - rambase] = word & 0xff;
+        ram[addr + 1 - rambase] = (word >> 8) & 0xff;
+        ram[addr + 2 - rambase] = (word >> 16) & 0xff;
+        ram[addr + 3 - rambase] = (word >> 24) & 0xff;
+    }
 }
 
 int main()
