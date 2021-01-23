@@ -44,7 +44,7 @@ void TestDecoder::SetUp()
     cpu.memory.mem = &memory;
 
     // Clear the registers.
-    cpu.pc = 0;
+    cpu.pc = rambase;
     for (auto& reg : cpu.xreg)
     {
         reg = 0;
@@ -251,19 +251,23 @@ TEST_F(TestDecoder, Jalr)
     // rd <- pc + 4, pc <- (rs1 + imm_i) & ~1
     for (int32_t v : {0, -1, 1, -(1 << 1), (1 << 11) - 1})
     {
+        cpu.pc = 0x1000;
+
         uint32_t pc = cpu.pc;
         int32_t imm_i = v;
         uint32_t rs1 = 10;
-        uint32_t rd = 17;
-        cpu.xreg[rs1] = 12345;
+        uint32_t rd = 10;
+        uint32_t rs1Before = 12345;
+        cpu.xreg[rs1] = rs1Before;
 
-        Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_JALR);
+        uint32_t ins = EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_JALR;
+        Decode(&cpu, ins);
 
         // rd <- pc + 4
         ASSERT_EQ(pc + 4, cpu.xreg[rd]);
 
         // pc <- (rs1 + imm_i) & ~1
-        ASSERT_EQ((cpu.xreg[rs1] + imm_i) & ~1, cpu.pc);
+        ASSERT_EQ((rs1Before + imm_i) & ~1, cpu.pc);
     }
 }
 

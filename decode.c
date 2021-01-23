@@ -88,8 +88,9 @@ void Decode(CPU* cpu, uint32_t instruction)
         if (funct3 == 0b000)
         {
             printf("JALR %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
+            uint32_t rs1Before = cpu->xreg[rs1]; // Because rd and rs1 might be the same register.
             cpu->xreg[rd] = cpu->pc + 4;
-            cpu->pc = (cpu->xreg[rs1] + imm) & ~1;
+            cpu->pc = (rs1Before + imm) & ~1;
             cpu->xreg[0] = 0;
         }
         else
