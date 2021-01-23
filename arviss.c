@@ -3,75 +3,86 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#define RAMSIZE 0x8000
+
 const uint32_t rambase = 0x8000;
-const uint32_t ramsize = 0x8000;
+const uint32_t ramsize = RAMSIZE;
 
-static uint8_t ram[ramsize];
+struct Memory
+{
+    uint8_t ram[RAMSIZE];
+};
 
-static uint8_t ReadByte(uint32_t addr)
+static uint8_t arviss_ReadByte(Memory* memory, uint32_t addr);
+static uint16_t arviss_ReadHalfword(Memory* memory, uint32_t addr);
+static uint32_t arviss_ReadWord(Memory* memory, uint32_t addr);
+static void arviss_WriteByte(Memory* memory, uint32_t addr, uint8_t byte);
+static void arviss_WriteHalfword(Memory* memory, uint32_t addr, uint16_t halfword);
+static void arviss_WriteWord(Memory* memory, uint32_t addr, uint32_t word);
+
+static MemoryVtbl vtbl = {arviss_ReadByte,  arviss_ReadHalfword,  arviss_ReadWord,
+                          arviss_WriteByte, arviss_WriteHalfword, arviss_WriteWord};
+
+static uint8_t arviss_ReadByte(Memory* memory, uint32_t addr)
 {
     if (addr >= rambase && addr < rambase + ramsize)
     {
-        return ram[addr - rambase];
+        return memory->ram[addr - rambase];
     }
     return 0;
 }
 
-static uint16_t ReadHalfword(uint32_t addr)
+static uint16_t arviss_ReadHalfword(Memory* memory, uint32_t addr)
 {
     if (addr >= rambase && addr < rambase + ramsize - 1)
     {
-        return ram[addr - rambase] | (ram[addr + 1 - rambase] << 8);
+        return memory->ram[addr - rambase] | (memory->ram[addr + 1 - rambase] << 8);
     }
     return 0;
 }
 
-static uint32_t ReadWord(uint32_t addr)
+static uint32_t arviss_ReadWord(Memory* memory, uint32_t addr)
 {
     if (addr >= rambase && addr < rambase + ramsize - 3)
     {
-        return ram[addr - rambase] | (ram[addr + 1 - rambase] << 8) | (ram[addr + 2 - rambase] << 16)
-                | (ram[addr + 3 - rambase] << 24);
+        return memory->ram[addr - rambase] | (memory->ram[addr + 1 - rambase] << 8) | (memory->ram[addr + 2 - rambase] << 16)
+                | (memory->ram[addr + 3 - rambase] << 24);
     }
     return 0;
 }
 
-static void WriteByte(uint32_t addr, uint8_t byte)
+static void arviss_WriteByte(Memory* memory, uint32_t addr, uint8_t byte)
 {
     if (addr >= rambase && addr < rambase + ramsize)
     {
-        ram[addr - rambase] = byte;
+        memory->ram[addr - rambase] = byte;
     }
 }
 
-static void WriteHalfword(uint32_t addr, uint16_t halfword)
+static void arviss_WriteHalfword(Memory* memory, uint32_t addr, uint16_t halfword)
 {
     if (addr >= rambase && addr < rambase + ramsize - 1)
     {
-        ram[addr - rambase] = halfword & 0xff;
-        ram[addr + 1 - rambase] = (halfword >> 8) & 0xff;
+        memory->ram[addr - rambase] = halfword & 0xff;
+        memory->ram[addr + 1 - rambase] = (halfword >> 8) & 0xff;
     }
 }
 
-static void WriteWord(uint32_t addr, uint32_t word)
+static void arviss_WriteWord(Memory* memory, uint32_t addr, uint32_t word)
 {
     if (addr >= rambase && addr < rambase + ramsize - 3)
     {
-        ram[addr - rambase] = word & 0xff;
-        ram[addr + 1 - rambase] = (word >> 8) & 0xff;
-        ram[addr + 2 - rambase] = (word >> 16) & 0xff;
-        ram[addr + 3 - rambase] = (word >> 24) & 0xff;
+        memory->ram[addr - rambase] = word & 0xff;
+        memory->ram[addr + 1 - rambase] = (word >> 8) & 0xff;
+        memory->ram[addr + 2 - rambase] = (word >> 16) & 0xff;
+        memory->ram[addr + 3 - rambase] = (word >> 24) & 0xff;
     }
 }
 
 int main()
 {
-    CPU cpu = {.ReadByte = ReadByte,
-               .ReadHalfword = ReadHalfword,
-               .ReadWord = ReadWord,
-               .WriteByte = WriteByte,
-               .WriteHalfword = WriteHalfword,
-               .WriteWord = WriteWord};
+    Memory memory;
+    CPU cpu = {.memory = {.vtbl = &vtbl, .mem = &memory}};
 
     // LUI
     Decode(&cpu, (65535 << 12) | (2 << 7) | OP_LUI);
