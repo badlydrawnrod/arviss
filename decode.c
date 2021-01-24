@@ -441,6 +441,7 @@ void Decode(CPU* cpu, uint32_t instruction)
 
 uint32_t Fetch(CPU* cpu)
 {
+    printf("%08x ", cpu->pc);
     return ReadWord(cpu->memory, cpu->pc);
 }
 
