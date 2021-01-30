@@ -24,10 +24,10 @@ endif ()
 # Prevent google test from overriding the parent project's compiler/linker settings on Windows
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
-add_library(arviss decode.c)
+add_library(arviss decode.c smallmem.c)
 
 add_executable(0x38_arviss arviss.c)
 target_link_libraries(0x38_arviss PRIVATE arviss)
 
-add_executable(decode_test decode_test.cpp decode.c)
+add_executable(decode_test decode_test.cpp)
 target_link_libraries(decode_test PRIVATE arviss gtest_main)

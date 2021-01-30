@@ -1,61 +1,21 @@
 #pragma once
 
+#include "memory.h"
+#include "result.h"
+
+#include <stdbool.h>
 #include <stdint.h>
-
-typedef struct Memory Memory;
-
-typedef struct
-{
-    uint8_t (*ReadByte)(Memory* memory, uint32_t addr);
-    uint16_t (*ReadHalfword)(Memory* memory, uint32_t addr);
-    uint32_t (*ReadWord)(Memory* memory, uint32_t addr);
-
-    void (*WriteByte)(Memory* memory, uint32_t addr, uint8_t byte);
-    void (*WriteHalfword)(Memory* memory, uint32_t addr, uint16_t halfword);
-    void (*WriteWord)(Memory* memory, uint32_t addr, uint32_t word);
-} MemoryVtbl;
-
-typedef struct FatMem
-{
-    Memory* mem;
-    MemoryVtbl* vtbl;
-} FatMem;
-
-static inline uint8_t ReadByte(FatMem mem, uint32_t addr)
-{
-    return mem.vtbl->ReadByte(mem.mem, addr);
-}
-
-static inline uint16_t ReadHalfword(FatMem mem, uint32_t addr)
-{
-    return mem.vtbl->ReadHalfword(mem.mem, addr);
-}
-
-static inline uint32_t ReadWord(FatMem mem, uint32_t addr)
-{
-    return mem.vtbl->ReadWord(mem.mem, addr);
-}
-
-static inline void WriteByte(FatMem mem, uint32_t addr, uint8_t byte)
-{
-    mem.vtbl->WriteByte(mem.mem, addr, byte);
-}
-
-static inline void WriteHalfword(FatMem mem, uint32_t addr, uint16_t halfword)
-{
-    mem.vtbl->WriteHalfword(mem.mem, addr, halfword);
-}
-
-static inline void WriteWord(FatMem mem, uint32_t addr, uint32_t word)
-{
-    mem.vtbl->WriteWord(mem.mem, addr, word);
-}
 
 typedef struct CPU
 {
-    uint32_t pc;
-    uint32_t xreg[32];
-    FatMem memory;
+    uint32_t pc;       // The program counter.
+    uint32_t xreg[32]; // Regular registers, x0-x31.
+    uint32_t mepc;     // The machine exception program counter.
+    uint32_t mcause;   // The machine cause register.
+    uint32_t mtval;    // The machine trap value register.
+
+    MemoryTrait memory;
+
 } CPU;
 
 enum
@@ -77,9 +37,11 @@ enum
 extern "C" {
 #endif
 
-void Decode(CPU* cpu, uint32_t instruction);
-uint32_t Fetch(CPU* cpu);
-void Run(CPU* cpu, int count);
+void Reset(CPU* cpu, uint32_t sp);
+CpuResult Decode(CPU* cpu, uint32_t instruction);
+CpuResult Fetch(CPU* cpu);
+CpuResult HandleTrap(CPU* cpu, Trap trap);
+CpuResult Run(CPU* cpu, int count);
 
 #ifdef __cplusplus
 }

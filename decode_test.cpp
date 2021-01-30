@@ -1,25 +1,12 @@
 #include "decode.h"
+#include "smallmem.h"
 
 #include "gtest/gtest.h"
-
-struct Memory
-{
-    static constexpr uint32_t rambase = 0x1000;
-    static constexpr uint32_t ramsize = 0x1000;
-    uint8_t ram[ramsize];
-};
 
 class TestDecoder : public ::testing::Test
 {
 protected:
     void SetUp();
-
-    static uint8_t ReadByte(Memory* memory, uint32_t addr);
-    static uint16_t ReadHalfword(Memory* memory, uint32_t addr);
-    static uint32_t ReadWord(Memory* memory, uint32_t addr);
-    static void WriteByte(Memory* memory, uint32_t addr, uint8_t byte);
-    static void WriteHalfword(Memory* memory, uint32_t addr, uint16_t halfword);
-    static void WriteWord(Memory* memory, uint32_t addr, uint32_t word);
 
     static uint32_t EncodeRd(uint32_t n);
     static uint32_t EncodeRs1(uint32_t n);
@@ -29,88 +16,26 @@ protected:
     static uint32_t EncodeS(uint32_t n);
     static uint32_t EncodeI(uint32_t n);
 
-    static constexpr uint32_t rambase = 0x1000;
-    static constexpr uint32_t ramsize = 0x1000;
+    static constexpr uint32_t rambase = 0x1000; // Deliberately not zero.
+    static constexpr uint32_t ramsize = 0x1000; // Deliberately small to keep offsets from getting out of range.
 
     CPU cpu;
 
     inline static Memory memory;
-    inline static MemoryVtbl vtbl = {ReadByte, ReadHalfword, ReadWord, WriteByte, WriteHalfword, WriteWord};
 };
 
 void TestDecoder::SetUp()
 {
-    cpu.memory.vtbl = &vtbl;
-    cpu.memory.mem = &memory;
-
-    // Clear the registers.
-    cpu.pc = rambase;
-    for (auto& reg : cpu.xreg)
-    {
-        reg = 0;
-    }
-
     // Clear the RAM.
     for (auto& b : memory.ram)
     {
         b = 0;
     }
-}
 
-uint8_t TestDecoder::ReadByte(Memory* memory, uint32_t addr)
-{
-    if (addr >= rambase && addr < rambase + ramsize)
-    {
-        return memory->ram[addr - rambase];
-    }
-    return 0;
-}
-
-uint16_t TestDecoder::ReadHalfword(Memory* memory, uint32_t addr)
-{
-    if (addr >= rambase && addr < rambase + ramsize - 1)
-    {
-        return memory->ram[addr - rambase] | (memory->ram[addr + 1 - rambase] << 8);
-    }
-    return 0;
-}
-
-uint32_t TestDecoder::ReadWord(Memory* memory, uint32_t addr)
-{
-    if (addr >= rambase && addr < rambase + ramsize - 3)
-    {
-        return memory->ram[addr - rambase] | (memory->ram[addr + 1 - rambase] << 8) | (memory->ram[addr + 2 - rambase] << 16)
-                | (memory->ram[addr + 3 - rambase] << 24);
-    }
-    return 0;
-}
-
-void TestDecoder::WriteByte(Memory* memory, uint32_t addr, uint8_t byte)
-{
-    if (addr >= rambase && addr < rambase + ramsize)
-    {
-        memory->ram[addr - rambase] = byte;
-    }
-}
-
-void TestDecoder::WriteHalfword(Memory* memory, uint32_t addr, uint16_t halfword)
-{
-    if (addr >= rambase && addr < rambase + ramsize - 1)
-    {
-        memory->ram[addr - rambase] = halfword & 0xff;
-        memory->ram[addr + 1 - rambase] = (halfword >> 8) & 0xff;
-    }
-}
-
-void TestDecoder::WriteWord(Memory* memory, uint32_t addr, uint32_t word)
-{
-    if (addr >= rambase && addr < rambase + ramsize - 3)
-    {
-        memory->ram[addr - rambase] = word & 0xff;
-        memory->ram[addr + 1 - rambase] = (word >> 8) & 0xff;
-        memory->ram[addr + 2 - rambase] = (word >> 16) & 0xff;
-        memory->ram[addr + 3 - rambase] = (word >> 24) & 0xff;
-    }
+    // Reset the CPU.
+    Reset(&cpu, rambase + ramsize);
+    cpu.memory = smallmem_Init(&memory);
+    cpu.pc = rambase;
 }
 
 uint32_t TestDecoder::EncodeRd(uint32_t n)
@@ -657,7 +582,9 @@ TEST_F(TestDecoder, Store_Sb)
     Decode(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | OP_STORE);
 
     // m8(rs1 + imm_s) <- rs2[7:0]
-    ASSERT_EQ(::ReadByte(cpu.memory, cpu.xreg[rs1] + imm_s), cpu.xreg[rs2] & 0xff);
+    CpuResult byteResult = ::ReadByte(cpu.memory, cpu.xreg[rs1] + imm_s);
+    ASSERT_TRUE(ResultIsByte(byteResult));
+    ASSERT_EQ(ResultAsByte(byteResult), cpu.xreg[rs2] & 0xff);
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
@@ -675,7 +602,9 @@ TEST_F(TestDecoder, Store_Sh)
     Decode(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | OP_STORE);
 
     // m16(rs1 + imm_s) <- rs2[15:0]
-    ASSERT_EQ(::ReadHalfword(cpu.memory, cpu.xreg[rs1] + imm_s), cpu.xreg[rs2] & 0xffff);
+    CpuResult halfwordResult = ::ReadHalfword(cpu.memory, cpu.xreg[rs1] + imm_s);
+    ASSERT_TRUE(ResultIsHalfword(halfwordResult));
+    ASSERT_EQ(ResultAsHalfword(halfwordResult), cpu.xreg[rs2] & 0xffff);
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
@@ -693,7 +622,9 @@ TEST_F(TestDecoder, Store_Sw)
     Decode(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | OP_STORE);
 
     // m32(rs1 + imm_s) <- rs2[31:0]
-    ASSERT_EQ(::ReadWord(cpu.memory, cpu.xreg[rs1] + imm_s), cpu.xreg[rs2] & 0xffff);
+    CpuResult wordResult = ::ReadWord(cpu.memory, cpu.xreg[rs1] + imm_s);
+    ASSERT_TRUE(ResultIsWord(wordResult));
+    ASSERT_EQ(ResultAsWord(wordResult), cpu.xreg[rs2] & 0xffff);
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
@@ -1257,4 +1188,60 @@ TEST_F(TestDecoder, Op_x0_Is_Zero)
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
+}
+
+TEST_F(TestDecoder, Op_Mret)
+{
+    // pc <- mepc + 4
+    cpu.mepc = 0x4000;
+    cpu.pc = 0x8080;
+
+    Decode(&cpu, (0b001100000010 << 20) | OP_SYSTEM);
+
+    // pc <- mepc + 4
+    ASSERT_EQ(cpu.mepc + 4, cpu.pc);
+}
+
+TEST_F(TestDecoder, Traps_Set_Mepc)
+{
+    // mepc <- pc
+    cpu.pc = 0x8086;
+    cpu.mepc = 0;
+    uint32_t savedPc = cpu.pc;
+
+    // Take a breakpoint.
+    Trap trap = {trBREAKPOINT, 0x0};
+    HandleTrap(&cpu, trap);
+
+    // mepc <- pc
+    ASSERT_EQ(savedPc, cpu.mepc);
+}
+
+TEST_F(TestDecoder, Traps_Set_Mcause)
+{
+    // mcause <- reason for trap
+    cpu.pc = 0x8086;
+    cpu.mepc = 0;
+
+    // Take a breakpoint.
+    Trap trap = {trBREAKPOINT, 0x0};
+    HandleTrap(&cpu, trap);
+
+    // mcause <- reason for trap
+    ASSERT_EQ(trBREAKPOINT, cpu.mcause);
+}
+
+TEST_F(TestDecoder, Traps_Set_Mtval)
+{
+    // mtval <- exception specific information
+    cpu.pc = 0x8086;
+    cpu.mepc = 0;
+    uint32_t address = 0x1234;
+
+    // Load fault.
+    Trap trap = {trLOAD_ACCESS_FAULT, address};
+    HandleTrap(&cpu, trap);
+
+    // mtval <- exception specific information
+    ASSERT_EQ(address, cpu.mtval);
 }

@@ -41,9 +41,22 @@ static inline int32_t JImmediate(uint32_t instruction)
             ;
 }
 
+void Reset(CPU* cpu, uint32_t sp)
+{
+    cpu->pc = 0;
+    for (int i = 0; i < 32; i++)
+    {
+        cpu->xreg[i] = 0;
+    }
+    cpu->xreg[2] = sp;
+    cpu->mepc = 0;
+    cpu->mcause = 0;
+    cpu->mtval = 0;
+}
+
 // See: http://www.five-embeddev.com/riscv-isa-manual/latest/gmaps.html#rv3264g-instruction-set-listings
 // or riscv-spec-209191213.pdf.
-void Decode(CPU* cpu, uint32_t instruction)
+CpuResult Decode(CPU* cpu, uint32_t instruction)
 {
     uint32_t opcode = instruction & 0x7f;
     uint32_t rd = (instruction >> 7) & 0x1f;
@@ -95,6 +108,7 @@ void Decode(CPU* cpu, uint32_t instruction)
         }
         else
         {
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -136,7 +150,7 @@ void Decode(CPU* cpu, uint32_t instruction)
             cpu->pc += ((cpu->xreg[rs1] >= cpu->xreg[rs2]) ? imm : 4);
             break;
         default:
-            break;
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -146,43 +160,73 @@ void Decode(CPU* cpu, uint32_t instruction)
         int32_t imm = IImmediate(instruction);
         switch (funct3)
         {
-        case 0b000: // LB
+        case 0b000: { // LB
             // rd <- sx(m8(rs1 + imm_i)), pc += 4
             printf("LB %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
-            cpu->xreg[rd] = (int32_t)(int16_t)(int8_t)ReadByte(cpu->memory, cpu->xreg[rs1] + imm);
+            CpuResult byteResult = ReadByte(cpu->memory, cpu->xreg[rs1] + imm);
+            if (!ResultIsByte(byteResult))
+            {
+                return byteResult;
+            }
+            cpu->xreg[rd] = (int32_t)(int16_t)(int8_t)ResultAsByte(byteResult);
             cpu->pc += 4;
             cpu->xreg[0] = 0;
-            break;
-        case 0b001: // LH
+        }
+        break;
+        case 0b001: { // LH
             // rd <- sx(m16(rs1 + imm_i)), pc += 4
             printf("LH %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
-            cpu->xreg[rd] = (int32_t)(int16_t)ReadHalfword(cpu->memory, cpu->xreg[rs1] + imm);
+            CpuResult halfwordResult = ReadHalfword(cpu->memory, cpu->xreg[rs1] + imm);
+            if (!ResultIsHalfword(halfwordResult))
+            {
+                return halfwordResult;
+            }
+            cpu->xreg[rd] = (int32_t)(int16_t)ResultAsHalfword(halfwordResult);
             cpu->pc += 4;
             cpu->xreg[0] = 0;
-            break;
-        case 0b010: // LW
+        }
+        break;
+        case 0b010: { // LW
             // rd <- sx(m32(rs1 + imm_i)), pc += 4
             printf("LW %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
-            cpu->xreg[rd] = (int32_t)ReadWord(cpu->memory, cpu->xreg[rs1] + imm);
+            CpuResult wordResult = ReadWord(cpu->memory, cpu->xreg[rs1] + imm);
+            if (!ResultIsWord(wordResult))
+            {
+                return wordResult;
+            }
+            cpu->xreg[rd] = (int32_t)ResultAsWord(wordResult);
             cpu->pc += 4;
             cpu->xreg[0] = 0;
-            break;
-        case 0b100: // LBU
+        }
+        break;
+        case 0b100: { // LBU
             // rd <- zx(m8(rs1 + imm_i)), pc += 4
             printf("LBU x%d, %d(x%d)\n", rd, imm, rs1);
-            cpu->xreg[rd] = ReadByte(cpu->memory, cpu->xreg[rs1] + imm);
+            CpuResult byteResult = ReadByte(cpu->memory, cpu->xreg[rs1] + imm);
+            if (!ResultIsByte(byteResult))
+            {
+                return byteResult;
+            }
+            cpu->xreg[rd] = ResultAsByte(byteResult);
             cpu->pc += 4;
             cpu->xreg[0] = 0;
-            break;
-        case 0b101: // LHU
+        }
+        break;
+        case 0b101: { // LHU
             // rd <- zx(m16(rs1 + imm_i)), pc += 4
             printf("LHU %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
-            cpu->xreg[rd] = ReadHalfword(cpu->memory, cpu->xreg[rs1] + imm);
+            CpuResult halfwordResult = ReadHalfword(cpu->memory, cpu->xreg[rs1] + imm);
+            if (!ResultIsHalfword(halfwordResult))
+            {
+                return halfwordResult;
+            }
+            cpu->xreg[rd] = ResultAsHalfword(halfwordResult);
             cpu->pc += 4;
             cpu->xreg[0] = 0;
-            break;
+        }
+        break;
         default:
-            break;
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -212,7 +256,7 @@ void Decode(CPU* cpu, uint32_t instruction)
             cpu->pc += 4;
             break;
         default:
-            break;
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -291,11 +335,11 @@ void Decode(CPU* cpu, uint32_t instruction)
                 cpu->xreg[0] = 0;
                 break;
             default:
-                break;
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
         default:
-            break;
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -324,7 +368,7 @@ void Decode(CPU* cpu, uint32_t instruction)
                 cpu->xreg[0] = 0;
                 break;
             default:
-                break;
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
         case 0b001: // SLL
@@ -374,7 +418,7 @@ void Decode(CPU* cpu, uint32_t instruction)
                 cpu->xreg[0] = 0;
                 break;
             default:
-                break;
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
         case 0b110: // OR
@@ -392,7 +436,7 @@ void Decode(CPU* cpu, uint32_t instruction)
             cpu->xreg[0] = 0;
             break;
         default:
-            break;
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -402,54 +446,94 @@ void Decode(CPU* cpu, uint32_t instruction)
         if (funct3 == 0b000)
         {
             printf("FENCE\n");
-            // TODO:
+            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
         }
         else
         {
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
-    break;
 
-    case OP_SYSTEM: {
+    case OP_SYSTEM:
         if ((instruction & 0b00000000000011111111111110000000) == 0)
         {
-            int32_t imm = (int32_t)instruction >> 20;
-            switch (imm)
+            uint32_t funct12 = instruction >> 20;
+            switch (funct12)
             {
-            case 0b000000000000:
+            case 0b000000000000: // ECALL
                 printf("ECALL\n");
-                // TODO:
-                break;
-            case 0b000000000001:
+                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+
+            case 0b000000000001: // EBREAK
                 printf("EBREAK\n");
-                // TODO:
+                return MakeTrap(trBREAKPOINT, 0); // TODO: what should value be here?
+
+            case 0b000000000010: // URET
+                printf("URET\n");
+                // TODO: Only provide this if user mode traps are supported, otherwise raise an illegal instruction exception.
+                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+
+            case 0b000100000010: // SRET
+                printf("SRET\n");
+                // TODO: Only provide this if supervisor mode is supported, otherwise raise an illegal instruction exception.
+                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+
+            case 0b001100000010: // MRET
+                // pc <- mepc, pc += 4
+                printf("MRET\n");
+                cpu->pc = cpu->mepc; // Restore the program counter from the machine exception program counter.
+                cpu->pc += 4;        // ...and increment it as normal.
                 break;
+
             default:
-                break;
+                break; // Fall through to illegal instruction.
             }
         }
-        else
-        {
-        }
-    }
-    break;
+        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
 
     default:
-        break;
+        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
     }
+
+    return MakeOk();
 }
 
-uint32_t Fetch(CPU* cpu)
+CpuResult Fetch(CPU* cpu)
 {
     printf("%08x ", cpu->pc);
     return ReadWord(cpu->memory, cpu->pc);
 }
 
-void Run(CPU* cpu, int count)
+CpuResult HandleTrap(CPU* cpu, Trap trap)
 {
+    cpu->mepc = cpu->pc;       // Save the program counter in the machine exception program counter.
+    cpu->mcause = trap.mcause; // mcause <- reason for trap.
+    cpu->mtval = trap.mtval;   // mtval <- exception specific information.
+
+    // TODO: do something sensible other than just returning the same trap.
+    return MakeTrap(trap.mcause, trap.mtval);
+}
+
+CpuResult Run(CPU* cpu, int count)
+{
+    CpuResult result = MakeOk();
     for (int i = 0; i < count; i++)
     {
-        uint32_t instruction = Fetch(cpu);
-        Decode(cpu, instruction);
+        result = Fetch(cpu);
+        if (ResultIsWord(result))
+        {
+            result = Decode(cpu, ResultAsWord(result));
+        }
+
+        if (ResultIsTrap(result))
+        {
+            result = HandleTrap(cpu, ResultAsTrap(result));
+            if (ResultIsTrap(result))
+            {
+                // Stop, as we can no longer proceed.
+                break;
+            }
+        }
     }
+    return result;
 }
