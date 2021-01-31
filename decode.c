@@ -371,7 +371,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
                 cpu->pc += 4;
                 cpu->xreg[0] = 0;
                 break;
-            case 0b0000001: // SUB
+            case 0b0100000: // SUB
                 // rd <- rs1 - rs2, pc += 4
                 TRACE("SUB %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
                 cpu->xreg[rd] = cpu->xreg[rs1] - cpu->xreg[rs2];

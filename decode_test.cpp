@@ -920,7 +920,7 @@ TEST_F(TestDecoder, Op_Sub)
     cpu.xreg[rs1] = 192;
     cpu.xreg[rs2] = 64;
 
-    Decode(&cpu, (1 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OP);
+    Decode(&cpu, (0b0100000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- rs1 - rs2
     ASSERT_EQ(cpu.xreg[rs1] - cpu.xreg[rs2], cpu.xreg[rd]);
