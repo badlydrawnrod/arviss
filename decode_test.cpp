@@ -929,6 +929,32 @@ TEST_F(TestDecoder, Op_Sub)
     ASSERT_EQ(pc + 4, cpu.pc);
 }
 
+TEST_F(TestDecoder, Op_Mul) // RV32M
+{
+    // MUL performs a 32-bit x 32-bit multiplication of rs1 by rs2 and places the lower 32 bits in the destination register.
+
+    // rd <- lower32(rs1 * rs2), pc += 4
+    uint32_t pc = cpu.pc;
+    uint32_t rd = 5;
+    uint32_t rs1 = 13;
+    uint32_t rs2 = 14;
+    cpu.xreg[rs1] = 333;
+    cpu.xreg[rs2] = 3;
+    int32_t expected = 999;
+
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OP);
+
+    // rd <- lower32(rs1 * rs2)
+    ASSERT_EQ(expected, (int32_t)cpu.xreg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+
+    // x0 is immutable.
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b000 << 12) | EncodeRd(0) | OP_OP);
+    ASSERT_EQ(0, cpu.xreg[0]);
+}
+
 TEST_F(TestDecoder, Op_Sll)
 {
     // rd <- rs1 << (rs2 % XLEN), pc += 4
@@ -946,6 +972,35 @@ TEST_F(TestDecoder, Op_Sll)
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
+}
+
+TEST_F(TestDecoder, Op_Mulh) // RV32M
+{
+    // MULH performs a 32-bit x 32-bit (signed x signed) multiplication of rs1 by rs2 and places the upper 32 bits of the 64 bit
+    // product in the destination register.
+
+    // rd <- upper32(rs1 * rs2), pc += 4
+    uint32_t pc = cpu.pc;
+    uint32_t rd = 5;
+    uint32_t rs1 = 13;
+    uint32_t rs2 = 14;
+    cpu.xreg[rs1] = 16777216;  // 2 ** 24
+    cpu.xreg[rs2] = -16777216; // -(2 ** 24)
+
+    int64_t product = (int64_t)(int32_t)cpu.xreg[rs1] * (int64_t)(int32_t)cpu.xreg[rs2];
+    int32_t expected = product >> 32;
+
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OP);
+
+    // rd <- upper32(rs1 * rs2)
+    ASSERT_EQ(expected, (int32_t)cpu.xreg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+
+    // x0 is immutable.
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b001 << 12) | EncodeRd(0) | OP_OP);
+    ASSERT_EQ(0, cpu.xreg[0]);
 }
 
 TEST_F(TestDecoder, Op_Slt)
@@ -980,6 +1035,35 @@ TEST_F(TestDecoder, Op_Slt)
     ASSERT_EQ(pc + 4, cpu.pc);
 }
 
+TEST_F(TestDecoder, Op_Mulhsu) // RV32M
+{
+    // MULHSU performs a 32-bit x 32-bit (signed x unsigned) multiplication of rs1 by rs2 and places the upper 32 bits of the 64 bit
+    // product in the destination register.
+
+    // rd <- upper32(rs1 * rs2), pc += 4
+    uint32_t pc = cpu.pc;
+    uint32_t rd = 5;
+    uint32_t rs1 = 13;
+    uint32_t rs2 = 14;
+    cpu.xreg[rs1] = 16777216;   // 2 ** 24
+    cpu.xreg[rs2] = 0xffffc000; // -16384 signed, 4294950912 unsigned
+
+    int64_t product = (int64_t)(int32_t)cpu.xreg[rs1] * (uint64_t)cpu.xreg[rs2];
+    int32_t expected = product >> 32;
+
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OP);
+
+    // rd <- upper32(rs1 * rs2)
+    ASSERT_EQ(expected, (int32_t)cpu.xreg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+
+    // x0 is immutable.
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b010 << 12) | EncodeRd(0) | OP_OP);
+    ASSERT_EQ(0, cpu.xreg[0]);
+}
+
 TEST_F(TestDecoder, Op_Sltu)
 {
     // rd <- (rs1 < rs2) ? 1 : 0, pc += 4
@@ -1012,6 +1096,35 @@ TEST_F(TestDecoder, Op_Sltu)
     ASSERT_EQ(pc + 4, cpu.pc);
 }
 
+TEST_F(TestDecoder, Op_Mulhu) // RV32M
+{
+    // MULHSU performs a 32-bit x 32-bit (signed x unsigned) multiplication of rs1 by rs2 and places the upper 32 bits of the 64 bit
+    // product in the destination register.
+
+    // rd <- upper32(rs1 * rs2), pc += 4
+    uint32_t pc = cpu.pc;
+    uint32_t rd = 5;
+    uint32_t rs1 = 13;
+    uint32_t rs2 = 14;
+    cpu.xreg[rs1] = 0xffffc000; // 4294950912 unsigned
+    cpu.xreg[rs2] = 0xffffc000; // 4294950912 unsigned
+
+    uint64_t product = (uint64_t)cpu.xreg[rs1] * (uint64_t)cpu.xreg[rs2];
+    uint32_t expected = product >> 32;
+
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b011 << 12) | EncodeRd(rd) | OP_OP);
+
+    // rd <- upper32(rs1 * rs2)
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+
+    // x0 is immutable.
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b011 << 12) | EncodeRd(0) | OP_OP);
+    ASSERT_EQ(0, cpu.xreg[0]);
+}
+
 TEST_F(TestDecoder, Op_Xor)
 {
     // rd <- rs1 ^ rs2, pc += 4
@@ -1029,6 +1142,44 @@ TEST_F(TestDecoder, Op_Xor)
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
+}
+
+TEST_F(TestDecoder, Op_Div) // RV32M
+{
+    // DIV performs a 32-bit x 32-bit (signed / signed) integer division of rs1 by rs2, rounding towards zero.
+
+    // rd <- rs / rs2, pc += 4
+    uint32_t pc = cpu.pc;
+    uint32_t rd = 5;
+    uint32_t rs1 = 13;
+    uint32_t rs2 = 14;
+    cpu.xreg[rs1] = 262144;
+    cpu.xreg[rs2] = -1024;
+
+    int32_t expected = (int32_t)cpu.xreg[rs1] / (int32_t)cpu.xreg[rs2];
+
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_OP);
+
+    // rd <- rs1 / rs2
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+
+    // Division by zero set the result to -1.
+    cpu.xreg[rs2] = 0;
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_OP);
+    ASSERT_EQ(-1, (int32_t)cpu.xreg[rd]);
+
+    // Division of the most negative integer by -1 results in overflow.
+    cpu.xreg[rs1] = 0x80000000;
+    cpu.xreg[rs2] = -1;
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_OP);
+    ASSERT_EQ(0x80000000, cpu.xreg[rd]);
+
+    // x0 is immutable.
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b100 << 12) | EncodeRd(0) | OP_OP);
+    ASSERT_EQ(0, cpu.xreg[0]);
 }
 
 TEST_F(TestDecoder, Op_Srl)
@@ -1069,6 +1220,38 @@ TEST_F(TestDecoder, Op_Sra)
     ASSERT_EQ(pc + 4, cpu.pc);
 }
 
+TEST_F(TestDecoder, Op_Divu) // RV32M
+{
+    // DIVU performs a 32-bit x 32-bit (unsigned / unsigned) integer division of rs1 by rs2, rounding towards zero.
+
+    // rd <- rs / rs2, pc += 4
+    uint32_t pc = cpu.pc;
+    uint32_t rd = 5;
+    uint32_t rs1 = 13;
+    uint32_t rs2 = 14;
+    cpu.xreg[rs1] = 262144;
+    cpu.xreg[rs2] = 1024;
+
+    uint32_t expected = cpu.xreg[rs1] / cpu.xreg[rs2];
+
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_OP);
+
+    // rd <- rs1 / rs2
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+
+    // Division by zero set the result to 0xffffffff.
+    cpu.xreg[rs2] = 0;
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_OP);
+    ASSERT_EQ(0xffffffff, (int32_t)cpu.xreg[rd]);
+
+    // x0 is immutable.
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b101 << 12) | EncodeRd(0) | OP_OP);
+    ASSERT_EQ(0, cpu.xreg[0]);
+}
+
 TEST_F(TestDecoder, Op_Or)
 {
     // rd <- rs1 | rs2, pc += 4
@@ -1088,6 +1271,46 @@ TEST_F(TestDecoder, Op_Or)
     ASSERT_EQ(pc + 4, cpu.pc);
 }
 
+TEST_F(TestDecoder, Op_Rem) // RV32M
+{
+    // REM performs a 32-bit x 32-bit (signed / signed) integer division of rs1 by rs2, rounding towards zero, and returns the
+    // remainder. The sign of the result is the sign of the dividend.
+
+    // rd <- rs % rs2, pc += 4
+    uint32_t pc = cpu.pc;
+    uint32_t rd = 5;
+    uint32_t rs1 = 13;
+    uint32_t rs2 = 14;
+    int32_t dividend = -65535;
+    cpu.xreg[rs1] = dividend;
+    cpu.xreg[rs2] = 4096;
+
+    int32_t expected = (int32_t)cpu.xreg[rs1] % (int32_t)cpu.xreg[rs2];
+
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b110 << 12) | EncodeRd(rd) | OP_OP);
+
+    // rd <- rs1 % rs2
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+
+    // Division by zero set the result to the dividend.
+    cpu.xreg[rs2] = 0;
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b110 << 12) | EncodeRd(rd) | OP_OP);
+    ASSERT_EQ(dividend, (int32_t)cpu.xreg[rd]);
+
+    // Division of the most negative integer by -1 results in overflow which sets the result to zero.
+    cpu.xreg[rs1] = 0x80000000;
+    cpu.xreg[rs2] = -1;
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b110 << 12) | EncodeRd(rd) | OP_OP);
+    ASSERT_EQ(0, cpu.xreg[rd]);
+
+    // x0 is immutable.
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b110 << 12) | EncodeRd(0) | OP_OP);
+    ASSERT_EQ(0, cpu.xreg[0]);
+}
+
 TEST_F(TestDecoder, Op_And)
 {
     // rd <- rs1 & rs2, pc += 4
@@ -1105,6 +1328,40 @@ TEST_F(TestDecoder, Op_And)
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
+}
+
+TEST_F(TestDecoder, Op_Remu) // RV32M
+{
+    // REMU performs a 32-bit x 32-bit (unsigned / unsigned) integer division of rs1 by rs2, rounding towards zero, and returns the
+    // remainder.
+
+    // rd <- rs % rs2, pc += 4
+    uint32_t pc = cpu.pc;
+    uint32_t rd = 5;
+    uint32_t rs1 = 13;
+    uint32_t rs2 = 14;
+    uint32_t dividend = 65535;
+    cpu.xreg[rs1] = dividend;
+    cpu.xreg[rs2] = 16384;
+
+    uint32_t expected = cpu.xreg[rs1] % cpu.xreg[rs2];
+
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b111 << 12) | EncodeRd(rd) | OP_OP);
+
+    // rd <- rs1 % rs2
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+
+    // Division by zero set the result to the dividend.
+    cpu.xreg[rs2] = 0;
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b111 << 12) | EncodeRd(rd) | OP_OP);
+    ASSERT_EQ(dividend, (int32_t)cpu.xreg[rd]);
+
+    // x0 is immutable.
+    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b111 << 12) | EncodeRd(0) | OP_OP);
+    ASSERT_EQ(0, cpu.xreg[0]);
 }
 
 TEST_F(TestDecoder, Op_x0_Is_Zero)

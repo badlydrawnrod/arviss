@@ -361,7 +361,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         uint32_t funct7 = instruction >> 25;
         switch (funct3)
         {
-        case 0b000: // ADD / SUB
+        case 0b000:
             switch (funct7)
             {
             case 0b0000000: // ADD
@@ -378,40 +378,119 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
                 cpu->pc += 4;
                 cpu->xreg[0] = 0;
                 break;
+            case 0b00000001: // MUL (RV32M)
+                TRACE("MUL %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                cpu->xreg[rd] = cpu->xreg[rs1] * cpu->xreg[rs2];
+                cpu->pc += 4;
+                cpu->xreg[0] = 0;
+                break;
             default:
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
-        case 0b001: // SLL
-            // rd <- rs1 << (rs2 % XLEN), pc += 4
-            TRACE("SLL %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
-            cpu->xreg[rd] = cpu->xreg[rs1] << (cpu->xreg[rs2] % 32);
-            cpu->pc += 4;
-            cpu->xreg[0] = 0;
+
+        case 0b001:
+            switch (funct7)
+            {
+            case 0b0000000: // SLL
+                // rd <- rs1 << (rs2 % XLEN), pc += 4
+                TRACE("SLL %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                cpu->xreg[rd] = cpu->xreg[rs1] << (cpu->xreg[rs2] % 32);
+                cpu->pc += 4;
+                cpu->xreg[0] = 0;
+                break;
+            case 0b00000001: // MULH (RV32M)
+                TRACE("MULH %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                int64_t t = (int64_t)(int32_t)cpu->xreg[rs1] * (int64_t)(int32_t)cpu->xreg[rs2];
+                cpu->xreg[rd] = t >> 32;
+                cpu->pc += 4;
+                cpu->xreg[0] = 0;
+                break;
+            default:
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            }
             break;
-        case 0b010: // SLT
-            // rd <- (rs1 < rs2) ? 1 : 0, pc += 4
-            TRACE("SLT %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
-            cpu->xreg[rd] = ((int32_t)cpu->xreg[rs1] < (int32_t)cpu->xreg[rs2]) ? 1 : 0;
-            cpu->pc += 4;
-            cpu->xreg[0] = 0;
+
+        case 0b010:
+            switch (funct7)
+            {
+            case 0b0000000: // SLT
+                // rd <- (rs1 < rs2) ? 1 : 0, pc += 4
+                TRACE("SLT %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                cpu->xreg[rd] = ((int32_t)cpu->xreg[rs1] < (int32_t)cpu->xreg[rs2]) ? 1 : 0;
+                cpu->pc += 4;
+                cpu->xreg[0] = 0;
+                break;
+            case 0b00000001: // MULHSU (RV32M)
+                TRACE("MULHSU %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                int64_t t = (int64_t)(int32_t)cpu->xreg[rs1] * (uint64_t)cpu->xreg[rs2];
+                cpu->xreg[rd] = t >> 32;
+                cpu->pc += 4;
+                cpu->xreg[0] = 0;
+                break;
+            default:
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            }
             break;
-        case 0b011: // SLTU
-            // rd <- (rs1 < rs2) ? 1 : 0, pc += 4
-            TRACE("SLTU %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
-            cpu->xreg[rd] = (cpu->xreg[rs1] < cpu->xreg[rs2]) ? 1 : 0;
-            cpu->pc += 4;
-            cpu->xreg[0] = 0;
-            cpu->xreg[0] = 0;
+
+        case 0b011:
+            switch (funct7)
+            {
+            case 0b0000000: // SLTU
+                // rd <- (rs1 < rs2) ? 1 : 0, pc += 4
+                TRACE("SLTU %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                cpu->xreg[rd] = (cpu->xreg[rs1] < cpu->xreg[rs2]) ? 1 : 0;
+                cpu->pc += 4;
+                cpu->xreg[0] = 0;
+                cpu->xreg[0] = 0;
+                break;
+            case 0b00000001: // MULHU (RV32M)
+                TRACE("MULHU %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                uint64_t t = (uint64_t)cpu->xreg[rs1] * (uint64_t)cpu->xreg[rs2];
+                cpu->xreg[rd] = t >> 32;
+                cpu->pc += 4;
+                cpu->xreg[0] = 0;
+                break;
+            default:
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            }
             break;
-        case 0b100: // XOR
-            // rd <- rs1 ^ rs2, pc += 4
-            TRACE("XOR %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
-            cpu->xreg[rd] = cpu->xreg[rs1] ^ cpu->xreg[rs2];
-            cpu->pc += 4;
-            cpu->xreg[0] = 0;
+
+        case 0b100:
+            switch (funct7)
+            {
+            case 0b0000000: // XOR
+                // rd <- rs1 ^ rs2, pc += 4
+                TRACE("XOR %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                cpu->xreg[rd] = cpu->xreg[rs1] ^ cpu->xreg[rs2];
+                cpu->pc += 4;
+                cpu->xreg[0] = 0;
+                break;
+            case 0b00000001: // DIV (RV32M)
+                TRACE("DIV %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                const int32_t dividend = (int32_t)cpu->xreg[rs1];
+                const int32_t divisor = (int32_t)cpu->xreg[rs2];
+                // Check for signed division overflow.
+                if (dividend != 0x80000000 || divisor != -1)
+                {
+                    cpu->xreg[rd] = divisor != 0 // Check for division by zero.
+                            ? dividend / divisor
+                            : -1;
+                }
+                else
+                {
+                    // Signed division overflow occurred.
+                    cpu->xreg[rd] = dividend;
+                }
+                cpu->pc += 4;
+                cpu->xreg[0] = 0;
+                break;
+            default:
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            }
             break;
-        case 0b101: // SRL / SRA
+
+        case 0b101:
             switch (funct7)
             {
             case 0b0000000: // SRL
@@ -428,24 +507,75 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
                 cpu->pc += 4;
                 cpu->xreg[0] = 0;
                 break;
+            case 0b00000001: // DIVU (RV32M)
+                TRACE("DIVU %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                uint32_t divisor = cpu->xreg[rs2];
+                cpu->xreg[rd] = divisor != 0 ? cpu->xreg[rs1] / divisor : 0xffffffff;
+                cpu->pc += 4;
+                cpu->xreg[0] = 0;
+                break;
             default:
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
-        case 0b110: // OR
-            // rd <- rs1 | rs2, pc += 4
-            TRACE("OR %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
-            cpu->xreg[rd] = cpu->xreg[rs1] | cpu->xreg[rs2];
-            cpu->pc += 4;
-            cpu->xreg[0] = 0;
+
+        case 0b110:
+            switch (funct7)
+            {
+            case 0b0000000: // OR
+                // rd <- rs1 | rs2, pc += 4
+                TRACE("OR %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                cpu->xreg[rd] = cpu->xreg[rs1] | cpu->xreg[rs2];
+                cpu->pc += 4;
+                cpu->xreg[0] = 0;
+                break;
+            case 0b00000001: // REM
+                TRACE("REM %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                const int32_t dividend = (int32_t)cpu->xreg[rs1];
+                const int32_t divisor = (int32_t)cpu->xreg[rs2];
+                // Check for signed division overflow.
+                if (dividend != 0x80000000 || divisor != -1)
+                {
+                    cpu->xreg[rd] = divisor != 0 // Check for division by zero.
+                            ? dividend % divisor
+                            : dividend;
+                }
+                else
+                {
+                    // Signed division overflow occurred.
+                    cpu->xreg[rd] = 0;
+                }
+                cpu->pc += 4;
+                cpu->xreg[0] = 0;
+                break;
+            default:
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            }
             break;
-        case 0b111: // AND
-            // rd <- rs1 & rs2, pc += 4
-            TRACE("AND %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
-            cpu->xreg[rd] = cpu->xreg[rs1] & cpu->xreg[rs2];
-            cpu->pc += 4;
-            cpu->xreg[0] = 0;
+
+        case 0b111:
+            switch (funct7)
+            {
+            case 0b0000000: // AND
+                // rd <- rs1 & rs2, pc += 4
+                TRACE("AND %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                cpu->xreg[rd] = cpu->xreg[rs1] & cpu->xreg[rs2];
+                cpu->pc += 4;
+                cpu->xreg[0] = 0;
+                break;
+            case 0b00000001: // REMU
+                TRACE("REMU %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
+                const uint32_t dividend = cpu->xreg[rs1];
+                const uint32_t divisor = cpu->xreg[rs2];
+                cpu->xreg[rd] = divisor != 0 ? cpu->xreg[rs1] % divisor : dividend;
+                cpu->pc += 4;
+                cpu->xreg[0] = 0;
+                break;
+            default:
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            }
             break;
+
         default:
             return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
