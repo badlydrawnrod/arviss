@@ -633,10 +633,13 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
                 break;
 
             default:
-                break; // Fall through to illegal instruction.
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
         }
-        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+        else
+        {
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+        }
 
     case OP_LOADFP: { // Floating point load (RV32F)
         uint32_t funct3 = (instruction >> 12) & 7;
@@ -644,6 +647,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         {
             int32_t imm = IImmediate(instruction);
             TRACE("FLW f%d, %d(%s)", rd, imm, abiNames[rs1]);
+            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
         }
         else
         {
@@ -658,6 +662,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             uint32_t rs2 = (instruction >> 20) & 0x1f;
             int32_t imm = SImmediate(instruction);
             TRACE("FSW f%d, %d(%s)\n", rs2, imm, abiNames[rs1]);
+            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
         }
         else
         {
