@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#define BDR_TRACE_ENABLED
+
 #if defined(BDR_TRACE_ENABLED)
 #include <stdio.h>
 #define TRACE(...)                                                                                                                 \
@@ -18,6 +20,8 @@
 
 static char* abiNames[] = {"zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", "s0", "s1", "a0",  "a1",  "a2", "a3", "a4", "a5",
                            "a6",   "a7", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"};
+
+static char* roundingModes[] = {"rne", "rtz", "rdn", "rup", "rmm", "reserved5", "reserved6", "dyn"};
 
 static inline int32_t IImmediate(uint32_t instruction)
 {
@@ -635,25 +639,172 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
 
     case OP_LOADFP: // Floating point load (RV32F)
+        // TODO: decode LOAD-FP instructions.
         return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
 
     case OP_STOREFP: // Floating point store (RV32F)
+        // TODO: decode STORE-FP instructions.
         return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
 
     case OP_MADD: // Floating point fused multiply-add (RV32F)
+        // TODO: decode MADD instructions.
         return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
 
     case OP_MSUB: // Floating point fused multiply-sub (RV32F)
+        // TODO: decode MSUB instructions.
         return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
 
     case OP_NMSUB: // Floating point negated fused multiply-sub (RV32F)
+        // TODO: decode NMSUB instructions.
         return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
 
     case OP_NMADD: // Floating point negated fused multiple-add (RV32F)
+        // TODO: decode NMADD instructions.
         return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
 
-    case OP_OPFP: // Floating point operations (RV32F)
-        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+    case OP_OPFP: { // Floating point operations (RV32F)
+        uint32_t funct7 = instruction >> 25;
+        uint32_t funct3 = (instruction >> 12) & 7;
+        uint32_t rm = funct3;
+        uint32_t rs2 = (instruction >> 20) & 0x1f;
+        switch (funct7)
+        {
+        case 0b0000000: // FADD.S
+            TRACE("FADD.S f%d, f%d, f%d, %s", rd, rs1, rs2, roundingModes[rm]);
+            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+
+        case 0b0000100: // FSUB.S
+            TRACE("FSUB.S f%d, f%d, f%d, %s", rd, rs1, rs2, roundingModes[rm]);
+            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+
+        case 0b0001000: // FMUL.S
+            TRACE("FMUL.S f%d, f%d, f%d, %s", rd, rs1, rs2, roundingModes[rm]);
+            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+
+        case 0b0001100: // FDIV.S
+            TRACE("FDIV.S f%d, f%d, f%d, %s", rd, rs1, rs2, roundingModes[rm]);
+            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+
+        case 0b0101100:
+            if (rs2 == 0b00000) // FSQRT.S
+            {
+                TRACE("FSQRT.S f%d, f%d, %s", rd, rs1, roundingModes[rm]);
+                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            }
+            else
+            {
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            }
+
+        case 0b0010000: {
+            switch (funct3)
+            {
+            case 0b000: // FSGNJ.S
+                TRACE("FSGNJ.S f%d, f%d, f%d", rd, rs1, rs2);
+                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            case 0b001: // FSGNJN.S
+                TRACE("FSGNJN.S f%d, f%d, f%d", rd, rs1, rs2);
+                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            case 0b010: // FSGNJX.S
+                TRACE("FSGNJX.S f%d, f%d, f%d", rd, rs1, rs2);
+                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            default:
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            }
+        }
+
+        case 0b0010100: {
+            switch (funct3)
+            {
+            case 0b000: // FMIN.S
+                TRACE("FMIN.S f%d, f%d, f%d", rd, rs1, rs2);
+                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            case 0b001: // FMAX.S
+                TRACE("FMAX.S f%d, f%d, f%d", rd, rs1, rs2);
+                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            default:
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            }
+        }
+
+        case 0b1100000: {
+            switch (rs2) // Not actually rs2 - just the same bits.
+            {
+            case 0b00000:
+                TRACE("FCVT.W.S r%d, f%d, %s", rd, rs1, roundingModes[rm]);
+                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            case 0b00001:
+                TRACE("FCVT.WU.S r%d, f%d, %s", rd, rs1, roundingModes[rm]);
+                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            default:
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            }
+        }
+
+        case 0b1110000: {
+            if (rs2 == 0b00000) // Not actually rs2 - just the same bits.
+            {
+                switch (funct3)
+                {
+                case 0b000:
+                    TRACE("FMV.X.W r%d, f%d", rd, rs1);
+                    return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                case 0b001:
+                    TRACE("FCLASS.S r%d, f%d", rd, rs1);
+                    return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                default:
+                    return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                }
+            }
+            else
+            {
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            }
+        }
+
+        case 0b1010000: {
+            switch (funct3)
+            {
+            case 0b010: // FEQ.S
+                TRACE("FEQ.S r%d, f%d, f%d", rd, rs1, rs2);
+                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            case 0b001: // FLT.S
+                TRACE("FLT.S r%d, f%d, f%d", rd, rs1, rs2);
+                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            case 0b000: // FLE.S
+                TRACE("FLE.S r%d, f%d, f%d", rd, rs1, rs2);
+                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            default:
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            }
+        }
+
+        case 0b1101000: {
+            switch (rs2) // No actually rs2 - just the same bits,
+            {
+            case 0b00000: // FCVT.S.W
+                TRACE("FCVT.S.W f%d, r%d, %s", rd, rs1, roundingModes[rm]);
+                break;
+            case 0b00001: // FVCT.S.WU
+                TRACE("FVCT.S.WU f%d, r%d, %s", rd, rs1, roundingModes[rm]);
+                break;
+            default:
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            }
+        }
+
+        case 0b1111000:
+            if (rs2 == 0b00000 && funct3 == 0b000) // FMV.W.X
+            {
+                TRACE("FMV.W.X f%d, r%d", rd, rs1);
+                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            }
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+
+        default:
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+        }
+    }
 
     default:
         return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
