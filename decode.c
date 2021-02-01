@@ -638,13 +638,31 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         }
         return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
 
-    case OP_LOADFP: // Floating point load (RV32F)
-        // TODO: decode LOAD-FP instructions.
-        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+    case OP_LOADFP: { // Floating point load (RV32F)
+        uint32_t funct3 = (instruction >> 12) & 7;
+        if (funct3 == 0b010) // FLW
+        {
+            int32_t imm = IImmediate(instruction);
+            TRACE("FLW f%d, %d(%s)", rd, imm, abiNames[rs1]);
+        }
+        else
+        {
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+        }
+    }
 
     case OP_STOREFP: // Floating point store (RV32F)
-        // TODO: decode STORE-FP instructions.
-        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+        uint32_t funct3 = (instruction >> 12) & 7;
+        if (funct3 == 0b010) // FSW
+        {
+            uint32_t rs2 = (instruction >> 20) & 0x1f;
+            int32_t imm = SImmediate(instruction);
+            TRACE("FSW f%d, %d(%s)\n", rs2, imm, abiNames[rs1]);
+        }
+        else
+        {
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+        }
 
     case OP_MADD: // Floating point fused multiply-add (RV32F)
         // TODO: decode MADD instructions.
