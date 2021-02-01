@@ -13,6 +13,8 @@ typedef struct CPU
     uint32_t mepc;     // The machine exception program counter.
     uint32_t mcause;   // The machine cause register.
     uint32_t mtval;    // The machine trap value register.
+    float freg[32];    // Floating point registers, f0-f31.
+    uint32_t fcsr;     // Floating point control and status register.
 
     MemoryTrait memory;
 
@@ -30,7 +32,14 @@ enum
     OP_OPIMM = 0b0010011,
     OP_OP = 0b0110011,
     OP_MISCMEM = 0b0001111,
-    OP_SYSTEM = 0b1110011
+    OP_SYSTEM = 0b1110011,
+    OP_LOADFP = 0b0000111,  // RV32F
+    OP_STOREFP = 0b0100111, // RV32F
+    OP_OPFP = 0b1010011,    // RV32F
+    OP_MADD = 0b10000111,   // RV32F
+    OP_MSUB = 0b10001111,   // RV32F
+    OP_NMSUB = 0b10010111,  // RV32F
+    OP_NMADD = 0b10011111,  // RV32F
 };
 
 #ifdef __cplusplus

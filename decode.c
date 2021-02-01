@@ -5,13 +5,15 @@
 #if defined(BDR_TRACE_ENABLED)
 #include <stdio.h>
 #define TRACE(...)                                                                                                                 \
+    do                                                                                                                             \
     {                                                                                                                              \
         printf(__VA_ARGS__);                                                                                                       \
-    }
+    } while (0)
 #else
 #define TRACE(...)                                                                                                                 \
+    do                                                                                                                             \
     {                                                                                                                              \
-    }
+    } while (0)
 #endif
 
 static char* abiNames[] = {"zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", "s0", "s1", "a0",  "a1",  "a2", "a3", "a4", "a5",
@@ -630,6 +632,27 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
                 break; // Fall through to illegal instruction.
             }
         }
+        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+
+    case OP_LOADFP: // Floating point load (RV32F)
+        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+
+    case OP_STOREFP: // Floating point store (RV32F)
+        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+
+    case OP_MADD: // Floating point fused multiply-add (RV32F)
+        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+
+    case OP_MSUB: // Floating point fused multiply-sub (RV32F)
+        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+
+    case OP_NMSUB: // Floating point negated fused multiply-sub (RV32F)
+        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+
+    case OP_NMADD: // Floating point negated fused multiple-add (RV32F)
+        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+
+    case OP_OPFP: // Floating point operations (RV32F)
         return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
 
     default:
