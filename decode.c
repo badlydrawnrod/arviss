@@ -655,7 +655,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         }
     }
 
-    case OP_STOREFP: // Floating point store (RV32F)
+    case OP_STOREFP: { // Floating point store (RV32F)
         uint32_t funct3 = (instruction >> 12) & 7;
         if (funct3 == 0b010) // FSW
         {
@@ -668,22 +668,71 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         {
             return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
+    }
 
-    case OP_MADD: // Floating point fused multiply-add (RV32F)
-        // TODO: decode MADD instructions.
-        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+    case OP_MADD: { // Floating point fused multiply-add (RV32F)
+        uint32_t rm = (instruction >> 12) & 7;
+        uint32_t rs2 = (instruction >> 20) & 0x1f;
+        uint32_t rs3 = (instruction >> 27) & 0x1f;
+        if (((instruction >> 25) & 0b11) == 0) // FMADD.S
+        {
+            // rd = (rs1 x rs2) + rs3
+            TRACE("FMADD.S f%d, f%d, f%d, f%d, %s", rd, rs1, rs2, rs3, roundingModes[rm]);
+            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+        }
+        else
+        {
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+        }
+    }
 
-    case OP_MSUB: // Floating point fused multiply-sub (RV32F)
-        // TODO: decode MSUB instructions.
-        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+    case OP_MSUB: { // Floating point fused multiply-sub (RV32F)
+        uint32_t rm = (instruction >> 12) & 7;
+        uint32_t rs2 = (instruction >> 20) & 0x1f;
+        uint32_t rs3 = (instruction >> 27) & 0x1f;
+        if (((instruction >> 25) & 0b11) == 0) // FMSUB.S
+        {
+            // rd = (rs1 x rs2) - rs3
+            TRACE("FMSUB.S f%d, f%d, f%d, f%d, %s", rd, rs1, rs2, rs3, roundingModes[rm]);
+            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+        }
+        else
+        {
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+        }
+    }
 
-    case OP_NMSUB: // Floating point negated fused multiply-sub (RV32F)
-        // TODO: decode NMSUB instructions.
-        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+    case OP_NMSUB: { // Floating point negated fused multiply-sub (RV32F)
+        uint32_t rm = (instruction >> 12) & 7;
+        uint32_t rs2 = (instruction >> 20) & 0x1f;
+        uint32_t rs3 = (instruction >> 27) & 0x1f;
+        if (((instruction >> 25) & 0b11) == 0) // FNMSUB.S
+        {
+            // rd = -(rs1 x rs2) + rs3
+            TRACE("FNMSUB.S f%d, f%d, f%d, f%d, %s", rd, rs1, rs2, rs3, roundingModes[rm]);
+            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+        }
+        else
+        {
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+        }
+    }
 
-    case OP_NMADD: // Floating point negated fused multiple-add (RV32F)
-        // TODO: decode NMADD instructions.
-        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+    case OP_NMADD: { // Floating point negated fused multiple-add (RV32F)
+        uint32_t rm = (instruction >> 12) & 7;
+        uint32_t rs2 = (instruction >> 20) & 0x1f;
+        uint32_t rs3 = (instruction >> 27) & 0x1f;
+        if (((instruction >> 25) & 0b11) == 0) // FNMADD.S
+        {
+            // rd = -(rs1 x rs2) - rs3
+            TRACE("FNMADD.S f%d, f%d, f%d, f%d, %s", rd, rs1, rs2, rs3, roundingModes[rm]);
+            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+        }
+        else
+        {
+            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+        }
+    }
 
     case OP_OPFP: { // Floating point operations (RV32F)
         uint32_t funct7 = instruction >> 25;
