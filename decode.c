@@ -58,6 +58,51 @@ static inline int32_t JImmediate(uint32_t instruction)
             ;
 }
 
+static inline uint32_t Funct3(uint32_t instruction)
+{
+    return (instruction >> 12) & 7;
+}
+
+static inline uint32_t Funct7(uint32_t instruction)
+{
+    return instruction >> 25;
+}
+
+static inline uint32_t Funct12(uint32_t instruction)
+{
+    return instruction >> 20;
+}
+
+static inline uint32_t Opcode(uint32_t instruction)
+{
+    return instruction & 0x7f;
+}
+
+static inline uint32_t Rd(uint32_t instruction)
+{
+    return (instruction >> 7) & 0x1f;
+}
+
+static inline uint32_t Rs1(uint32_t instruction)
+{
+    return (instruction >> 15) & 0x1f;
+}
+
+static inline uint32_t Rs2(uint32_t instruction)
+{
+    return (instruction >> 20) & 0x1f;
+}
+
+static inline uint32_t Rs3(uint32_t instruction)
+{
+    return (instruction >> 27) & 0x1f;
+}
+
+static inline uint32_t Rm(uint32_t instruction)
+{
+    return (instruction >> 12) & 7;
+}
+
 void Reset(CPU* cpu, uint32_t sp)
 {
     cpu->pc = 0;
@@ -75,9 +120,9 @@ void Reset(CPU* cpu, uint32_t sp)
 // or riscv-spec-209191213.pdf.
 CpuResult Decode(CPU* cpu, uint32_t instruction)
 {
-    uint32_t opcode = instruction & 0x7f;
-    uint32_t rd = (instruction >> 7) & 0x1f;
-    uint32_t rs1 = (instruction >> 15) & 0x1f;
+    uint32_t opcode = Opcode(instruction);
+    uint32_t rd = Rd(instruction);
+    uint32_t rs1 = Rs1(instruction);
 
     switch (opcode)
     {
@@ -114,7 +159,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
     case OP_JALR: {
         // rd <- pc + 4, pc <- (rs1 + imm_i) & ~1
         int32_t imm = IImmediate(instruction);
-        uint32_t funct3 = (instruction >> 12) & 7;
+        uint32_t funct3 = Funct3(instruction);
         if (funct3 == 0b000)
         {
             TRACE("JALR %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
@@ -131,8 +176,8 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
     break;
 
     case OP_BRANCH: {
-        uint32_t funct3 = (instruction >> 12) & 7;
-        uint32_t rs2 = (instruction >> 20) & 0x1f;
+        uint32_t funct3 = Funct3(instruction);
+        uint32_t rs2 = Rs2(instruction);
         int32_t imm = BImmediate(instruction);
         switch (funct3)
         {
@@ -173,7 +218,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
     break;
 
     case OP_LOAD: {
-        uint32_t funct3 = (instruction >> 12) & 7;
+        uint32_t funct3 = Funct3(instruction);
         int32_t imm = IImmediate(instruction);
         switch (funct3)
         {
@@ -249,8 +294,8 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
     break;
 
     case OP_STORE: {
-        uint32_t funct3 = (instruction >> 12) & 7;
-        uint32_t rs2 = (instruction >> 20) & 0x1f;
+        uint32_t funct3 = Funct3(instruction);
+        uint32_t rs2 = Rs2(instruction);
         int32_t imm = SImmediate(instruction);
         switch (funct3)
         {
@@ -279,10 +324,10 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
     break;
 
     case OP_OPIMM: {
-        uint32_t funct3 = (instruction >> 12) & 7;
+        uint32_t funct3 = Funct3(instruction);
         int32_t imm = IImmediate(instruction);
         uint32_t shamt = imm & 0x1f;
-        uint32_t funct7 = instruction >> 25;
+        uint32_t funct7 = Funct7(instruction);
         switch (funct3)
         {
         case 0b000: // ADDI
@@ -362,9 +407,9 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
     break;
 
     case OP_OP: {
-        uint32_t funct3 = (instruction >> 12) & 7;
-        uint32_t rs2 = (instruction >> 20) & 0x1f;
-        uint32_t funct7 = instruction >> 25;
+        uint32_t funct3 = Funct3(instruction);
+        uint32_t rs2 = Rs2(instruction);
+        uint32_t funct7 = Funct7(instruction);
         switch (funct3)
         {
         case 0b000:
@@ -589,7 +634,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
     break;
 
     case OP_MISCMEM: {
-        uint32_t funct3 = (instruction >> 12) & 7;
+        uint32_t funct3 = Funct3(instruction);
         if (funct3 == 0b000)
         {
             TRACE("FENCE\n");
@@ -604,7 +649,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
     case OP_SYSTEM:
         if ((instruction & 0b00000000000011111111111110000000) == 0)
         {
-            uint32_t funct12 = instruction >> 20;
+            uint32_t funct12 = Funct12(instruction);
             switch (funct12)
             {
             case 0b000000000000: // ECALL
@@ -642,7 +687,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         }
 
     case OP_LOADFP: { // Floating point load (RV32F)
-        uint32_t funct3 = (instruction >> 12) & 7;
+        uint32_t funct3 = Funct3(instruction);
         if (funct3 == 0b010) // FLW
         {
             int32_t imm = IImmediate(instruction);
@@ -656,10 +701,10 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
     }
 
     case OP_STOREFP: { // Floating point store (RV32F)
-        uint32_t funct3 = (instruction >> 12) & 7;
+        uint32_t funct3 = Funct3(instruction);
         if (funct3 == 0b010) // FSW
         {
-            uint32_t rs2 = (instruction >> 20) & 0x1f;
+            uint32_t rs2 = Rs2(instruction);
             int32_t imm = SImmediate(instruction);
             TRACE("FSW f%d, %d(%s)\n", rs2, imm, abiNames[rs1]);
             return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
@@ -671,9 +716,9 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
     }
 
     case OP_MADD: { // Floating point fused multiply-add (RV32F)
-        uint32_t rm = (instruction >> 12) & 7;
-        uint32_t rs2 = (instruction >> 20) & 0x1f;
-        uint32_t rs3 = (instruction >> 27) & 0x1f;
+        uint32_t rm = Rm(instruction);
+        uint32_t rs2 = Rs2(instruction);
+        uint32_t rs3 = Rs3(instruction);
         if (((instruction >> 25) & 0b11) == 0) // FMADD.S
         {
             // rd = (rs1 x rs2) + rs3
@@ -687,9 +732,9 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
     }
 
     case OP_MSUB: { // Floating point fused multiply-sub (RV32F)
-        uint32_t rm = (instruction >> 12) & 7;
-        uint32_t rs2 = (instruction >> 20) & 0x1f;
-        uint32_t rs3 = (instruction >> 27) & 0x1f;
+        uint32_t rm = Rm(instruction);
+        uint32_t rs2 = Rs2(instruction);
+        uint32_t rs3 = Rs3(instruction);
         if (((instruction >> 25) & 0b11) == 0) // FMSUB.S
         {
             // rd = (rs1 x rs2) - rs3
@@ -703,9 +748,9 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
     }
 
     case OP_NMSUB: { // Floating point negated fused multiply-sub (RV32F)
-        uint32_t rm = (instruction >> 12) & 7;
-        uint32_t rs2 = (instruction >> 20) & 0x1f;
-        uint32_t rs3 = (instruction >> 27) & 0x1f;
+        uint32_t rm = Rm(instruction);
+        uint32_t rs2 = Rs2(instruction);
+        uint32_t rs3 = Rs3(instruction);
         if (((instruction >> 25) & 0b11) == 0) // FNMSUB.S
         {
             // rd = -(rs1 x rs2) + rs3
@@ -719,9 +764,9 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
     }
 
     case OP_NMADD: { // Floating point negated fused multiple-add (RV32F)
-        uint32_t rm = (instruction >> 12) & 7;
-        uint32_t rs2 = (instruction >> 20) & 0x1f;
-        uint32_t rs3 = (instruction >> 27) & 0x1f;
+        uint32_t rm = Rm(instruction);
+        uint32_t rs2 = Rs2(instruction);
+        uint32_t rs3 = Rs3(instruction);
         if (((instruction >> 25) & 0b11) == 0) // FNMADD.S
         {
             // rd = -(rs1 x rs2) - rs3
@@ -735,10 +780,10 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
     }
 
     case OP_OPFP: { // Floating point operations (RV32F)
-        uint32_t funct7 = instruction >> 25;
-        uint32_t funct3 = (instruction >> 12) & 7;
+        uint32_t funct7 = Funct7(instruction);
+        uint32_t funct3 = Funct3(instruction);
         uint32_t rm = funct3;
-        uint32_t rs2 = (instruction >> 20) & 0x1f;
+        uint32_t rs2 = Rs2(instruction);
         switch (funct7)
         {
         case 0b0000000: // FADD.S
