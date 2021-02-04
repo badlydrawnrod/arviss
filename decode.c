@@ -5,6 +5,7 @@
 #define BDR_TRACE_ENABLED
 
 #if defined(BDR_TRACE_ENABLED)
+#include <math.h>
 #include <stdio.h>
 #define TRACE(...)                                                                                                                 \
     do                                                                                                                             \
@@ -692,6 +693,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         {
             int32_t imm = IImmediate(instruction);
             TRACE("FLW f%d, %d(%s)", rd, imm, abiNames[rs1]);
+            // TODO: implement.
             return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
         }
         else
@@ -707,6 +709,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             uint32_t rs2 = Rs2(instruction);
             int32_t imm = SImmediate(instruction);
             TRACE("FSW f%d, %d(%s)\n", rs2, imm, abiNames[rs1]);
+            // TODO: implement.
             return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
         }
         else
@@ -721,9 +724,12 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         uint32_t rs3 = Rs3(instruction);
         if (((instruction >> 25) & 0b11) == 0) // FMADD.S
         {
-            // rd = (rs1 x rs2) + rs3
+            // rd <- (rs1 x rs2) + rs3
             TRACE("FMADD.S f%d, f%d, f%d, f%d, %s", rd, rs1, rs2, rs3, roundingModes[rm]);
-            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            cpu->freg[rd] = (cpu->freg[rs1] * cpu->freg[rs2]) + cpu->freg[rs3];
+            cpu->pc += 4;
+            // TODO: rounding.
+            break;
         }
         else
         {
@@ -737,9 +743,12 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         uint32_t rs3 = Rs3(instruction);
         if (((instruction >> 25) & 0b11) == 0) // FMSUB.S
         {
-            // rd = (rs1 x rs2) - rs3
+            // rd <- (rs1 x rs2) - rs3
             TRACE("FMSUB.S f%d, f%d, f%d, f%d, %s", rd, rs1, rs2, rs3, roundingModes[rm]);
-            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            cpu->freg[rd] = (cpu->freg[rs1] * cpu->freg[rs2]) - cpu->freg[rs3];
+            cpu->pc += 4;
+            // TODO: rounding.
+            break;
         }
         else
         {
@@ -753,9 +762,12 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         uint32_t rs3 = Rs3(instruction);
         if (((instruction >> 25) & 0b11) == 0) // FNMSUB.S
         {
-            // rd = -(rs1 x rs2) + rs3
+            // rd <- -(rs1 x rs2) + rs3
             TRACE("FNMSUB.S f%d, f%d, f%d, f%d, %s", rd, rs1, rs2, rs3, roundingModes[rm]);
-            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            cpu->freg[rd] = -(cpu->freg[rs1] * cpu->freg[rs2]) + cpu->freg[rs3];
+            cpu->pc += 4;
+            // TODO: rounding.
+            break;
         }
         else
         {
@@ -769,9 +781,11 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         uint32_t rs3 = Rs3(instruction);
         if (((instruction >> 25) & 0b11) == 0) // FNMADD.S
         {
-            // rd = -(rs1 x rs2) - rs3
-            TRACE("FNMADD.S f%d, f%d, f%d, f%d, %s", rd, rs1, rs2, rs3, roundingModes[rm]);
-            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            // rd <- -(rs1 x rs2) - rs3
+            cpu->freg[rd] = -(cpu->freg[rs1] * cpu->freg[rs2]) - cpu->freg[rs3];
+            cpu->pc += 4;
+            // TODO: rounding.
+            break;
         }
         else
         {
@@ -787,26 +801,46 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         switch (funct7)
         {
         case 0b0000000: // FADD.S
+            // rd <- rs1 + rs2
             TRACE("FADD.S f%d, f%d, f%d, %s", rd, rs1, rs2, roundingModes[rm]);
-            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            cpu->freg[rd] = cpu->freg[rs1] + cpu->freg[rs2];
+            cpu->pc += 4;
+            // TODO: rounding.
+            break;
 
         case 0b0000100: // FSUB.S
+            // rd <- rs1 - rs2
             TRACE("FSUB.S f%d, f%d, f%d, %s", rd, rs1, rs2, roundingModes[rm]);
-            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            cpu->freg[rd] = cpu->freg[rs1] - cpu->freg[rs2];
+            cpu->pc += 4;
+            // TODO: rounding.
+            break;
 
         case 0b0001000: // FMUL.S
+            // rd <- rs1 * rs2
             TRACE("FMUL.S f%d, f%d, f%d, %s", rd, rs1, rs2, roundingModes[rm]);
-            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            cpu->freg[rd] = cpu->freg[rs1] * cpu->freg[rs2];
+            cpu->pc += 4;
+            // TODO: rounding.
+            break;
 
         case 0b0001100: // FDIV.S
+            // rd <- rs1 / rs2
             TRACE("FDIV.S f%d, f%d, f%d, %s", rd, rs1, rs2, roundingModes[rm]);
-            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            cpu->freg[rd] = cpu->freg[rs1] / cpu->freg[rs2];
+            cpu->pc += 4;
+            // TODO: rounding.
+            break;
 
         case 0b0101100:
             if (rs2 == 0b00000) // FSQRT.S
             {
+                // rd <- sqrt(rs1)
                 TRACE("FSQRT.S f%d, f%d, %s", rd, rs1, roundingModes[rm]);
-                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                cpu->freg[rd] = sqrtf(cpu->freg[rs1]);
+                cpu->pc += 4;
+                // TODO: rounding.
+                break;
             }
             else
             {
@@ -818,12 +852,15 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             {
             case 0b000: // FSGNJ.S
                 TRACE("FSGNJ.S f%d, f%d, f%d", rd, rs1, rs2);
+                // TODO: implement.
                 return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
             case 0b001: // FSGNJN.S
                 TRACE("FSGNJN.S f%d, f%d, f%d", rd, rs1, rs2);
+                // TODO: implement.
                 return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
             case 0b010: // FSGNJX.S
                 TRACE("FSGNJX.S f%d, f%d, f%d", rd, rs1, rs2);
+                // TODO: implement.
                 return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
             default:
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
@@ -834,11 +871,21 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             switch (funct3)
             {
             case 0b000: // FMIN.S
+                // rd <- min(rs1, rs2)
                 TRACE("FMIN.S f%d, f%d, f%d", rd, rs1, rs2);
-                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                cpu->freg[rd] = fminf(cpu->freg[rs1], cpu->freg[rs2]);
+                cpu->pc += 4;
+                // TODO: rounding.
+                break;
+
             case 0b001: // FMAX.S
+                // rd <- max(rs1, rs2)
                 TRACE("FMAX.S f%d, f%d, f%d", rd, rs1, rs2);
-                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                cpu->freg[rd] = fmaxf(cpu->freg[rs1], cpu->freg[rs2]);
+                cpu->pc += 4;
+                // TODO: rounding.
+                break;
+
             default:
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
@@ -849,9 +896,11 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             {
             case 0b00000:
                 TRACE("FCVT.W.S r%d, f%d, %s", rd, rs1, roundingModes[rm]);
+                // TODO: implement.
                 return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
             case 0b00001:
                 TRACE("FCVT.WU.S r%d, f%d, %s", rd, rs1, roundingModes[rm]);
+                // TODO: implement.
                 return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
             default:
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
@@ -865,9 +914,11 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
                 {
                 case 0b000:
                     TRACE("FMV.X.W r%d, f%d", rd, rs1);
+                    // TODO: implement.
                     return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
                 case 0b001:
                     TRACE("FCLASS.S r%d, f%d", rd, rs1);
+                    // TODO: implement.
                     return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
                 default:
                     return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
@@ -884,12 +935,15 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             {
             case 0b010: // FEQ.S
                 TRACE("FEQ.S r%d, f%d, f%d", rd, rs1, rs2);
+                // TODO: implement.
                 return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
             case 0b001: // FLT.S
                 TRACE("FLT.S r%d, f%d, f%d", rd, rs1, rs2);
+                // TODO: implement.
                 return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
             case 0b000: // FLE.S
                 TRACE("FLE.S r%d, f%d, f%d", rd, rs1, rs2);
+                // TODO: implement.
                 return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
             default:
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
@@ -901,9 +955,11 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             {
             case 0b00000: // FCVT.S.W
                 TRACE("FCVT.S.W f%d, r%d, %s", rd, rs1, roundingModes[rm]);
+                // TODO: implement.
                 break;
             case 0b00001: // FVCT.S.WU
                 TRACE("FVCT.S.WU f%d, r%d, %s", rd, rs1, roundingModes[rm]);
+                // TODO: implement.
                 break;
             default:
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
@@ -914,6 +970,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             if (rs2 == 0b00000 && funct3 == 0b000) // FMV.W.X
             {
                 TRACE("FMV.W.X f%d, r%d", rd, rs1);
+                // TODO: implement.
                 return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
             }
             return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
