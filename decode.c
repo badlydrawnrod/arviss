@@ -303,19 +303,31 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         case 0b000: // SB
             // m8(rs1 + imm_s) <- rs2[7:0], pc += 4
             TRACE("SB %s, %d(%s)\n", abiNames[rs2], imm, abiNames[rs1]);
-            WriteByte(cpu->memory, cpu->xreg[rs1] + imm, cpu->xreg[rs2] & 0xff);
+            CpuResult byteResult = WriteByte(cpu->memory, cpu->xreg[rs1] + imm, cpu->xreg[rs2] & 0xff);
+            if (ResultIsTrap(byteResult))
+            {
+                return byteResult;
+            }
             cpu->pc += 4;
             break;
         case 0b001: // SH
             // m16(rs1 + imm_s) <- rs2[15:0], pc += 4
             TRACE("SH %s, %d(%s)\n", abiNames[rs2], imm, abiNames[rs1]);
-            WriteHalfword(cpu->memory, cpu->xreg[rs1] + imm, cpu->xreg[rs2] & 0xffff);
+            CpuResult halfwordResult = WriteHalfword(cpu->memory, cpu->xreg[rs1] + imm, cpu->xreg[rs2] & 0xffff);
+            if (ResultIsTrap(halfwordResult))
+            {
+                return halfwordResult;
+            }
             cpu->pc += 4;
             break;
         case 0b010: // SW
             // m32(rs1 + imm_s) <- rs2[31:0], pc += 4
             TRACE("SW %s, %d(%s)\n", abiNames[rs2], imm, abiNames[rs1]);
-            WriteWord(cpu->memory, cpu->xreg[rs1] + imm, cpu->xreg[rs2]);
+            CpuResult wordResult = WriteWord(cpu->memory, cpu->xreg[rs1] + imm, cpu->xreg[rs2]);
+            if (ResultIsTrap(wordResult))
+            {
+                return wordResult;
+            }
             cpu->pc += 4;
             break;
         default:
@@ -691,9 +703,16 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         uint32_t funct3 = Funct3(instruction);
         if (funct3 == 0b010) // FLW
         {
+            // rd <- f32(rs1 + imm_i)
             int32_t imm = IImmediate(instruction);
             TRACE("FLW f%d, %d(%s)", rd, imm, abiNames[rs1]);
-            // TODO: implement.
+            CpuResult wordResult = ReadWord(cpu->memory, cpu->xreg[rs1] + imm);
+            if (!ResultIsWord(wordResult))
+            {
+                return wordResult;
+            }
+            cpu->freg[rd] = (float)ResultAsWord(wordResult);
+            cpu->pc += 4;
             return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
         }
         else
@@ -706,11 +725,17 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         uint32_t funct3 = Funct3(instruction);
         if (funct3 == 0b010) // FSW
         {
+            // f32(rs1 + imm_s) = rs2
             uint32_t rs2 = Rs2(instruction);
             int32_t imm = SImmediate(instruction);
             TRACE("FSW f%d, %d(%s)\n", rs2, imm, abiNames[rs1]);
-            // TODO: implement.
-            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            CpuResult wordResult = WriteWord(cpu->memory, cpu->xreg[rs1] + imm, (uint32_t)cpu->freg[rs2]);
+            if (ResultIsTrap(wordResult))
+            {
+                return wordResult;
+            }
+            cpu->pc += 4;
+            break;
         }
         else
         {
