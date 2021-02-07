@@ -1,5 +1,7 @@
 #include "decode.h"
 
+#include "conversions.h"
+
 #include <stdint.h>
 
 #define BDR_TRACE_ENABLED
@@ -716,7 +718,9 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             {
                 return wordResult;
             }
-            cpu->freg[rd] = (float)ResultAsWord(wordResult);
+            const uint32_t resultAsWord = ResultAsWord(wordResult);
+            const float resultAsFloat = U32AsFloat(resultAsWord);
+            cpu->freg[rd] = resultAsFloat;
             cpu->pc += 4;
         }
         else
@@ -734,7 +738,8 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             uint32_t rs2 = Rs2(instruction);
             int32_t imm = SImmediate(instruction);
             TRACE("FSW f%d, %d(%s)\n", rs2, imm, abiNames[rs1]);
-            CpuResult wordResult = WriteWord(cpu->memory, cpu->xreg[rs1] + imm, (uint32_t)cpu->freg[rs2]);
+            uint32_t t = FloatAsU32(cpu->freg[rs2]);
+            CpuResult wordResult = WriteWord(cpu->memory, cpu->xreg[rs1] + imm, t);
             if (ResultIsTrap(wordResult))
             {
                 return wordResult;

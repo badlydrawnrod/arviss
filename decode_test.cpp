@@ -1,3 +1,4 @@
+#include "conversions.h"
 #include "decode.h"
 #include "smallmem.h"
 
@@ -387,7 +388,7 @@ TEST_F(TestDecoder, Load_Lb)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 7 is zero.
-    ::WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 123);
+    WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 123);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m8(rs1 + imm_i))
@@ -398,7 +399,7 @@ TEST_F(TestDecoder, Load_Lb)
 
     // Sign extend when bit 7 is one.
     pc = cpu.pc;
-    ::WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 0xff);
+    WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 0xff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m8(rs1 + imm_i))
@@ -418,7 +419,7 @@ TEST_F(TestDecoder, Load_Lh)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 15 is zero.
-    ::WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fff);
+    WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m16(rs1 + imm_i))
@@ -429,7 +430,7 @@ TEST_F(TestDecoder, Load_Lh)
 
     // Sign extend when bit 15 is one.
     pc = cpu.pc;
-    ::WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffff);
+    WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m16(rs1 + imm_i))
@@ -449,7 +450,7 @@ TEST_F(TestDecoder, Load_Lw)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 31 is zero.
-    ::WriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fffffff);
+    WriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fffffff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m32(rs1 + imm_i))
@@ -460,7 +461,7 @@ TEST_F(TestDecoder, Load_Lw)
 
     // Sign extend when bit 31 is one.
     pc = cpu.pc;
-    ::WriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffffffff);
+    WriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffffffff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m32(rs1 + imm_i))
@@ -480,7 +481,7 @@ TEST_F(TestDecoder, Load_Lbu)
     cpu.xreg[rs1] = rambase + ramsize / 2;
 
     // Zero extend when bit 7 is zero.
-    ::WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 123);
+    WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 123);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m8(rs1 + imm_i))
@@ -491,7 +492,7 @@ TEST_F(TestDecoder, Load_Lbu)
 
     // Zero extend when bit 7 is zero.
     pc = cpu.pc;
-    ::WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 0xff);
+    WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 0xff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m8(rs1 + imm_i))
@@ -511,7 +512,7 @@ TEST_F(TestDecoder, Load_Lhu)
     cpu.xreg[rs1] = rambase + ramsize / 2;
 
     // Zero extend when bit 15 is zero.
-    ::WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fff);
+    WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m16(rs1 + imm_i))
@@ -522,7 +523,7 @@ TEST_F(TestDecoder, Load_Lhu)
 
     // Zero extend when bit 15 is one.
     pc = cpu.pc;
-    ::WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffff);
+    WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffff);
     Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m16(rs1 + imm_i))
@@ -534,12 +535,12 @@ TEST_F(TestDecoder, Load_Lhu)
 
 TEST_F(TestDecoder, Load_x0_Is_Zero)
 {
-    ::WriteWord(cpu.memory, rambase, 0x12345678);
+    WriteWord(cpu.memory, rambase, 0x12345678);
 
     // LB
     uint32_t rs1 = 13;
     cpu.xreg[rs1] = rambase;
-    ::WriteByte(cpu.memory, rambase, 0xff);
+    WriteByte(cpu.memory, rambase, 0xff);
     Decode(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(0) | OP_LOAD);
 
     // x0 <- 0
@@ -1501,4 +1502,53 @@ TEST_F(TestDecoder, Traps_Set_Mtval)
 
     // mtval <- exception specific information
     ASSERT_EQ(address, cpu.mtval);
+}
+
+TEST_F(TestDecoder, LoadFp_Flw)
+{
+    // rd <- f32(rs1 + imm_i), pc += 4
+    uint32_t pc = cpu.pc;
+    int32_t imm_i = 274;
+    uint32_t rd = 14;
+    uint32_t rs1 = 15;
+    cpu.xreg[rs1] = rambase;
+
+    // Write a float.
+    float expected = -1234e-6f;
+    uint32_t expectedAsU32 = FloatAsU32(expected);
+    WriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, expectedAsU32);
+
+    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOADFP);
+
+    // rd <- f32(rs1 + imm_i)
+    ASSERT_EQ(expected, cpu.freg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+}
+
+TEST_F(TestDecoder, StoreFp_Fsw)
+{
+    // f32(rs1 + imm_s) = rs2, pc += 4
+    uint32_t pc = cpu.pc;
+    int32_t imm_s = 222;
+    uint32_t rs1 = 2;
+    uint32_t rs2 = 29;
+    cpu.xreg[rs1] = rambase + ramsize / 2;
+    float expected = 12345.99f;
+    cpu.freg[rs2] = expected;
+
+    Decode(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | OP_STOREFP);
+
+    // m32(rs1 + imm_s) <- rs2
+    CpuResult wordResult = ReadWord(cpu.memory, cpu.xreg[rs1] + imm_s);
+    ASSERT_TRUE(ResultIsWord(wordResult));
+
+    uint32_t resultAsWord = ResultAsWord(wordResult);
+    float resultAsFloat = U32AsFloat(resultAsWord);
+    ASSERT_EQ(expected, resultAsFloat);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+
 }
