@@ -759,7 +759,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         uint32_t rs3 = Rs3(instruction);
         if (((instruction >> 25) & 0b11) == 0) // FMADD.S
         {
-            // rd <- (rs1 x rs2) + rs3
+            // rd <- (rs1 * rs2) + rs3
             TRACE("FMADD.S f%d, f%d, f%d, f%d, %s", rd, rs1, rs2, rs3, roundingModes[rm]);
             cpu->freg[rd] = (cpu->freg[rs1] * cpu->freg[rs2]) + cpu->freg[rs3];
             cpu->pc += 4;

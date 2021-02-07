@@ -36,10 +36,22 @@ enum
     OP_LOADFP = 0b0000111,  // RV32F
     OP_STOREFP = 0b0100111, // RV32F
     OP_OPFP = 0b1010011,    // RV32F
-    OP_MADD = 0b10000111,   // RV32F
-    OP_MSUB = 0b10001111,   // RV32F
-    OP_NMSUB = 0b10010111,  // RV32F
-    OP_NMADD = 0b10011111,  // RV32F
+    OP_MADD = 0b1000011,    // RV32F
+    OP_MSUB = 0b1000111,    // RV32F
+    OP_NMSUB = 0b1001011,   // RV32F
+    OP_NMADD = 0b1001111,   // RV32F
+};
+
+enum
+{
+    RM_RNE = 0b000,
+    RM_RTZ = 0b001,
+    RM_RDN = 0b010,
+    RM_RUP = 0b011,
+    RM_RMM = 0b100,
+    RM_RSVD5 = 0b101,
+    RM_RSVD6 = 0b110,
+    RM_DYN = 0b111
 };
 
 #ifdef __cplusplus
