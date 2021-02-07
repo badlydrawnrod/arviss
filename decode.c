@@ -111,6 +111,10 @@ void Reset(CPU* cpu, uint32_t sp)
     {
         cpu->xreg[i] = 0;
     }
+    for (int i = 0; i < 32; i++)
+    {
+        cpu->freg[i] = 0;
+    }
     cpu->xreg[2] = sp;
     cpu->mepc = 0;
     cpu->mcause = 0;
