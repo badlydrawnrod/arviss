@@ -873,20 +873,29 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             }
 
         case 0b0010000: {
+            uint32_t a = (uint32_t)cpu->freg[rs1] & 0x7fffffff;
+            uint32_t b = (uint32_t)cpu->freg[rs2] & 0x80000000;
             switch (funct3)
             {
             case 0b000: // FSGNJ.S
-                TRACE("FSGNJ.S f%d, f%d, f%d", rd, rs1, rs2);
-                // TODO: implement.
-                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                // rd <- abs(rs1) * sgn(rs2)
+                TRACE("FSGNJ.S f%d, f%d, f%d, %s", rd, rs1, rs2, roundingModes[rm]);
+                cpu->freg[rd] = (float)(a | b);
+                cpu->pc += 4;
+                break;
             case 0b001: // FSGNJN.S
-                TRACE("FSGNJN.S f%d, f%d, f%d", rd, rs1, rs2);
-                // TODO: implement.
-                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                // rd <- abs(rs1) * -sgn(rs2)
+                TRACE("FSGNJN.S f%d, f%d, f%d, %s", rd, rs1, rs2, roundingModes[rm]);
+                cpu->freg[rd] = (float)(a | ~b);
+                cpu->pc += 4;
+                break;
             case 0b010: // FSGNJX.S
-                TRACE("FSGNJX.S f%d, f%d, f%d", rd, rs1, rs2);
-                // TODO: implement.
-                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                // rd <- abs(rs1) * (sgn(rs1) ^ sgn(rs2))
+                TRACE("FSGNJX.S f%d, f%d, f%d, %s", rd, rs1, rs2, roundingModes[rm]);
+                uint32_t c = (uint32_t)cpu->freg[rs1] & 0x80000000;
+                cpu->freg[rd] = (float)(a | (c ^ a));
+                cpu->pc += 4;
+                break;
             default:
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
