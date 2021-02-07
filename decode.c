@@ -698,6 +698,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         {
             return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
+        break;
 
     case OP_LOADFP: { // Floating point load (RV32F)
         uint32_t funct3 = Funct3(instruction);
@@ -713,13 +714,13 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             }
             cpu->freg[rd] = (float)ResultAsWord(wordResult);
             cpu->pc += 4;
-            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
         }
         else
         {
             return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
+    break;
 
     case OP_STOREFP: { // Floating point store (RV32F)
         uint32_t funct3 = Funct3(instruction);
@@ -735,13 +736,13 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
                 return wordResult;
             }
             cpu->pc += 4;
-            break;
         }
         else
         {
             return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
+    break;
 
     case OP_MADD: { // Floating point fused multiply-add (RV32F)
         uint32_t rm = Rm(instruction);
@@ -754,13 +755,13 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             cpu->freg[rd] = (cpu->freg[rs1] * cpu->freg[rs2]) + cpu->freg[rs3];
             cpu->pc += 4;
             // TODO: rounding.
-            break;
         }
         else
         {
             return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
+    break;
 
     case OP_MSUB: { // Floating point fused multiply-sub (RV32F)
         uint32_t rm = Rm(instruction);
@@ -773,13 +774,13 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             cpu->freg[rd] = (cpu->freg[rs1] * cpu->freg[rs2]) - cpu->freg[rs3];
             cpu->pc += 4;
             // TODO: rounding.
-            break;
         }
         else
         {
             return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
+    break;
 
     case OP_NMSUB: { // Floating point negated fused multiply-sub (RV32F)
         uint32_t rm = Rm(instruction);
@@ -799,6 +800,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
+    break;
 
     case OP_NMADD: { // Floating point negated fused multiple-add (RV32F)
         uint32_t rm = Rm(instruction);
@@ -817,6 +819,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
+    break;
 
     case OP_OPFP: { // Floating point operations (RV32F)
         uint32_t funct7 = Funct7(instruction);
@@ -865,12 +868,12 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
                 cpu->freg[rd] = sqrtf(cpu->freg[rs1]);
                 cpu->pc += 4;
                 // TODO: rounding.
-                break;
             }
             else
             {
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
+            break;
 
         case 0b0010000: {
             uint32_t a = (uint32_t)cpu->freg[rs1] & 0x7fffffff;
@@ -900,6 +903,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
         }
+        break;
 
         case 0b0010100: {
             switch (funct3)
@@ -924,36 +928,56 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
         }
+        break;
 
         case 0b1100000: {
             switch (rs2) // Not actually rs2 - just the same bits.
             {
             case 0b00000:
+                // rd <- int32_t(rs1)
                 TRACE("FCVT.W.S r%d, f%d, %s", rd, rs1, roundingModes[rm]);
-                // TODO: implement.
-                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                cpu->xreg[rd] = (int32_t)cpu->freg[rs1];
+                cpu->pc += 4;
+                // TODO: rounding.
+                break;
             case 0b00001:
                 TRACE("FCVT.WU.S r%d, f%d, %s", rd, rs1, roundingModes[rm]);
-                // TODO: implement.
-                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                cpu->xreg[rd] = (uint32_t)cpu->freg[rs1];
+                cpu->pc += 4;
+                // TODO: rounding.
+                break;
             default:
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
         }
+        break;
 
         case 0b1110000: {
             if (rs2 == 0b00000) // Not actually rs2 - just the same bits.
             {
                 switch (funct3)
                 {
-                case 0b000:
+                case 0b000: {
+                    // bits(rd) <- bits(rs1)
                     TRACE("FMV.X.W r%d, f%d", rd, rs1);
-                    // TODO: implement.
-                    return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                    union
+                    {
+                        uint32_t a;
+                        float b;
+                    } t;
+                    t.b = cpu->freg[rs1];
+                    cpu->xreg[rd] = t.a;
+                    cpu->pc += 4;
+                }
+                break;
+
                 case 0b001:
                     TRACE("FCLASS.S r%d, f%d", rd, rs1);
-                    // TODO: implement.
-                    return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                    // TODO: do this properly rather than hardcoding to a positive normal number.
+                    cpu->xreg[rd] = (1 << 6);
+                    cpu->pc += 4;
+                    break;
+
                 default:
                     return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
                 }
@@ -963,51 +987,80 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
         }
+        break;
 
         case 0b1010000: {
             switch (funct3)
             {
             case 0b010: // FEQ.S
+                // rd <- (rs1 == rs2) ? 1 : 0;
                 TRACE("FEQ.S r%d, f%d, f%d", rd, rs1, rs2);
-                // TODO: implement.
-                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                cpu->xreg[rd] = cpu->freg[rs1] == cpu->freg[rs2] ? 1 : 0;
+                cpu->pc += 4;
+                break;
+
             case 0b001: // FLT.S
+                // rd <- (rs1 < rs2) ? 1 : 0;
                 TRACE("FLT.S r%d, f%d, f%d", rd, rs1, rs2);
-                // TODO: implement.
-                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                cpu->xreg[rd] = cpu->freg[rs1] < cpu->freg[rs2] ? 1 : 0;
+                cpu->pc += 4;
+                break;
+
             case 0b000: // FLE.S
+                // rd <- (rs1 <= rs2) ? 1 : 0;
                 TRACE("FLE.S r%d, f%d, f%d", rd, rs1, rs2);
-                // TODO: implement.
-                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                cpu->xreg[rd] = cpu->freg[rs1] <= cpu->freg[rs2] ? 1 : 0;
+                cpu->pc += 4;
+                break;
+
             default:
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
         }
+        break;
 
         case 0b1101000: {
             switch (rs2) // No actually rs2 - just the same bits,
             {
             case 0b00000: // FCVT.S.W
+                // rd <- float(int32_t((rs1))
                 TRACE("FCVT.S.W f%d, r%d, %s", rd, rs1, roundingModes[rm]);
-                // TODO: implement.
+                cpu->freg[rd] = (float)(int32_t)cpu->xreg[rs1];
+                cpu->pc += 4;
+                // TODO: rounding.
                 break;
             case 0b00001: // FVCT.S.WU
+                // rd <- float(rs1)
                 TRACE("FVCT.S.WU f%d, r%d, %s", rd, rs1, roundingModes[rm]);
-                // TODO: implement.
+                cpu->freg[rd] = (float)cpu->xreg[rs1];
+                cpu->pc += 4;
+                // TODO: rounding.
                 break;
             default:
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
         }
+        break;
 
         case 0b1111000:
             if (rs2 == 0b00000 && funct3 == 0b000) // FMV.W.X
             {
+                // bits(rd) <- bits(rs1)
                 TRACE("FMV.W.X f%d, r%d", rd, rs1);
-                // TODO: implement.
-                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                union
+                {
+                    uint32_t a;
+                    float b;
+                } t;
+                t.a = cpu->xreg[rs1];
+                cpu->freg[rd] = t.b;
+                cpu->pc += 4;
             }
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            else
+            {
+                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            }
+            break;
 
         default:
             return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
