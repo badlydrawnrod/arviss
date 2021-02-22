@@ -1586,3 +1586,26 @@ TEST_F(TestDecoder, Madd_Fmadd_s)
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
 }
+
+TEST_F(TestDecoder, Msub_Fmsub_s)
+{
+    // rd <- (rs1 * rs2) - rs3, pc += 4
+    uint32_t pc = cpu.pc;
+    uint32_t rd = 5;
+    uint32_t rs1 = 2;
+    uint32_t rs2 = 29;
+    uint32_t rs3 = 3;
+    uint32_t rm = RM_DYN;
+    cpu.freg[rs1] = 1244.5f;
+    cpu.freg[rs2] = 10.0f;
+    cpu.freg[rs3] = 100.0f;
+    float expected = cpu.freg[rs1] * cpu.freg[rs2] - cpu.freg[rs3];
+
+    Decode(&cpu, EncodeRs3(rs3) | (0b00 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_MSUB);
+
+    // rd <- (rs1 * rs2) + rs3
+    ASSERT_EQ(expected, cpu.freg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+}
