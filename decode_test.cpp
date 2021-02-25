@@ -1655,3 +1655,87 @@ TEST_F(TestDecoder, Nmadd_Fnmadd_s)
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
 }
+
+TEST_F(TestDecoder, OpFp_Fadd_s)
+{
+    // rd <- rs1 + rs2
+    uint32_t pc = cpu.pc;
+    uint32_t rd = 15;
+    uint32_t rs1 = 4;
+    uint32_t rs2 = 7;
+    uint32_t rm = RM_DYN;
+    cpu.freg[rs1] = 1024.0f;
+    cpu.freg[rs2] = 512.0f;
+    float expected = cpu.freg[rs1] + cpu.freg[rs2];
+
+    Decode(&cpu, (0b0000000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+
+    // rd <- rs1 + rs2
+    ASSERT_EQ(expected, cpu.freg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+}
+
+TEST_F(TestDecoder, OpFp_Fsub_s)
+{
+    // rd <- rs1 + rs2
+    uint32_t pc = cpu.pc;
+    uint32_t rd = 5;
+    uint32_t rs1 = 14;
+    uint32_t rs2 = 17;
+    uint32_t rm = RM_DYN;
+    cpu.freg[rs1] = 16384.0f;
+    cpu.freg[rs2] = 1024.0f;
+    float expected = cpu.freg[rs1] - cpu.freg[rs2];
+
+    Decode(&cpu, (0b0000100 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+
+    // rd <- rs1 - rs2
+    ASSERT_EQ(expected, cpu.freg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+}
+
+TEST_F(TestDecoder, OpFp_Fmul_s)
+{
+    // rd <- rs1 + rs2
+    uint32_t pc = cpu.pc;
+    uint32_t rd = 2;
+    uint32_t rs1 = 3;
+    uint32_t rs2 = 7;
+    uint32_t rm = RM_DYN;
+    cpu.freg[rs1] = 2560.0f;
+    cpu.freg[rs2] = -1440.0f;
+    float expected = cpu.freg[rs1] * cpu.freg[rs2];
+
+    Decode(&cpu, (0b0001000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+
+    // rd <- rs1 * rs2
+    ASSERT_EQ(expected, cpu.freg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+}
+
+TEST_F(TestDecoder, OpFp_Fdiv_s)
+{
+    // rd <- rs1 + rs2
+    uint32_t pc = cpu.pc;
+    uint32_t rd = 12;
+    uint32_t rs1 = 13;
+    uint32_t rs2 = 6;
+    uint32_t rm = RM_DYN;
+    cpu.freg[rs1] = -327680.0f;
+    cpu.freg[rs2] = 1024.0f;
+    float expected = cpu.freg[rs1] / cpu.freg[rs2];
+
+    Decode(&cpu, (0b0001100 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+
+    // rd <- rs1 / rs2
+    ASSERT_EQ(expected, cpu.freg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+}
