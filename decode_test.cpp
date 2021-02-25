@@ -1739,3 +1739,22 @@ TEST_F(TestDecoder, OpFp_Fdiv_s)
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
 }
+
+TEST_F(TestDecoder, OpFp_Fsqrt_s)
+{
+    // rd <- sqrt(ts1)
+    uint32_t pc = cpu.pc;
+    uint32_t rd = 5;
+    uint32_t rs1 = 3;
+    uint32_t rm = RM_DYN;
+    cpu.freg[rs1] = 65536.0;
+    float expected = sqrtf(cpu.freg[rs1]);
+
+    Decode(&cpu, (0b0101100 << 25) | EncodeRs2(0) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+
+    // rd <- sqrt(rs1)
+    ASSERT_EQ(expected, cpu.freg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+}
