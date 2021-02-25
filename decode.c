@@ -820,7 +820,6 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             cpu->freg[rd] = -(cpu->freg[rs1] * cpu->freg[rs2]) - cpu->freg[rs3];
             cpu->pc += 4;
             // TODO: rounding.
-            break;
         }
         else
         {
