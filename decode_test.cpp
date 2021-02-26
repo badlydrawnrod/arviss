@@ -1658,7 +1658,7 @@ TEST_F(TestDecoder, Nmadd_Fnmadd_s)
 
 TEST_F(TestDecoder, OpFp_Fadd_s)
 {
-    // rd <- rs1 + rs2
+    // rd <- rs1 + rs2, pc += 4
     uint32_t pc = cpu.pc;
     uint32_t rd = 15;
     uint32_t rs1 = 4;
@@ -1679,7 +1679,7 @@ TEST_F(TestDecoder, OpFp_Fadd_s)
 
 TEST_F(TestDecoder, OpFp_Fsub_s)
 {
-    // rd <- rs1 + rs2
+    // rd <- rs1 + rs2, pc += 4
     uint32_t pc = cpu.pc;
     uint32_t rd = 5;
     uint32_t rs1 = 14;
@@ -1700,7 +1700,7 @@ TEST_F(TestDecoder, OpFp_Fsub_s)
 
 TEST_F(TestDecoder, OpFp_Fmul_s)
 {
-    // rd <- rs1 + rs2
+    // rd <- rs1 + rs2, pc += 4
     uint32_t pc = cpu.pc;
     uint32_t rd = 2;
     uint32_t rs1 = 3;
@@ -1721,7 +1721,7 @@ TEST_F(TestDecoder, OpFp_Fmul_s)
 
 TEST_F(TestDecoder, OpFp_Fdiv_s)
 {
-    // rd <- rs1 + rs2
+    // rd <- rs1 + rs2, pc += 4
     uint32_t pc = cpu.pc;
     uint32_t rd = 12;
     uint32_t rs1 = 13;
@@ -1742,7 +1742,7 @@ TEST_F(TestDecoder, OpFp_Fdiv_s)
 
 TEST_F(TestDecoder, OpFp_Fsqrt_s)
 {
-    // rd <- sqrt(ts1)
+    // rd <- sqrt(ts1), pc += 4
     uint32_t pc = cpu.pc;
     uint32_t rd = 5;
     uint32_t rs1 = 3;
@@ -1757,4 +1757,110 @@ TEST_F(TestDecoder, OpFp_Fsqrt_s)
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
+}
+
+static inline float Sgn(float n)
+{
+    return n < 0.0f ? -1.0f : 1.0f;
+}
+
+TEST_F(TestDecoder, OpFp_Fsgnj_s)
+{
+    // rd <- abs(rs1) * sgn(rs2), pc += 4
+    uint32_t pc = cpu.pc;
+
+    uint32_t rd = 5;
+    uint32_t rs1 = 3;
+    uint32_t rs2 = 4;
+    cpu.freg[rs1] = 65536.0;
+    cpu.freg[rs2] = -123.0f;
+
+    float expected = cpu.freg[rs1] * Sgn(cpu.freg[rs2]);
+
+    Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rd <- abs(rs1) * sgn(rs2)
+    ASSERT_EQ(expected, cpu.freg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+}
+
+TEST_F(TestDecoder, OpFp_Fsgnjn_s)
+{
+    // rd <- abs(rs1) * -sgn(rs2), pc += 4
+    uint32_t pc = cpu.pc;
+
+    uint32_t rd = 3;
+    uint32_t rs1 = 2;
+    uint32_t rs2 = 1;
+    cpu.freg[rs1] = 53623.0;
+    cpu.freg[rs2] = 75.0f;
+
+    float expected = cpu.freg[rs1] * -Sgn(cpu.freg[rs2]);
+
+    Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rd <- abs(rs1) * -sgn(rs2)
+    ASSERT_EQ(expected, cpu.freg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+}
+
+TEST_F(TestDecoder, OpFp_Fsgnjx_s)
+{
+    // rd <- abs(rs1) * (sgn(rs1) ^ sgn(rs2)))
+    uint32_t pc = cpu.pc;
+
+    uint32_t rd = 3;
+    uint32_t rs1 = 2;
+    uint32_t rs2 = 1;
+
+    // Both positive.
+    cpu.freg[rs1] = 53623.0;
+    cpu.freg[rs2] = 75.0f;
+
+    float expected = cpu.freg[rs1];
+
+    Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rd <- rs1 * 1
+    ASSERT_EQ(expected, cpu.freg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+
+    // Both negative.
+    cpu.freg[rs1] = -234.0;
+    cpu.freg[rs2] = -984.0f;
+
+    expected = cpu.freg[rs1];
+
+    Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rd <- rs1 * 1
+    ASSERT_EQ(expected, cpu.freg[rd]);
+
+    // Positive and negative.
+    cpu.freg[rs1] = 249.0;
+    cpu.freg[rs2] = -194.0f;
+
+    expected = -cpu.freg[rs1];
+
+    Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rd <- rs1 * -1
+    ASSERT_EQ(expected, cpu.freg[rd]);
+
+    // Negative and positive.
+    cpu.freg[rs1] = -1249.0;
+    cpu.freg[rs2] = 1943.0f;
+
+    expected = -cpu.freg[rs1];
+
+    Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rd <- rs1 * -1
+    ASSERT_EQ(expected, cpu.freg[rd]);
 }

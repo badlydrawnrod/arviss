@@ -883,29 +883,36 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             break;
 
         case 0b0010000: {
-            uint32_t a = (uint32_t)cpu->freg[rs1] & 0x7fffffff;
-            uint32_t b = (uint32_t)cpu->freg[rs2] & 0x80000000;
             switch (funct3)
             {
             case 0b000: // FSGNJ.S
                 // rd <- abs(rs1) * sgn(rs2)
-                TRACE("FSGNJ.S f%d, f%d, f%d, %s", rd, rs1, rs2, roundingModes[rm]);
-                cpu->freg[rd] = (float)(a | b);
+                TRACE("FSGNJ.S f%d, f%d, f%d", rd, rs1, rs2);
+                cpu->freg[rd] = cpu->freg[rs1] * (cpu->freg[rs2] < 0.0f ? -1.0f : 1.0f);
                 cpu->pc += 4;
                 break;
             case 0b001: // FSGNJN.S
                 // rd <- abs(rs1) * -sgn(rs2)
-                TRACE("FSGNJN.S f%d, f%d, f%d, %s", rd, rs1, rs2, roundingModes[rm]);
-                cpu->freg[rd] = (float)(a | ~b);
+                TRACE("FSGNJN.S f%d, f%d, f%d", rd, rs1, rs2);
+                cpu->freg[rd] = cpu->freg[rs1] * (cpu->freg[rs2] < 0.0f ? 1.0f : -1.0f);
                 cpu->pc += 4;
                 break;
-            case 0b010: // FSGNJX.S
-                // rd <- abs(rs1) * (sgn(rs1) ^ sgn(rs2))
-                TRACE("FSGNJX.S f%d, f%d, f%d, %s", rd, rs1, rs2, roundingModes[rm]);
-                uint32_t c = (uint32_t)cpu->freg[rs1] & 0x80000000;
-                cpu->freg[rd] = (float)(a | (c ^ a));
+            case 0b010: { // FSGNJX.S
+                float m;
+                if ((cpu->freg[rs1] < 0.0f && cpu->freg[rs2] >= 0.0f) || (cpu->freg[rs1] >= 0.0f && cpu->freg[rs2] < 0.0f))
+                {
+                    m = -1.0f;
+                }
+                else
+                {
+                    m = 1.0f;
+                }
+                // rd <- abs(rs1) * (sgn(rs1) == sgn(rs2)) ? 1 : -1
+                TRACE("FSGNJX.S f%d, f%d, f%d", rd, rs1, rs2);
+                cpu->freg[rd] = cpu->freg[rs1] * m;
                 cpu->pc += 4;
-                break;
+            }
+            break;
             default:
                 return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
