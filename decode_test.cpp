@@ -1908,3 +1908,47 @@ TEST_F(TestDecoder, OpFp_Fmax_s)
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
 }
+
+TEST_F(TestDecoder, OpFp_Fcvt_w_s)
+{
+    // rd <- int32_t(rs1), pc += 4
+    uint32_t pc = cpu.pc;
+
+    uint32_t rd = 15;
+    uint32_t rs1 = 13;
+    uint32_t op = 0b00000;
+    uint32_t rm = RM_DYN;
+    cpu.freg[rs1] = 456.7f;
+
+    int32_t expected = (int32_t)(cpu.freg[rs1]); // TODO: is this true?
+
+    Decode(&cpu, (0b1100000 << 25) | EncodeRs2(op) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+
+    // rd <- int32_t(rs1)
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+}
+
+TEST_F(TestDecoder, OpFp_Fcvt_wu_s)
+{
+    // rd <- uint32_t(rs1), pc += 4
+    uint32_t pc = cpu.pc;
+
+    uint32_t rd = 15;
+    uint32_t rs1 = 13;
+    uint32_t op = 0b00001;
+    uint32_t rm = RM_DYN;
+    cpu.freg[rs1] = -12345678.910f;
+
+    uint32_t expected = (uint32_t)(cpu.freg[rs1]); // TODO: is this true?
+
+    Decode(&cpu, (0b1100000 << 25) | EncodeRs2(op) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+
+    // rd <- uint32_t(rs1)
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+}
