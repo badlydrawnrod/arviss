@@ -2,12 +2,12 @@
 
 #include "conversions.h"
 
+#include <math.h>
 #include <stdint.h>
 
 #define BDR_TRACE_ENABLED
 
 #if defined(BDR_TRACE_ENABLED)
-#include <math.h>
 #include <stdio.h>
 #define TRACE(...)                                                                                                                 \
     do                                                                                                                             \
