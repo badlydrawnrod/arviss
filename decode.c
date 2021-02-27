@@ -971,20 +971,68 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             {
                 switch (funct3)
                 {
-                case 0b000: {
+                case 0b000:
                     // bits(rd) <- bits(rs1)
                     TRACE("FMV.X.W r%d, f%d", rd, rs1);
                     cpu->xreg[rd] = FloatAsU32(cpu->freg[rs1]);
                     cpu->pc += 4;
+                    break;
+
+                case 0b001: {
+                    TRACE("FCLASS.S r%d, f%d", rd, rs1);
+                    const float v = cpu->freg[rs1];
+                    const uint32_t bits = FloatAsU32(v);
+                    uint32_t result = 0;
+                    if (v == -INFINITY)
+                    {
+                        result = (1 << 0);
+                    }
+                    else if (v == INFINITY)
+                    {
+                        result = (1 << 7);
+                    }
+                    else if (bits == 0x80000000) // Negative zero.
+                    {
+                        result = (1 << 3);
+                    }
+                    else if (v == 0.0f)
+                    {
+                        result = (1 << 4);
+                    }
+                    else if ((bits & 0x7f800000) == 0) // Is the exponent zero?
+                    {
+                        if (bits & 0x80000000)
+                        {
+                            result = (1 << 2); // Negative subnormal number
+                        }
+                        else
+                        {
+                            result = (1 << 5); // Positive subnormal number.
+                        }
+                    }
+                    else if ((bits & 0x7f800000) == 0x7f800000) // Is the exponent as large as possible?
+                    {
+                        if (bits & 0x00400000)
+                        {
+                            result = (1 << 9); // Quiet NaN.
+                        }
+                        else if (bits & 0x003fffff)
+                        {
+                            result = (1 << 8); // Signaling NaN.
+                        }
+                    }
+                    else if (v < 0.0f)
+                    {
+                        result = (1 << 1);
+                    }
+                    else if (v > 0.0f)
+                    {
+                        result = (1 << 6);
+                    }
+                    cpu->xreg[rd] = result;
+                    cpu->pc += 4;
                 }
                 break;
-
-                case 0b001:
-                    TRACE("FCLASS.S r%d, f%d", rd, rs1);
-                    // TODO: do this properly rather than hardcoding to a positive normal number.
-                    cpu->xreg[rd] = (1 << 6);
-                    cpu->pc += 4;
-                    break;
 
                 default:
                     return MakeTrap(trILLEGAL_INSTRUCTION, instruction);

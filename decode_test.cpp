@@ -1973,6 +1973,109 @@ TEST_F(TestDecoder, OpFp_Fmv_x_w)
     ASSERT_EQ(pc + 4, cpu.pc);
 }
 
+TEST_F(TestDecoder, OpFp_Fclass_s)
+{
+    uint32_t pc = cpu.pc;
+
+    uint32_t rd = 12;
+    uint32_t rs1 = 1;
+
+    // rs1 is -infinity
+    cpu.freg[rs1] = -INFINITY;
+    uint32_t expected = (1 << 0);
+
+    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rs1 is -infinity.
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+
+    // rs1 is infinity.
+    cpu.freg[rs1] = INFINITY;
+    expected = (1 << 7);
+
+    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rs1 is infinity.
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // rs1 is -0
+    cpu.freg[rs1] = U32AsFloat(0x80000000);
+    expected = (1 << 3);
+
+    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rs1 is -0.
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // rs1 is 0
+    cpu.freg[rs1] = 0.0f;
+    expected = (1 << 4);
+
+    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rs1 is 0.
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // rs1 is a negative normal number.
+    cpu.freg[rs1] = -123.45f;
+    expected = (1 << 1);
+
+    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rs1 is a negative normal number.
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // rs1 is a positive normal number.
+    cpu.freg[rs1] = 123.45f;
+    expected = (1 << 6);
+
+    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rs1 is a positive normal number.
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // rs1 is a negative subnormal number (sign bit is set and exponent is zero ... significand is not zero)
+    cpu.freg[rs1] = U32AsFloat(0x80000001);
+    expected = (1 << 2);
+
+    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rs1 is a negative subnormal number.
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // rs1 is a positive subnormal number (sign bit is clear and exponent is zero ... significand is not zero)
+    cpu.freg[rs1] = U32AsFloat(0x00000001);
+    expected = (1 << 5);
+
+    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rs1 is a positive subnormal number.
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // rs1 is a signalling NaN. We're poking the value in because otherwise it is converted to a quiet NaN, which has a different
+    // bit representation.
+    auto* preg = reinterpret_cast<uint32_t*>(&cpu.freg[rs1]);
+    *preg = 0x7f800001;
+    expected = (1 << 8);
+
+    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rs1 is a signalling NaN.
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+
+    // rs1 is a quiet NaN
+    cpu.freg[rs1] = U32AsFloat(0x7fc00000);
+    expected = (1 << 9);
+
+    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rs1 is a quiet NaN.
+    ASSERT_EQ(expected, cpu.xreg[rd]);
+}
+
 TEST_F(TestDecoder, OpFp_Feq_s)
 {
     // rd <- (rs == rs2) ? 1 : 0, pc += 4
