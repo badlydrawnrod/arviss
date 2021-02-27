@@ -12,7 +12,7 @@ int main()
 
     printf("--- Loading program and running it\n");
     FILE* fp = NULL;
-    errno_t err = fopen_s(&fp, "../boot/prog.bin", "rb");
+    errno_t err = fopen_s(&fp, "../boot/prog2.bin", "rb");
     if (err != 0)
     {
         return err;
