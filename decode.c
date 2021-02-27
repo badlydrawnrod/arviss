@@ -974,13 +974,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
                 case 0b000: {
                     // bits(rd) <- bits(rs1)
                     TRACE("FMV.X.W r%d, f%d", rd, rs1);
-                    union
-                    {
-                        uint32_t a;
-                        float b;
-                    } t;
-                    t.b = cpu->freg[rs1];
-                    cpu->xreg[rd] = t.a;
+                    cpu->xreg[rd] = FloatAsU32(cpu->freg[rs1]);
                     cpu->pc += 4;
                 }
                 break;
@@ -1061,13 +1055,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             {
                 // bits(rd) <- bits(rs1)
                 TRACE("FMV.W.X f%d, r%d", rd, rs1);
-                union
-                {
-                    uint32_t a;
-                    float b;
-                } t;
-                t.a = cpu->xreg[rs1];
-                cpu->freg[rd] = t.b;
+                cpu->freg[rd] = U32AsFloat(cpu->xreg[rs1]);
                 cpu->pc += 4;
             }
             else
