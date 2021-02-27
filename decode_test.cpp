@@ -1864,3 +1864,47 @@ TEST_F(TestDecoder, OpFp_Fsgnjx_s)
     // rd <- rs1 * -1
     ASSERT_EQ(expected, cpu.freg[rd]);
 }
+
+TEST_F(TestDecoder, OpFp_Fmin_s)
+{
+    // rd <- min(rs1, rs2), pc += 4
+    uint32_t pc = cpu.pc;
+
+    uint32_t rd = 15;
+    uint32_t rs1 = 13;
+    uint32_t rs2 = 31;
+    cpu.freg[rs1] = 456.7f;
+    cpu.freg[rs2] = 89.10f;
+
+    float expected = fminf(cpu.freg[rs1], cpu.freg[rs2]);
+
+    Decode(&cpu, (0b0010100 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rd <- min(rs1, rs2)
+    ASSERT_EQ(expected, cpu.freg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+}
+
+TEST_F(TestDecoder, OpFp_Fmax_s)
+{
+    // rd <- max(rs1, rs2), pc += 4
+    uint32_t pc = cpu.pc;
+
+    uint32_t rd = 15;
+    uint32_t rs1 = 13;
+    uint32_t rs2 = 31;
+    cpu.freg[rs1] = 456.7f;
+    cpu.freg[rs2] = 89.10f;
+
+    float expected = fmaxf(cpu.freg[rs1], cpu.freg[rs2]);
+
+    Decode(&cpu, (0b0010100 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+
+    // rd <- max(rs1, rs2)
+    ASSERT_EQ(expected, cpu.freg[rd]);
+
+    // pc <- pc + 4
+    ASSERT_EQ(pc + 4, cpu.pc);
+}
