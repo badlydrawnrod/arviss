@@ -802,7 +802,8 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         if (((instruction >> 25) & 0b11) == 0) // FNMSUB.S
         {
             // rd <- -(rs1 x rs2) + rs3
-            TRACE("FNMSUB.S %s, %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], fabiNames[rs3], roundingModes[rm]);
+            TRACE("FNMSUB.S %s, %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], fabiNames[rs3],
+                  roundingModes[rm]);
             cpu->freg[rd] = -(cpu->freg[rs1] * cpu->freg[rs2]) + cpu->freg[rs3];
             cpu->pc += 4;
             // TODO: rounding.
@@ -821,7 +822,8 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
         if (((instruction >> 25) & 0b11) == 0) // FNMADD.S
         {
             // rd <- -(rs1 x rs2) - rs3
-            TRACE("FNMADD.S %s, %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], fabiNames[rs3], roundingModes[rm]);
+            TRACE("FNMADD.S %s, %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], fabiNames[rs3],
+                  roundingModes[rm]);
             cpu->freg[rd] = -(cpu->freg[rs1] * cpu->freg[rs2]) - cpu->freg[rs3];
             cpu->pc += 4;
             // TODO: rounding.
