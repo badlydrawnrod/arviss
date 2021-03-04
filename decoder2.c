@@ -11,3 +11,14 @@ struct
         Madd,   Msub,    Nmsub, Nmadd,   OpFp,   NULL,  NULL,    NULL, // 10
         Branch, Jalr,    NULL,  Jal,     System, NULL,  NULL,    NULL  // 11
 };
+
+// Also, we could map this to opcode type
+/*
+        inst[4:2]                                                   //
+        //////////////////////////////////////////////////////////////////////////////
+        000     001      010    011      100     101    110      111   // inst[6:5]
+        I       I        -      -        I       U      I        -     // 00
+        S       S        -      R        R       U      R        -     // 01
+        R4      R4       R4     R4       R       -      -        -     // 10
+        B       I        -      J        I*      -      -        -     // 11
+*/
