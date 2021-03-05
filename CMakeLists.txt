@@ -42,7 +42,7 @@ install(TARGETS arviss
         INCLUDES DESTINATION include
         )
 
-install(FILES decode.h smallmem.h DESTINATION include)
+install(FILES decode.h smallmem.h memory.h result.h DESTINATION include)
 
 install(EXPORT arvissTargets
         FILE arvissTargets.cmake
