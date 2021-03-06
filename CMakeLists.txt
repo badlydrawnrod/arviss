@@ -42,7 +42,7 @@ install(TARGETS arviss
         INCLUDES DESTINATION include
         )
 
-install(FILES decode.h smallmem.h memory.h result.h DESTINATION include)
+install(FILES decode.h smallmem.h memory.h result.h DESTINATION include/arviss)
 
 install(EXPORT arvissTargets
         FILE arvissTargets.cmake
@@ -55,4 +55,3 @@ target_link_libraries(0x38_arviss PRIVATE arviss)
 
 add_executable(decode_test decode_test.cpp)
 target_link_libraries(decode_test PRIVATE arviss gtest_main)
-
