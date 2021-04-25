@@ -5,7 +5,7 @@
 #include <math.h>
 #include <stdint.h>
 
-#define BDR_TRACE_ENABLED
+//#define BDR_TRACE_ENABLED
 
 #if defined(BDR_TRACE_ENABLED)
 #include <stdio.h>
@@ -895,17 +895,17 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
             case 0b000: // FSGNJ.S
                 // rd <- abs(rs1) * sgn(rs2)
                 TRACE("FSGNJ.S %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2]);
-                cpu->freg[rd] = cpu->freg[rs1] * (cpu->freg[rs2] < 0.0f ? -1.0f : 1.0f);
+                cpu->freg[rd] = fabsf(cpu->freg[rs1]) * (cpu->freg[rs2] < 0.0f ? -1.0f : 1.0f);
                 cpu->pc += 4;
                 break;
             case 0b001: // FSGNJN.S
                 // rd <- abs(rs1) * -sgn(rs2)
                 TRACE("FSGNJN.S %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2]);
-                cpu->freg[rd] = cpu->freg[rs1] * (cpu->freg[rs2] < 0.0f ? 1.0f : -1.0f);
+                cpu->freg[rd] = fabsf(cpu->freg[rs1]) * (cpu->freg[rs2] < 0.0f ? 1.0f : -1.0f);
                 cpu->pc += 4;
                 break;
             case 0b010: { // FSGNJX.S
-                float m;
+                float m;  // The sign bit is the XOR of the sign bits of rs1 and rs2.
                 if ((cpu->freg[rs1] < 0.0f && cpu->freg[rs2] >= 0.0f) || (cpu->freg[rs1] >= 0.0f && cpu->freg[rs2] < 0.0f))
                 {
                     m = -1.0f;
@@ -916,7 +916,7 @@ CpuResult Decode(CPU* cpu, uint32_t instruction)
                 }
                 // rd <- abs(rs1) * (sgn(rs1) == sgn(rs2)) ? 1 : -1
                 TRACE("FSGNJX.S %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2]);
-                cpu->freg[rd] = cpu->freg[rs1] * m;
+                cpu->freg[rd] = fabsf(cpu->freg[rs1]) * m;
                 cpu->pc += 4;
             }
             break;

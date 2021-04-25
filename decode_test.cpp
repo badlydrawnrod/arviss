@@ -1769,13 +1769,13 @@ TEST_F(TestDecoder, OpFp_Fsgnj_s)
     // rd <- abs(rs1) * sgn(rs2), pc += 4
     uint32_t pc = cpu.pc;
 
-    uint32_t rd = 5;
-    uint32_t rs1 = 3;
+    uint32_t rd = 0;
+    uint32_t rs1 = 4;
     uint32_t rs2 = 4;
-    cpu.freg[rs1] = 65536.0;
-    cpu.freg[rs2] = -123.0f;
+    cpu.freg[rs1] = -32.0f;
+    cpu.freg[rs2] = -21.0f;
 
-    float expected = cpu.freg[rs1] * Sgn(cpu.freg[rs2]);
+    float expected = fabsf(cpu.freg[rs1]) * Sgn(cpu.freg[rs2]);
 
     Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
 
@@ -1794,10 +1794,10 @@ TEST_F(TestDecoder, OpFp_Fsgnjn_s)
     uint32_t rd = 3;
     uint32_t rs1 = 2;
     uint32_t rs2 = 1;
-    cpu.freg[rs1] = 53623.0;
+    cpu.freg[rs1] = -53623.0;
     cpu.freg[rs2] = 75.0f;
 
-    float expected = cpu.freg[rs1] * -Sgn(cpu.freg[rs2]);
+    float expected = fabsf(cpu.freg[rs1]) * -Sgn(cpu.freg[rs2]);
 
     Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
 
@@ -1810,7 +1810,7 @@ TEST_F(TestDecoder, OpFp_Fsgnjn_s)
 
 TEST_F(TestDecoder, OpFp_Fsgnjx_s)
 {
-    // rd <- abs(rs1) * (sgn(rs1) ^ sgn(rs2)))
+    // rd <- abs(rs1) * (sgn(rs1) == sgn(rs2)) ? 1 : -1
     uint32_t pc = cpu.pc;
 
     uint32_t rd = 3;
@@ -1818,10 +1818,10 @@ TEST_F(TestDecoder, OpFp_Fsgnjx_s)
     uint32_t rs2 = 1;
 
     // Both positive.
-    cpu.freg[rs1] = 53623.0;
+    cpu.freg[rs1] = 4623.0;
     cpu.freg[rs2] = 75.0f;
 
-    float expected = cpu.freg[rs1];
+    float expected = fabsf(cpu.freg[rs1]);
 
     Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
 
@@ -1835,7 +1835,7 @@ TEST_F(TestDecoder, OpFp_Fsgnjx_s)
     cpu.freg[rs1] = -234.0;
     cpu.freg[rs2] = -984.0f;
 
-    expected = cpu.freg[rs1];
+    expected = fabsf(cpu.freg[rs1]);
 
     Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
 
@@ -1846,7 +1846,7 @@ TEST_F(TestDecoder, OpFp_Fsgnjx_s)
     cpu.freg[rs1] = 249.0;
     cpu.freg[rs2] = -194.0f;
 
-    expected = -cpu.freg[rs1];
+    expected = -fabsf(cpu.freg[rs1]);
 
     Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
 
@@ -1854,10 +1854,10 @@ TEST_F(TestDecoder, OpFp_Fsgnjx_s)
     ASSERT_EQ(expected, cpu.freg[rd]);
 
     // Negative and positive.
-    cpu.freg[rs1] = -1249.0;
+    cpu.freg[rs1] = -1337.0;
     cpu.freg[rs2] = 1943.0f;
 
-    expected = -cpu.freg[rs1];
+    expected = -fabsf(cpu.freg[rs1]);
 
     Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
 

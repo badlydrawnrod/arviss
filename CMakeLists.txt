@@ -7,7 +7,10 @@ project(0x38_arviss
 include(FetchContent)
 
 set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED True)
+
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Use gtest.
 FetchContent_Declare(
@@ -25,6 +28,27 @@ endif ()
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 add_library(arviss decode.c smallmem.c)
+target_include_directories(arviss
+        PUBLIC
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
+        "$<INSTALL_INTERFACE:include>"
+        )
+
+install(TARGETS arviss
+        EXPORT arvissTargets
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        RUNTIME DESTINATION bin
+        INCLUDES DESTINATION include
+        )
+
+install(FILES decode.h smallmem.h memory.h result.h DESTINATION include/arviss)
+
+install(EXPORT arvissTargets
+        FILE arvissTargets.cmake
+        NAMESPACE arviss::
+        DESTINATION lib/cmake/arviss
+        )
 
 add_executable(0x38_arviss arviss.c)
 target_link_libraries(0x38_arviss PRIVATE arviss)
