@@ -6,7 +6,7 @@ project(0x38_arviss
 
 include(FetchContent)
 
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED True)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -25,7 +25,7 @@ if (NOT googletest_POPULATED)
 endif ()
 
 # Prevent google test from overriding the parent project's compiler/linker settings on Windows
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+#set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 add_library(arviss decode.c smallmem.c)
 target_include_directories(arviss
