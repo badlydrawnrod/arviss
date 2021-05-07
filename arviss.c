@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-int main()
+int main(void)
 {
     Memory memory;
     CPU cpu = {.memory = smallmem_Init(&memory)};

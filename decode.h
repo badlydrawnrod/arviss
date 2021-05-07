@@ -59,7 +59,7 @@ extern "C" {
 #endif
 
 void Reset(CPU* cpu, uint32_t sp);
-CpuResult Decode(CPU* cpu, uint32_t instruction);
+CpuResult Execute(CPU* cpu, uint32_t instruction);
 CpuResult Fetch(CPU* cpu);
 CpuResult HandleTrap(CPU* cpu, Trap trap);
 CpuResult Run(CPU* cpu, int count);

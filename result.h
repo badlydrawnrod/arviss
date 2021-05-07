@@ -63,6 +63,10 @@ typedef struct Result
     ResultType type;
 } CpuResult;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static inline CpuResult MakeOk(void)
 {
     CpuResult r;
@@ -118,7 +122,7 @@ static inline bool ResultIsByte(CpuResult result)
     return result.type == rtBYTE;
 }
 
-static uint8_t ResultAsByte(CpuResult result)
+static inline uint8_t ResultAsByte(CpuResult result)
 {
     return result.byte;
 }
@@ -128,7 +132,7 @@ static inline bool ResultIsHalfword(CpuResult result)
     return result.type == rtHALFWORD;
 }
 
-static uint16_t ResultAsHalfword(CpuResult result)
+static inline uint16_t ResultAsHalfword(CpuResult result)
 {
     return result.halfword;
 }
@@ -138,7 +142,11 @@ static inline bool ResultIsWord(CpuResult result)
     return result.type == rtWORD;
 }
 
-static uint32_t ResultAsWord(CpuResult result)
+static inline uint32_t ResultAsWord(CpuResult result)
 {
     return result.word;
 }
+
+#ifdef __cplusplus
+}
+#endif

@@ -7,7 +7,7 @@
 class TestDecoder : public ::testing::Test
 {
 protected:
-    void SetUp();
+    void SetUp() override;
 
     static uint32_t EncodeRd(uint32_t n);
     static uint32_t EncodeRs1(uint32_t n);
@@ -105,7 +105,7 @@ TEST_F(TestDecoder, Lui)
         uint32_t rd = 2;
         uint32_t pc = cpu.pc;
 
-        Decode(&cpu, (imm_u << 12) | EncodeRd(rd) | OP_LUI);
+        Execute(&cpu, (imm_u << 12) | EncodeRd(rd) | OP_LUI);
 
         // rd <- imm_u
         ASSERT_EQ(imm_u, (int32_t)cpu.xreg[rd] >> 12);
@@ -120,7 +120,7 @@ TEST_F(TestDecoder, Lui_x0_Is_Zero)
     // x0 is unchanged when it's the target of a LUI.
     int32_t imm_u = 123;
 
-    Decode(&cpu, (imm_u << 12) | EncodeRd(0) | OP_LUI);
+    Execute(&cpu, (imm_u << 12) | EncodeRd(0) | OP_LUI);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -135,7 +135,7 @@ TEST_F(TestDecoder, Auipc)
         uint32_t rd = 9;
         uint32_t pc = cpu.pc;
 
-        Decode(&cpu, (imm_u << 12) | EncodeRd(rd) | OP_AUIPC);
+        Execute(&cpu, (imm_u << 12) | EncodeRd(rd) | OP_AUIPC);
 
         // rd <- pc + imm_u
         uint32_t expected = pc + (imm_u << 12);
@@ -151,7 +151,7 @@ TEST_F(TestDecoder, Auipc_x0_Is_Zero)
     // x0 is unchanged when it's the target of an AUIPC.
     int32_t imm_u = 123;
 
-    Decode(&cpu, (imm_u << 12) | EncodeRd(0) | OP_AUIPC);
+    Execute(&cpu, (imm_u << 12) | EncodeRd(0) | OP_AUIPC);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -166,7 +166,7 @@ TEST_F(TestDecoder, Jal)
         int32_t imm_j = v;
         uint32_t rd = 3;
 
-        Decode(&cpu, (EncodeJ(imm_j) | EncodeRd(rd)) | OP_JAL);
+        Execute(&cpu, (EncodeJ(imm_j) | EncodeRd(rd)) | OP_JAL);
 
         // rd <- pc + 4
         ASSERT_EQ(pc + 4, cpu.xreg[rd]);
@@ -178,7 +178,7 @@ TEST_F(TestDecoder, Jal)
 
 TEST_F(TestDecoder, Jal_x0_Is_Zero)
 {
-    Decode(&cpu, (EncodeJ(123) | EncodeRd(0)) | OP_JAL);
+    Execute(&cpu, (EncodeJ(123) | EncodeRd(0)) | OP_JAL);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -199,7 +199,7 @@ TEST_F(TestDecoder, Jalr)
         cpu.xreg[rs1] = rs1Before;
 
         uint32_t ins = EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_JALR;
-        Decode(&cpu, ins);
+        Execute(&cpu, ins);
 
         // rd <- pc + 4
         ASSERT_EQ(pc + 4, cpu.xreg[rd]);
@@ -211,7 +211,7 @@ TEST_F(TestDecoder, Jalr)
 
 TEST_F(TestDecoder, Jalr_x0_Is_Zero)
 {
-    Decode(&cpu, EncodeI(123) | EncodeRs1(1) | (0b000 << 12) | EncodeRd(0) | OP_JALR);
+    Execute(&cpu, EncodeI(123) | EncodeRs1(1) | (0b000 << 12) | EncodeRd(0) | OP_JALR);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -228,7 +228,7 @@ TEST_F(TestDecoder, Branch_Beq)
     // Branch taken.
     cpu.xreg[rs1] = 5678;
     cpu.xreg[rs2] = cpu.xreg[rs1];
-    Decode(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | OP_BRANCH);
+    Execute(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | OP_BRANCH);
 
     // pc <- pc + imm_b
     ASSERT_EQ(pc + imm_b, cpu.pc);
@@ -237,7 +237,7 @@ TEST_F(TestDecoder, Branch_Beq)
     pc = cpu.pc;
     cpu.xreg[rs1] = 5678;
     cpu.xreg[rs2] = 8765;
-    Decode(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | OP_BRANCH);
+    Execute(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | OP_BRANCH);
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
@@ -254,7 +254,7 @@ TEST_F(TestDecoder, Branch_Bne)
     // Branch taken.
     cpu.xreg[rs1] = 5678;
     cpu.xreg[rs2] = 8765;
-    Decode(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | OP_BRANCH);
+    Execute(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | OP_BRANCH);
 
     // pc <- pc + imm_b
     ASSERT_EQ(pc + imm_b, cpu.pc);
@@ -262,7 +262,7 @@ TEST_F(TestDecoder, Branch_Bne)
     // Branch not taken.
     pc = cpu.pc;
     cpu.xreg[rs2] = cpu.xreg[rs1];
-    Decode(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | OP_BRANCH);
+    Execute(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | OP_BRANCH);
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
@@ -279,7 +279,7 @@ TEST_F(TestDecoder, Branch_Blt)
     // Branch taken.
     cpu.xreg[rs1] = -1;
     cpu.xreg[rs2] = 0;
-    Decode(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b100 << 12) | OP_BRANCH);
+    Execute(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b100 << 12) | OP_BRANCH);
 
     // pc <- pc + imm_b
     ASSERT_EQ(pc + imm_b, cpu.pc);
@@ -288,7 +288,7 @@ TEST_F(TestDecoder, Branch_Blt)
     pc = cpu.pc;
     cpu.xreg[rs1] = 456;
     cpu.xreg[rs2] = 123;
-    Decode(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b100 << 12) | OP_BRANCH);
+    Execute(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b100 << 12) | OP_BRANCH);
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
@@ -305,7 +305,7 @@ TEST_F(TestDecoder, Branch_Bge)
     // Branch taken (greater)
     cpu.xreg[rs1] = 0;
     cpu.xreg[rs2] = -1;
-    Decode(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | OP_BRANCH);
+    Execute(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | OP_BRANCH);
 
     // pc <- pc + imm_b
     ASSERT_EQ(pc + imm_b, cpu.pc);
@@ -314,7 +314,7 @@ TEST_F(TestDecoder, Branch_Bge)
     pc = cpu.pc;
     cpu.xreg[rs1] = -1;
     cpu.xreg[rs2] = -1;
-    Decode(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | OP_BRANCH);
+    Execute(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | OP_BRANCH);
 
     // pc <- pc + imm_b
     ASSERT_EQ(pc + imm_b, cpu.pc);
@@ -323,7 +323,7 @@ TEST_F(TestDecoder, Branch_Bge)
     pc = cpu.pc;
     cpu.xreg[rs1] = -1;
     cpu.xreg[rs2] = 0;
-    Decode(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | OP_BRANCH);
+    Execute(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | OP_BRANCH);
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
@@ -340,7 +340,7 @@ TEST_F(TestDecoder, Branch_Bltu)
     // Branch taken.
     cpu.xreg[rs1] = 0;
     cpu.xreg[rs2] = 0xffffffff;
-    Decode(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b110 << 12) | OP_BRANCH);
+    Execute(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b110 << 12) | OP_BRANCH);
 
     // pc <- pc + imm_b
     ASSERT_EQ(pc + imm_b, cpu.pc);
@@ -349,7 +349,7 @@ TEST_F(TestDecoder, Branch_Bltu)
     pc = cpu.pc;
     cpu.xreg[rs1] = 0xffffffff;
     cpu.xreg[rs2] = 0;
-    Decode(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b110 << 12) | OP_BRANCH);
+    Execute(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b110 << 12) | OP_BRANCH);
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
@@ -366,7 +366,7 @@ TEST_F(TestDecoder, Branch_Bgeu)
     // Branch taken (greater)
     cpu.xreg[rs1] = 0xffffffff;
     cpu.xreg[rs2] = 0;
-    Decode(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b111 << 12) | OP_BRANCH);
+    Execute(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b111 << 12) | OP_BRANCH);
 
     // pc <- pc + imm_b
     ASSERT_EQ(pc + imm_b, cpu.pc);
@@ -375,7 +375,7 @@ TEST_F(TestDecoder, Branch_Bgeu)
     pc = cpu.pc;
     cpu.xreg[rs1] = 1;
     cpu.xreg[rs2] = 1;
-    Decode(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b111 << 12) | OP_BRANCH);
+    Execute(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b111 << 12) | OP_BRANCH);
 
     // pc <- pc + imm_b
     ASSERT_EQ(pc + imm_b, cpu.pc);
@@ -384,7 +384,7 @@ TEST_F(TestDecoder, Branch_Bgeu)
     pc = cpu.pc;
     cpu.xreg[rs1] = 0;
     cpu.xreg[rs2] = 0xffffffff;
-    Decode(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b111 << 12) | OP_BRANCH);
+    Execute(&cpu, EncodeB(imm_b) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b111 << 12) | OP_BRANCH);
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
@@ -401,7 +401,7 @@ TEST_F(TestDecoder, Load_Lb)
 
     // Sign extend when bit 7 is zero.
     WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 123);
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m8(rs1 + imm_i))
     ASSERT_EQ(123, cpu.xreg[rd]);
@@ -412,7 +412,7 @@ TEST_F(TestDecoder, Load_Lb)
     // Sign extend when bit 7 is one.
     pc = cpu.pc;
     WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 0xff);
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m8(rs1 + imm_i))
     ASSERT_EQ(-1, cpu.xreg[rd]);
@@ -432,7 +432,7 @@ TEST_F(TestDecoder, Load_Lh)
 
     // Sign extend when bit 15 is zero.
     WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fff);
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m16(rs1 + imm_i))
     ASSERT_EQ(0x7fff, cpu.xreg[rd]);
@@ -443,7 +443,7 @@ TEST_F(TestDecoder, Load_Lh)
     // Sign extend when bit 15 is one.
     pc = cpu.pc;
     WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffff);
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m16(rs1 + imm_i))
     ASSERT_EQ(-1, cpu.xreg[rd]);
@@ -463,7 +463,7 @@ TEST_F(TestDecoder, Load_Lw)
 
     // Sign extend when bit 31 is zero.
     WriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fffffff);
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m32(rs1 + imm_i))
     ASSERT_EQ(0x7fffffff, cpu.xreg[rd]);
@@ -474,7 +474,7 @@ TEST_F(TestDecoder, Load_Lw)
     // Sign extend when bit 31 is one.
     pc = cpu.pc;
     WriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffffffff);
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m32(rs1 + imm_i))
     ASSERT_EQ(-1, cpu.xreg[rd]);
@@ -494,7 +494,7 @@ TEST_F(TestDecoder, Load_Lbu)
 
     // Zero extend when bit 7 is zero.
     WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 123);
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m8(rs1 + imm_i))
     ASSERT_EQ(123, cpu.xreg[rd]);
@@ -505,7 +505,7 @@ TEST_F(TestDecoder, Load_Lbu)
     // Zero extend when bit 7 is zero.
     pc = cpu.pc;
     WriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 0xff);
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m8(rs1 + imm_i))
     ASSERT_EQ(0xff, cpu.xreg[rd]);
@@ -525,7 +525,7 @@ TEST_F(TestDecoder, Load_Lhu)
 
     // Zero extend when bit 15 is zero.
     WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fff);
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m16(rs1 + imm_i))
     ASSERT_EQ(0x7fff, cpu.xreg[rd]);
@@ -536,7 +536,7 @@ TEST_F(TestDecoder, Load_Lhu)
     // Zero extend when bit 15 is one.
     pc = cpu.pc;
     WriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffff);
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m16(rs1 + imm_i))
     ASSERT_EQ(0xffff, cpu.xreg[rd]);
@@ -553,31 +553,31 @@ TEST_F(TestDecoder, Load_x0_Is_Zero)
     uint32_t rs1 = 13;
     cpu.xreg[rs1] = rambase;
     WriteByte(cpu.memory, rambase, 0xff);
-    Decode(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(0) | OP_LOAD);
+    Execute(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(0) | OP_LOAD);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
 
     // LH
-    Decode(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(0) | OP_LOAD);
+    Execute(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(0) | OP_LOAD);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
 
     // LW
-    Decode(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(0) | OP_LOAD);
+    Execute(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(0) | OP_LOAD);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
 
     // LBU
-    Decode(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(0) | OP_LOAD);
+    Execute(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(0) | OP_LOAD);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
 
     // LHU
-    Decode(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(0) | OP_LOAD);
+    Execute(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(0) | OP_LOAD);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -592,7 +592,7 @@ TEST_F(TestDecoder, Store_Sb)
     uint32_t rs2 = 3;
     cpu.xreg[rs1] = rambase + ramsize / 2;
 
-    Decode(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | OP_STORE);
+    Execute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | OP_STORE);
 
     // m8(rs1 + imm_s) <- rs2[7:0]
     CpuResult byteResult = ::ReadByte(cpu.memory, cpu.xreg[rs1] + imm_s);
@@ -612,7 +612,7 @@ TEST_F(TestDecoder, Store_Sh)
     uint32_t rs2 = 29;
     cpu.xreg[rs1] = rambase + ramsize / 2;
 
-    Decode(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | OP_STORE);
+    Execute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | OP_STORE);
 
     // m16(rs1 + imm_s) <- rs2[15:0]
     CpuResult halfwordResult = ::ReadHalfword(cpu.memory, cpu.xreg[rs1] + imm_s);
@@ -632,7 +632,7 @@ TEST_F(TestDecoder, Store_Sw)
     uint32_t rs2 = 29;
     cpu.xreg[rs1] = rambase + ramsize / 2;
 
-    Decode(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | OP_STORE);
+    Execute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | OP_STORE);
 
     // m32(rs1 + imm_s) <- rs2[31:0]
     CpuResult wordResult = ::ReadWord(cpu.memory, cpu.xreg[rs1] + imm_s);
@@ -653,7 +653,7 @@ TEST_F(TestDecoder, OpImm_Addi)
     cpu.xreg[rs1] = 128;
 
     // Add immediate.
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPIMM);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPIMM);
 
     // rd <- rs1 + imm_i
     ASSERT_EQ(cpu.xreg[rs1] + imm_i, cpu.xreg[rd]);
@@ -664,7 +664,7 @@ TEST_F(TestDecoder, OpImm_Addi)
     // Add negative number.
     pc = cpu.pc;
     imm_i = -123;
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPIMM);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPIMM);
 
     // rd <- rs1 + imm_i
     ASSERT_EQ(cpu.xreg[rs1] + imm_i, cpu.xreg[rd]);
@@ -684,7 +684,7 @@ TEST_F(TestDecoder, OpImm_Slti)
 
     // Condition true.
     cpu.xreg[rs1] = -1;
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPIMM);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPIMM);
 
     // rd <- (rs1 < imm_i) ? 1 : 0
     ASSERT_EQ(1, cpu.xreg[rd]);
@@ -695,7 +695,7 @@ TEST_F(TestDecoder, OpImm_Slti)
     // Condition false.
     pc = cpu.pc;
     cpu.xreg[rs1] = 123;
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPIMM);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPIMM);
 
     // rd <- (rs1 < imm_i) ? 1 : 0
     ASSERT_EQ(0, cpu.xreg[rd]);
@@ -715,7 +715,7 @@ TEST_F(TestDecoder, OpImm_Sltiu)
 
     // Condition true.
     cpu.xreg[rs1] = 0;
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b011 << 12) | EncodeRd(rd) | OP_OPIMM);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b011 << 12) | EncodeRd(rd) | OP_OPIMM);
 
     // rd <- (rs1 < imm_i) ? 1 : 0
     ASSERT_EQ(1, cpu.xreg[rd]);
@@ -726,7 +726,7 @@ TEST_F(TestDecoder, OpImm_Sltiu)
     // Condition false.
     pc = cpu.pc;
     cpu.xreg[rs1] = 0xffffffff;
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b011 << 12) | EncodeRd(rd) | OP_OPIMM);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b011 << 12) | EncodeRd(rd) | OP_OPIMM);
 
     // rd <- (rs1 < imm_i) ? 1 : 0
     ASSERT_EQ(0, cpu.xreg[rd]);
@@ -744,7 +744,7 @@ TEST_F(TestDecoder, OpImm_Xori)
     int32_t imm_i = -1;
     cpu.xreg[rs1] = 123456;
 
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_OPIMM);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_OPIMM);
 
     // rd <- rs1 ^ imm_i
     ASSERT_EQ(cpu.xreg[rs1] ^ imm_i, cpu.xreg[rd]);
@@ -762,7 +762,7 @@ TEST_F(TestDecoder, OpImm_Ori)
     int32_t imm_i = 0x00ff;
     cpu.xreg[rs1] = 0xff00;
 
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b110 << 12) | EncodeRd(rd) | OP_OPIMM);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b110 << 12) | EncodeRd(rd) | OP_OPIMM);
 
     // rd <- rs1 | imm_i
     ASSERT_EQ(cpu.xreg[rs1] | imm_i, cpu.xreg[rd]);
@@ -780,7 +780,7 @@ TEST_F(TestDecoder, OpImm_Andi)
     int32_t imm_i = 0xfff0;
     cpu.xreg[rs1] = 0xffff;
 
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b111 << 12) | EncodeRd(rd) | OP_OPIMM);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b111 << 12) | EncodeRd(rd) | OP_OPIMM);
 
     // rd <- rs1 & imm_i
     ASSERT_EQ(cpu.xreg[rs1] & imm_i, cpu.xreg[rd]);
@@ -798,7 +798,7 @@ TEST_F(TestDecoder, OpImm_Slli)
     int32_t shamt = 4;
     cpu.xreg[rs1] = 0x0010;
 
-    Decode(&cpu, EncodeI(shamt) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPIMM);
+    Execute(&cpu, EncodeI(shamt) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPIMM);
 
     // rd <- rs1 << shamt_i
     ASSERT_EQ(cpu.xreg[rs1] << shamt, cpu.xreg[rd]);
@@ -816,7 +816,7 @@ TEST_F(TestDecoder, OpImm_Srli)
     int32_t shamt = 4;
     cpu.xreg[rs1] = 0x1000;
 
-    Decode(&cpu, EncodeI(shamt) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_OPIMM);
+    Execute(&cpu, EncodeI(shamt) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_OPIMM);
 
     // rd <- rs1 >> shamt_i
     ASSERT_EQ(cpu.xreg[rs1] >> shamt, cpu.xreg[rd]);
@@ -834,7 +834,7 @@ TEST_F(TestDecoder, OpImm_Srai)
     int32_t shamt = 4;
     cpu.xreg[rs1] = 0x80000000;
 
-    Decode(&cpu, (1 << 30) | EncodeI(shamt) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_OPIMM);
+    Execute(&cpu, (1 << 30) | EncodeI(shamt) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_OPIMM);
 
     // rd <- sx(rs1) >> shamt_i
     ASSERT_EQ(((int32_t)cpu.xreg[rs1]) >> shamt, cpu.xreg[rd]);
@@ -846,59 +846,59 @@ TEST_F(TestDecoder, OpImm_Srai)
 TEST_F(TestDecoder, OpImm_x0_Is_Zero)
 {
     // ADDI
-    Decode(&cpu, EncodeI(123) | EncodeRs1(1) | (0b000 << 12) | EncodeRd(0) | OP_OPIMM);
+    Execute(&cpu, EncodeI(123) | EncodeRs1(1) | (0b000 << 12) | EncodeRd(0) | OP_OPIMM);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
 
     // SLTI
-    Decode(&cpu, EncodeI(123) | EncodeRs1(1) | (0b010 << 12) | EncodeRd(0) | OP_OPIMM);
+    Execute(&cpu, EncodeI(123) | EncodeRs1(1) | (0b010 << 12) | EncodeRd(0) | OP_OPIMM);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
 
     // SLTIU
-    Decode(&cpu, EncodeI(123) | EncodeRs1(1) | (0b011 << 12) | EncodeRd(0) | OP_OPIMM);
+    Execute(&cpu, EncodeI(123) | EncodeRs1(1) | (0b011 << 12) | EncodeRd(0) | OP_OPIMM);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
 
     // XORI
-    Decode(&cpu, EncodeI(123) | EncodeRs1(1) | (0b100 << 12) | EncodeRd(0) | OP_OPIMM);
+    Execute(&cpu, EncodeI(123) | EncodeRs1(1) | (0b100 << 12) | EncodeRd(0) | OP_OPIMM);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
 
     // ORI
-    Decode(&cpu, EncodeI(123) | EncodeRs1(1) | (0b110 << 12) | EncodeRd(0) | OP_OPIMM);
+    Execute(&cpu, EncodeI(123) | EncodeRs1(1) | (0b110 << 12) | EncodeRd(0) | OP_OPIMM);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
 
     // ANDI
     cpu.xreg[1] = 0xffffffff;
-    Decode(&cpu, EncodeI(123) | EncodeRs1(1) | (0b111 << 12) | EncodeRd(0) | OP_OPIMM);
+    Execute(&cpu, EncodeI(123) | EncodeRs1(1) | (0b111 << 12) | EncodeRd(0) | OP_OPIMM);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
 
     // SLLI
     cpu.xreg[1] = 0xffffffff;
-    Decode(&cpu, EncodeI(0xff) | EncodeRs1(1) | (0b001 << 12) | EncodeRd(0) | OP_OPIMM);
+    Execute(&cpu, EncodeI(0xff) | EncodeRs1(1) | (0b001 << 12) | EncodeRd(0) | OP_OPIMM);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
 
     // SRLI
     cpu.xreg[1] = 0xffffffff;
-    Decode(&cpu, EncodeI(3) | EncodeRs1(1) | (0b101 << 12) | EncodeRd(0) | OP_OPIMM);
+    Execute(&cpu, EncodeI(3) | EncodeRs1(1) | (0b101 << 12) | EncodeRd(0) | OP_OPIMM);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
 
     // SRAI
     cpu.xreg[1] = 0xffffffff;
-    Decode(&cpu, (1 << 30) | EncodeI(3) | EncodeRs1(1) | (0b101 << 12) | EncodeRd(0) | OP_OPIMM);
+    Execute(&cpu, (1 << 30) | EncodeI(3) | EncodeRs1(1) | (0b101 << 12) | EncodeRd(0) | OP_OPIMM);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -914,7 +914,7 @@ TEST_F(TestDecoder, Op_Add)
     cpu.xreg[rs1] = 128;
     cpu.xreg[rs2] = 64;
 
-    Decode(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- rs1 + rs2
     ASSERT_EQ(cpu.xreg[rs1] + cpu.xreg[rs2], cpu.xreg[rd]);
@@ -933,7 +933,7 @@ TEST_F(TestDecoder, Op_Sub)
     cpu.xreg[rs1] = 192;
     cpu.xreg[rs2] = 64;
 
-    Decode(&cpu, (0b0100000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0100000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- rs1 - rs2
     ASSERT_EQ(cpu.xreg[rs1] - cpu.xreg[rs2], cpu.xreg[rd]);
@@ -955,7 +955,7 @@ TEST_F(TestDecoder, Op_Mul) // RV32M
     cpu.xreg[rs2] = 3;
     int32_t expected = 999;
 
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- lower32(rs1 * rs2)
     ASSERT_EQ(expected, (int32_t)cpu.xreg[rd]);
@@ -964,7 +964,7 @@ TEST_F(TestDecoder, Op_Mul) // RV32M
     ASSERT_EQ(pc + 4, cpu.pc);
 
     // x0 is immutable.
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b000 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b000 << 12) | EncodeRd(0) | OP_OP);
     ASSERT_EQ(0, cpu.xreg[0]);
 }
 
@@ -978,7 +978,7 @@ TEST_F(TestDecoder, Op_Sll)
     cpu.xreg[rs1] = 1;
     cpu.xreg[rs2] = 10;
 
-    Decode(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- rs1 << (rs2 % XLEN)
     ASSERT_EQ(cpu.xreg[rs1] << (cpu.xreg[rs2] % 32), cpu.xreg[rd]);
@@ -1003,7 +1003,7 @@ TEST_F(TestDecoder, Op_Mulh) // RV32M
     int64_t product = (int64_t)(int32_t)cpu.xreg[rs1] * (int64_t)(int32_t)cpu.xreg[rs2];
     int32_t expected = product >> 32;
 
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- upper32(rs1 * rs2)
     ASSERT_EQ(expected, (int32_t)cpu.xreg[rd]);
@@ -1012,7 +1012,7 @@ TEST_F(TestDecoder, Op_Mulh) // RV32M
     ASSERT_EQ(pc + 4, cpu.pc);
 
     // x0 is immutable.
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b001 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b001 << 12) | EncodeRd(0) | OP_OP);
     ASSERT_EQ(0, cpu.xreg[0]);
 }
 
@@ -1028,7 +1028,7 @@ TEST_F(TestDecoder, Op_Slt)
 
     // Condition true.
     cpu.xreg[rs1] = -1;
-    Decode(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- (rs1 < imm_i) ? 1 : 0
     ASSERT_EQ(1, cpu.xreg[rd]);
@@ -1039,7 +1039,7 @@ TEST_F(TestDecoder, Op_Slt)
     // Condition false.
     pc = cpu.pc;
     cpu.xreg[rs1] = 123;
-    Decode(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- (rs1 < imm_i) ? 1 : 0
     ASSERT_EQ(0, cpu.xreg[rd]);
@@ -1064,7 +1064,7 @@ TEST_F(TestDecoder, Op_Mulhsu) // RV32M
     int64_t product = (int64_t)(int32_t)cpu.xreg[rs1] * (uint64_t)cpu.xreg[rs2];
     int32_t expected = product >> 32;
 
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- upper32(rs1 * rs2)
     ASSERT_EQ(expected, (int32_t)cpu.xreg[rd]);
@@ -1073,7 +1073,7 @@ TEST_F(TestDecoder, Op_Mulhsu) // RV32M
     ASSERT_EQ(pc + 4, cpu.pc);
 
     // x0 is immutable.
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b010 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b010 << 12) | EncodeRd(0) | OP_OP);
     ASSERT_EQ(0, cpu.xreg[0]);
 }
 
@@ -1089,7 +1089,7 @@ TEST_F(TestDecoder, Op_Sltu)
 
     // Condition true.
     cpu.xreg[rs1] = 0;
-    Decode(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b011 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b011 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- (rs1 < imm_i) ? 1 : 0
     ASSERT_EQ(1, cpu.xreg[rd]);
@@ -1100,7 +1100,7 @@ TEST_F(TestDecoder, Op_Sltu)
     // Condition false.
     pc = cpu.pc;
     cpu.xreg[rs1] = 0xffffffff;
-    Decode(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b011 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b011 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- (rs1 < imm_i) ? 1 : 0
     ASSERT_EQ(0, cpu.xreg[rd]);
@@ -1125,7 +1125,7 @@ TEST_F(TestDecoder, Op_Mulhu) // RV32M
     uint64_t product = (uint64_t)cpu.xreg[rs1] * (uint64_t)cpu.xreg[rs2];
     uint32_t expected = product >> 32;
 
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b011 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b011 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- upper32(rs1 * rs2)
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -1134,7 +1134,7 @@ TEST_F(TestDecoder, Op_Mulhu) // RV32M
     ASSERT_EQ(pc + 4, cpu.pc);
 
     // x0 is immutable.
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b011 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b011 << 12) | EncodeRd(0) | OP_OP);
     ASSERT_EQ(0, cpu.xreg[0]);
 }
 
@@ -1148,7 +1148,7 @@ TEST_F(TestDecoder, Op_Xor)
     cpu.xreg[rs1] = 0xff;
     cpu.xreg[rs2] = 0xfe;
 
-    Decode(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- rs1 ^ rs2
     ASSERT_EQ(cpu.xreg[rs1] ^ cpu.xreg[rs2], cpu.xreg[rd]);
@@ -1171,7 +1171,7 @@ TEST_F(TestDecoder, Op_Div) // RV32M
 
     int32_t expected = (int32_t)cpu.xreg[rs1] / (int32_t)cpu.xreg[rs2];
 
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- rs1 / rs2
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -1181,17 +1181,17 @@ TEST_F(TestDecoder, Op_Div) // RV32M
 
     // Division by zero set the result to -1.
     cpu.xreg[rs2] = 0;
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_OP);
     ASSERT_EQ(-1, (int32_t)cpu.xreg[rd]);
 
     // Division of the most negative integer by -1 results in overflow.
     cpu.xreg[rs1] = 0x80000000;
     cpu.xreg[rs2] = -1;
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_OP);
     ASSERT_EQ(0x80000000, cpu.xreg[rd]);
 
     // x0 is immutable.
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b100 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b100 << 12) | EncodeRd(0) | OP_OP);
     ASSERT_EQ(0, cpu.xreg[0]);
 }
 
@@ -1205,7 +1205,7 @@ TEST_F(TestDecoder, Op_Srl)
     cpu.xreg[rs1] = 0x80000000;
     cpu.xreg[rs2] = 4;
 
-    Decode(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- rs1 >> (rs2 % XLEN)
     ASSERT_EQ(cpu.xreg[rs1] >> (cpu.xreg[rs2] % 32), cpu.xreg[rd]);
@@ -1224,7 +1224,7 @@ TEST_F(TestDecoder, Op_Sra)
     cpu.xreg[rs1] = 0x80000000;
     cpu.xreg[rs2] = 4;
 
-    Decode(&cpu, (0b0100000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0100000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- sx(rs1) >> (rs2 % XLEN)
     ASSERT_EQ((int32_t)cpu.xreg[rs1] >> (cpu.xreg[rs2] % 32), cpu.xreg[rd]);
@@ -1247,7 +1247,7 @@ TEST_F(TestDecoder, Op_Divu) // RV32M
 
     uint32_t expected = cpu.xreg[rs1] / cpu.xreg[rs2];
 
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- rs1 / rs2
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -1257,11 +1257,11 @@ TEST_F(TestDecoder, Op_Divu) // RV32M
 
     // Division by zero set the result to 0xffffffff.
     cpu.xreg[rs2] = 0;
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_OP);
     ASSERT_EQ(0xffffffff, (int32_t)cpu.xreg[rd]);
 
     // x0 is immutable.
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b101 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b101 << 12) | EncodeRd(0) | OP_OP);
     ASSERT_EQ(0, cpu.xreg[0]);
 }
 
@@ -1275,7 +1275,7 @@ TEST_F(TestDecoder, Op_Or)
     cpu.xreg[rs1] = 0x00ff00ff;
     cpu.xreg[rs2] = 0xff00ffff;
 
-    Decode(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b110 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b110 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- rs1 | rs2
     ASSERT_EQ(cpu.xreg[rs1] | cpu.xreg[rs2], cpu.xreg[rd]);
@@ -1300,7 +1300,7 @@ TEST_F(TestDecoder, Op_Rem) // RV32M
 
     int32_t expected = (int32_t)cpu.xreg[rs1] % (int32_t)cpu.xreg[rs2];
 
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b110 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b110 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- rs1 % rs2
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -1310,17 +1310,17 @@ TEST_F(TestDecoder, Op_Rem) // RV32M
 
     // Division by zero set the result to the dividend.
     cpu.xreg[rs2] = 0;
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b110 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b110 << 12) | EncodeRd(rd) | OP_OP);
     ASSERT_EQ(dividend, (int32_t)cpu.xreg[rd]);
 
     // Division of the most negative integer by -1 results in overflow which sets the result to zero.
     cpu.xreg[rs1] = 0x80000000;
     cpu.xreg[rs2] = -1;
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b110 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b110 << 12) | EncodeRd(rd) | OP_OP);
     ASSERT_EQ(0, cpu.xreg[rd]);
 
     // x0 is immutable.
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b110 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b110 << 12) | EncodeRd(0) | OP_OP);
     ASSERT_EQ(0, cpu.xreg[0]);
 }
 
@@ -1334,7 +1334,7 @@ TEST_F(TestDecoder, Op_And)
     cpu.xreg[rs1] = 0xff00ff00;
     cpu.xreg[rs2] = 0xffffffff;
 
-    Decode(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b111 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b111 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- rs1 & rs2
     ASSERT_EQ(cpu.xreg[rs1] & cpu.xreg[rs2], cpu.xreg[rd]);
@@ -1359,7 +1359,7 @@ TEST_F(TestDecoder, Op_Remu) // RV32M
 
     uint32_t expected = cpu.xreg[rs1] % cpu.xreg[rs2];
 
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b111 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b111 << 12) | EncodeRd(rd) | OP_OP);
 
     // rd <- rs1 % rs2
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -1369,11 +1369,11 @@ TEST_F(TestDecoder, Op_Remu) // RV32M
 
     // Division by zero set the result to the dividend.
     cpu.xreg[rs2] = 0;
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b111 << 12) | EncodeRd(rd) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b111 << 12) | EncodeRd(rd) | OP_OP);
     ASSERT_EQ(dividend, (int32_t)cpu.xreg[rd]);
 
     // x0 is immutable.
-    Decode(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b111 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0b0000001 << 25) | EncodeRs2(rs1) | EncodeRs1(rs2) | (0b111 << 12) | EncodeRd(0) | OP_OP);
     ASSERT_EQ(0, cpu.xreg[0]);
 }
 
@@ -1382,7 +1382,7 @@ TEST_F(TestDecoder, Op_x0_Is_Zero)
     // ADD
     cpu.xreg[1] = 123;
     cpu.xreg[2] = 456;
-    Decode(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b000 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b000 << 12) | EncodeRd(0) | OP_OP);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -1390,7 +1390,7 @@ TEST_F(TestDecoder, Op_x0_Is_Zero)
     // SUB
     cpu.xreg[1] = 123;
     cpu.xreg[2] = 456;
-    Decode(&cpu, (1 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b000 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (1 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b000 << 12) | EncodeRd(0) | OP_OP);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -1398,7 +1398,7 @@ TEST_F(TestDecoder, Op_x0_Is_Zero)
     // SLL
     cpu.xreg[1] = 0xff;
     cpu.xreg[2] = 3;
-    Decode(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b001 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b001 << 12) | EncodeRd(0) | OP_OP);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -1406,7 +1406,7 @@ TEST_F(TestDecoder, Op_x0_Is_Zero)
     // SLT
     cpu.xreg[1] = -1;
     cpu.xreg[2] = 1;
-    Decode(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b010 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b010 << 12) | EncodeRd(0) | OP_OP);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -1414,7 +1414,7 @@ TEST_F(TestDecoder, Op_x0_Is_Zero)
     // SLTU
     cpu.xreg[1] = 0;
     cpu.xreg[2] = 0xffffffff;
-    Decode(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b011 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b011 << 12) | EncodeRd(0) | OP_OP);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -1422,7 +1422,7 @@ TEST_F(TestDecoder, Op_x0_Is_Zero)
     // XOR
     cpu.xreg[1] = 0x00ff00;
     cpu.xreg[2] = 0xffff00;
-    Decode(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b100 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b100 << 12) | EncodeRd(0) | OP_OP);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -1430,7 +1430,7 @@ TEST_F(TestDecoder, Op_x0_Is_Zero)
     // SRL
     cpu.xreg[1] = 0x80000000;
     cpu.xreg[2] = 3;
-    Decode(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b101 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b101 << 12) | EncodeRd(0) | OP_OP);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -1438,7 +1438,7 @@ TEST_F(TestDecoder, Op_x0_Is_Zero)
     // SRA
     cpu.xreg[1] = 0x80000000;
     cpu.xreg[2] = 3;
-    Decode(&cpu, (0b0100000 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b101 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0b0100000 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b101 << 12) | EncodeRd(0) | OP_OP);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -1446,7 +1446,7 @@ TEST_F(TestDecoder, Op_x0_Is_Zero)
     // OR
     cpu.xreg[1] = 0x000055;
     cpu.xreg[2] = 0xffffaa;
-    Decode(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b110 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b110 << 12) | EncodeRd(0) | OP_OP);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -1454,7 +1454,7 @@ TEST_F(TestDecoder, Op_x0_Is_Zero)
     // AND
     cpu.xreg[1] = 0x555555;
     cpu.xreg[2] = 0xffffff;
-    Decode(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b111 << 12) | EncodeRd(0) | OP_OP);
+    Execute(&cpu, (0 << 25) | EncodeRs2(2) | EncodeRs1(1) | (0b111 << 12) | EncodeRd(0) | OP_OP);
 
     // x0 <- 0
     ASSERT_EQ(0, cpu.xreg[0]);
@@ -1466,7 +1466,7 @@ TEST_F(TestDecoder, Op_Mret)
     cpu.mepc = 0x4000;
     cpu.pc = 0x8080;
 
-    Decode(&cpu, (0b001100000010 << 20) | OP_SYSTEM);
+    Execute(&cpu, (0b001100000010 << 20) | OP_SYSTEM);
 
     // pc <- mepc + 4
     ASSERT_EQ(cpu.mepc + 4, cpu.pc);
@@ -1530,7 +1530,7 @@ TEST_F(TestDecoder, LoadFp_Flw)
     uint32_t expectedAsU32 = FloatAsU32(expected);
     WriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, expectedAsU32);
 
-    Decode(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOADFP);
+    Execute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOADFP);
 
     // rd <- f32(rs1 + imm_i)
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1550,7 +1550,7 @@ TEST_F(TestDecoder, StoreFp_Fsw)
     float expected = 12345.99f;
     cpu.freg[rs2] = expected;
 
-    Decode(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | OP_STOREFP);
+    Execute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | OP_STOREFP);
 
     // m32(rs1 + imm_s) <- rs2
     CpuResult wordResult = ReadWord(cpu.memory, cpu.xreg[rs1] + imm_s);
@@ -1578,7 +1578,7 @@ TEST_F(TestDecoder, Madd_Fmadd_s)
     cpu.freg[rs3] = 100.0f;
     float expected = cpu.freg[rs1] * cpu.freg[rs2] + cpu.freg[rs3];
 
-    Decode(&cpu, EncodeRs3(rs3) | (0b00 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_MADD);
+    Execute(&cpu, EncodeRs3(rs3) | (0b00 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_MADD);
 
     // rd <- (rs1 * rs2) + rs3
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1601,7 +1601,7 @@ TEST_F(TestDecoder, Msub_Fmsub_s)
     cpu.freg[rs3] = 100.0f;
     float expected = cpu.freg[rs1] * cpu.freg[rs2] - cpu.freg[rs3];
 
-    Decode(&cpu, EncodeRs3(rs3) | (0b00 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_MSUB);
+    Execute(&cpu, EncodeRs3(rs3) | (0b00 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_MSUB);
 
     // rd <- (rs1 * rs2) - rs3
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1624,7 +1624,7 @@ TEST_F(TestDecoder, Nmsub_Fnmsub_s)
     cpu.freg[rs3] = 100.0f;
     float expected = -(cpu.freg[rs1] * cpu.freg[rs2]) + cpu.freg[rs3];
 
-    Decode(&cpu, EncodeRs3(rs3) | (0b00 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_NMSUB);
+    Execute(&cpu, EncodeRs3(rs3) | (0b00 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_NMSUB);
 
     // rd <- -(rs1 * rs2) + rs3
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1647,7 +1647,7 @@ TEST_F(TestDecoder, Nmadd_Fnmadd_s)
     cpu.freg[rs3] = 100.0f;
     float expected = -(cpu.freg[rs1] * cpu.freg[rs2]) - cpu.freg[rs3];
 
-    Decode(&cpu, EncodeRs3(rs3) | (0b00 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_NMADD);
+    Execute(&cpu, EncodeRs3(rs3) | (0b00 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_NMADD);
 
     // rd <- -(rs1 * rs2) - rs3
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1668,7 +1668,7 @@ TEST_F(TestDecoder, OpFp_Fadd_s)
     cpu.freg[rs2] = 512.0f;
     float expected = cpu.freg[rs1] + cpu.freg[rs2];
 
-    Decode(&cpu, (0b0000000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b0000000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- rs1 + rs2
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1689,7 +1689,7 @@ TEST_F(TestDecoder, OpFp_Fsub_s)
     cpu.freg[rs2] = 1024.0f;
     float expected = cpu.freg[rs1] - cpu.freg[rs2];
 
-    Decode(&cpu, (0b0000100 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b0000100 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- rs1 - rs2
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1710,7 +1710,7 @@ TEST_F(TestDecoder, OpFp_Fmul_s)
     cpu.freg[rs2] = -1440.0f;
     float expected = cpu.freg[rs1] * cpu.freg[rs2];
 
-    Decode(&cpu, (0b0001000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b0001000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- rs1 * rs2
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1731,7 +1731,7 @@ TEST_F(TestDecoder, OpFp_Fdiv_s)
     cpu.freg[rs2] = 1024.0f;
     float expected = cpu.freg[rs1] / cpu.freg[rs2];
 
-    Decode(&cpu, (0b0001100 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b0001100 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- rs1 / rs2
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1750,7 +1750,7 @@ TEST_F(TestDecoder, OpFp_Fsqrt_s)
     cpu.freg[rs1] = 65536.0;
     float expected = sqrtf(cpu.freg[rs1]);
 
-    Decode(&cpu, (0b0101100 << 25) | EncodeRs2(0) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b0101100 << 25) | EncodeRs2(0) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- sqrt(rs1)
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1777,7 +1777,7 @@ TEST_F(TestDecoder, OpFp_Fsgnj_s)
 
     float expected = fabsf(cpu.freg[rs1]) * Sgn(cpu.freg[rs2]);
 
-    Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- abs(rs1) * sgn(rs2)
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1799,7 +1799,7 @@ TEST_F(TestDecoder, OpFp_Fsgnjn_s)
 
     float expected = fabsf(cpu.freg[rs1]) * -Sgn(cpu.freg[rs2]);
 
-    Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- abs(rs1) * -sgn(rs2)
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1823,7 +1823,7 @@ TEST_F(TestDecoder, OpFp_Fsgnjx_s)
 
     float expected = fabsf(cpu.freg[rs1]);
 
-    Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- rs1 * 1
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1837,7 +1837,7 @@ TEST_F(TestDecoder, OpFp_Fsgnjx_s)
 
     expected = fabsf(cpu.freg[rs1]);
 
-    Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- rs1 * 1
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1848,7 +1848,7 @@ TEST_F(TestDecoder, OpFp_Fsgnjx_s)
 
     expected = -fabsf(cpu.freg[rs1]);
 
-    Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- rs1 * -1
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1859,7 +1859,7 @@ TEST_F(TestDecoder, OpFp_Fsgnjx_s)
 
     expected = -fabsf(cpu.freg[rs1]);
 
-    Decode(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b0010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- rs1 * -1
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1878,7 +1878,7 @@ TEST_F(TestDecoder, OpFp_Fmin_s)
 
     float expected = fminf(cpu.freg[rs1], cpu.freg[rs2]);
 
-    Decode(&cpu, (0b0010100 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b0010100 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- min(rs1, rs2)
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1900,7 +1900,7 @@ TEST_F(TestDecoder, OpFp_Fmax_s)
 
     float expected = fmaxf(cpu.freg[rs1], cpu.freg[rs2]);
 
-    Decode(&cpu, (0b0010100 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b0010100 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- max(rs1, rs2)
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -1922,7 +1922,7 @@ TEST_F(TestDecoder, OpFp_Fcvt_w_s)
 
     int32_t expected = (int32_t)(cpu.freg[rs1]); // TODO: is this true?
 
-    Decode(&cpu, (0b1100000 << 25) | EncodeRs2(op) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1100000 << 25) | EncodeRs2(op) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- int32_t(rs1)
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -1944,7 +1944,7 @@ TEST_F(TestDecoder, OpFp_Fcvt_wu_s)
 
     uint32_t expected = (uint32_t)(cpu.freg[rs1]); // TODO: is this true?
 
-    Decode(&cpu, (0b1100000 << 25) | EncodeRs2(op) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1100000 << 25) | EncodeRs2(op) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- uint32_t(rs1)
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -1964,7 +1964,7 @@ TEST_F(TestDecoder, OpFp_Fmv_x_w)
 
     uint32_t expected = FloatAsU32(cpu.freg[rs1]);
 
-    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // bits(rd) <- bits(rs1)
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -1984,7 +1984,7 @@ TEST_F(TestDecoder, OpFp_Fclass_s)
     cpu.freg[rs1] = -INFINITY;
     uint32_t expected = (1 << 0);
 
-    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rs1 is -infinity.
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -1996,7 +1996,7 @@ TEST_F(TestDecoder, OpFp_Fclass_s)
     cpu.freg[rs1] = INFINITY;
     expected = (1 << 7);
 
-    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rs1 is infinity.
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2005,7 +2005,7 @@ TEST_F(TestDecoder, OpFp_Fclass_s)
     cpu.freg[rs1] = U32AsFloat(0x80000000);
     expected = (1 << 3);
 
-    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rs1 is -0.
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2014,7 +2014,7 @@ TEST_F(TestDecoder, OpFp_Fclass_s)
     cpu.freg[rs1] = 0.0f;
     expected = (1 << 4);
 
-    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rs1 is 0.
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2023,7 +2023,7 @@ TEST_F(TestDecoder, OpFp_Fclass_s)
     cpu.freg[rs1] = -123.45f;
     expected = (1 << 1);
 
-    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rs1 is a negative normal number.
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2032,7 +2032,7 @@ TEST_F(TestDecoder, OpFp_Fclass_s)
     cpu.freg[rs1] = 123.45f;
     expected = (1 << 6);
 
-    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rs1 is a positive normal number.
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2041,7 +2041,7 @@ TEST_F(TestDecoder, OpFp_Fclass_s)
     cpu.freg[rs1] = U32AsFloat(0x80000001);
     expected = (1 << 2);
 
-    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rs1 is a negative subnormal number.
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2050,7 +2050,7 @@ TEST_F(TestDecoder, OpFp_Fclass_s)
     cpu.freg[rs1] = U32AsFloat(0x00000001);
     expected = (1 << 5);
 
-    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rs1 is a positive subnormal number.
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2061,7 +2061,7 @@ TEST_F(TestDecoder, OpFp_Fclass_s)
     *preg = 0x7f800001;
     expected = (1 << 8);
 
-    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rs1 is a signalling NaN.
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2070,7 +2070,7 @@ TEST_F(TestDecoder, OpFp_Fclass_s)
     cpu.freg[rs1] = U32AsFloat(0x7fc00000);
     expected = (1 << 9);
 
-    Decode(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1110000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rs1 is a quiet NaN.
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2090,7 +2090,7 @@ TEST_F(TestDecoder, OpFp_Feq_s)
     cpu.freg[rs2] = 75.0f;
     uint32_t expected = 1;
 
-    Decode(&cpu, (0b1010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- 1
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2103,7 +2103,7 @@ TEST_F(TestDecoder, OpFp_Feq_s)
     cpu.freg[rs2] = 75.0f;
     expected = 0;
 
-    Decode(&cpu, (0b1010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- 0
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2123,7 +2123,7 @@ TEST_F(TestDecoder, OpFp_Flt_s)
     cpu.freg[rs2] = 75.1f;
     uint32_t expected = 1;
 
-    Decode(&cpu, (0b1010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- 1
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2136,7 +2136,7 @@ TEST_F(TestDecoder, OpFp_Flt_s)
     cpu.freg[rs2] = 75.0f;
     expected = 0;
 
-    Decode(&cpu, (0b1010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- 0
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2156,7 +2156,7 @@ TEST_F(TestDecoder, OpFp_Fle_s)
     cpu.freg[rs2] = 75.0f;
     uint32_t expected = 1;
 
-    Decode(&cpu, (0b1010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- 1
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2169,7 +2169,7 @@ TEST_F(TestDecoder, OpFp_Fle_s)
     cpu.freg[rs2] = 75.1f;
     expected = 1;
 
-    Decode(&cpu, (0b1010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- 0
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2179,7 +2179,7 @@ TEST_F(TestDecoder, OpFp_Fle_s)
     cpu.freg[rs2] = 75.0f;
     expected = 0;
 
-    Decode(&cpu, (0b1010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1010000 << 25) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- 0
     ASSERT_EQ(expected, cpu.xreg[rd]);
@@ -2198,7 +2198,7 @@ TEST_F(TestDecoder, OpFp_Fcvt_s_w)
 
     float expected = (float)(int32_t)(cpu.xreg[rs1]); // TODO: is this true?
 
-    Decode(&cpu, (0b1101000 << 25) | EncodeRs2(op) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1101000 << 25) | EncodeRs2(op) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- float(int32_t(rs1))
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -2220,7 +2220,7 @@ TEST_F(TestDecoder, OpFp_Fcvt_s_wu)
 
     float expected = (float)(cpu.xreg[rs1]); // TODO: is this true?
 
-    Decode(&cpu, (0b1101000 << 25) | EncodeRs2(op) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1101000 << 25) | EncodeRs2(op) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
 
     // rd <- float(rs1)
     ASSERT_EQ(expected, cpu.freg[rd]);
@@ -2240,7 +2240,7 @@ TEST_F(TestDecoder, OpFp_Fmv_w_x)
 
     float expected = U32AsFloat(cpu.xreg[rs1]);
 
-    Decode(&cpu, (0b1111000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
+    Execute(&cpu, (0b1111000 << 25) | EncodeRs2(0b00000) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_OPFP);
 
     // bits(rd) <- bits(rs1)
     ASSERT_EQ(expected, cpu.freg[rd]);
