@@ -1,5 +1,5 @@
+#include "arviss.h"
 #include "conversions.h"
-#include "decode.h"
 #include "smallmem.h"
 
 #include "gtest/gtest.h"

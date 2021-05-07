@@ -27,7 +27,7 @@ endif ()
 # Prevent google test from overriding the parent project's compiler/linker settings on Windows
 #set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
-add_library(arviss decode.c smallmem.c)
+add_library(arviss arviss.c smallmem.c)
 target_include_directories(arviss
         PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
@@ -42,7 +42,7 @@ install(TARGETS arviss
         INCLUDES DESTINATION include
         )
 
-install(FILES decode.h smallmem.h memory.h result.h DESTINATION include/arviss)
+install(FILES arviss.h smallmem.h memory.h result.h DESTINATION include/arviss)
 
 install(EXPORT arvissTargets
         FILE arvissTargets.cmake
@@ -50,8 +50,8 @@ install(EXPORT arvissTargets
         DESTINATION lib/cmake/arviss
         )
 
-add_executable(0x38_arviss arviss.c)
-target_link_libraries(0x38_arviss PRIVATE arviss)
+add_executable(simple_demo simple_demo.c)
+target_link_libraries(simple_demo PRIVATE arviss)
 
 add_executable(decode_test decode_test.cpp)
 target_link_libraries(decode_test PRIVATE arviss gtest_main)

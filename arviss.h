@@ -64,16 +64,6 @@ ArvissResult ArvissFetch(CPU* cpu);
 ArvissResult ArvissHandleTrap(CPU* cpu, Trap trap);
 ArvissResult ArvissRun(CPU* cpu, int count);
 
-// static struct
-//{
-//     void (*Reset)(CPU*, uint32_t);
-//     ArvissResult (*Execute)(CPU*, uint32_t);
-//     ArvissResult (*Fetch)(CPU*);
-//     ArvissResult (*HandleTrap)(CPU*, Trap);
-//     ArvissResult (*Run)(CPU*, int);
-//
-// } arviss = {ArvissReset, ArvissExecute, ArvissFetch, ArvissHandleTrap, ArvissRun};
-
 #ifdef __cplusplus
 }
 #endif
