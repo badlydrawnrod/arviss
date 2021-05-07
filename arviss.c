@@ -6,9 +6,9 @@
 
 int main(void)
 {
-    Memory memory;
-    CPU cpu = {.memory = smallmem_Init(&memory)};
-    Reset(&cpu, RAMBASE + RAMSIZE);
+    ArvissMemory memory;
+    CPU cpu = {.memory = SmallMemInit(&memory)};
+    ArvissReset(&cpu, RAMBASE + RAMSIZE);
 
     printf("--- Loading program and running it\n");
     FILE* fp = NULL;
@@ -21,7 +21,7 @@ int main(void)
     printf("Read %d bytes\n", count);
     fclose(fp);
 
-    Run(&cpu, 1000000);
+    ArvissRun(&cpu, 1000000);
 
     printf("x10 (the result) is %d\n", cpu.xreg[10]);
 

@@ -61,88 +61,88 @@ typedef struct Result
         uint32_t word;
     };
     ResultType type;
-} CpuResult;
+} ArvissResult;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-static inline CpuResult MakeOk(void)
+static inline ArvissResult ArvissMakeOk(void)
 {
-    CpuResult r;
+    ArvissResult r;
     r.type = rtNOTHING;
     return r;
 }
 
-static inline CpuResult MakeTrap(TrapType trap, uint32_t value)
+static inline ArvissResult ArvissMakeTrap(TrapType trap, uint32_t value)
 {
-    CpuResult r;
+    ArvissResult r;
     r.type = rtTRAP;
     r.trap.mcause = trap;
     r.trap.mtval = value;
     return r;
 }
 
-static inline CpuResult MakeByte(uint8_t byte)
+static inline ArvissResult ArvissMakeByte(uint8_t byte)
 {
-    CpuResult r;
+    ArvissResult r;
     r.type = rtBYTE;
     r.byte = byte;
     return r;
 }
 
-static inline CpuResult MakeHalfword(uint16_t halfword)
+static inline ArvissResult ArvissMakeHalfword(uint16_t halfword)
 {
-    CpuResult r;
+    ArvissResult r;
     r.type = rtHALFWORD;
     r.halfword = halfword;
     return r;
 }
 
-static inline CpuResult MakeWord(uint32_t word)
+static inline ArvissResult ArvissMakeWord(uint32_t word)
 {
-    CpuResult r;
+    ArvissResult r;
     r.type = rtWORD;
     r.word = word;
     return r;
 }
 
-static inline bool ResultIsTrap(CpuResult result)
+static inline bool ArvissResultIsTrap(ArvissResult result)
 {
     return result.type == rtTRAP;
 }
 
-static inline Trap ResultAsTrap(CpuResult result)
+static inline Trap ArvissResultAsTrap(ArvissResult result)
 {
     return result.trap;
 }
 
-static inline bool ResultIsByte(CpuResult result)
+static inline bool ArvissResultIsByte(ArvissResult result)
 {
     return result.type == rtBYTE;
 }
 
-static inline uint8_t ResultAsByte(CpuResult result)
+static inline uint8_t ArvissResultAsByte(ArvissResult result)
 {
     return result.byte;
 }
 
-static inline bool ResultIsHalfword(CpuResult result)
+static inline bool ArvissResultIsHalfword(ArvissResult result)
 {
     return result.type == rtHALFWORD;
 }
 
-static inline uint16_t ResultAsHalfword(CpuResult result)
+static inline uint16_t ArvissResultAsHalfword(ArvissResult result)
 {
     return result.halfword;
 }
 
-static inline bool ResultIsWord(CpuResult result)
+static inline bool ArvissResultIsWord(ArvissResult result)
 {
     return result.type == rtWORD;
 }
 
-static inline uint32_t ResultAsWord(CpuResult result)
+static inline uint32_t ArvissResultAsWord(ArvissResult result)
 {
     return result.word;
 }

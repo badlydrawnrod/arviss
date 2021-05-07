@@ -112,7 +112,7 @@ static inline uint32_t Rm(uint32_t instruction)
     return (instruction >> 12) & 7;
 }
 
-void Reset(CPU* cpu, uint32_t sp)
+void ArvissReset(CPU* cpu, uint32_t sp)
 {
     cpu->pc = 0;
     for (int i = 0; i < 32; i++)
@@ -131,7 +131,7 @@ void Reset(CPU* cpu, uint32_t sp)
 
 // See: http://www.five-embeddev.com/riscv-isa-manual/latest/gmaps.html#rv3264g-instruction-set-listings
 // or riscv-spec-209191213.pdf.
-CpuResult Execute(CPU* cpu, uint32_t instruction)
+ArvissResult ArvissExecute(CPU* cpu, uint32_t instruction)
 {
     uint32_t opcode = Opcode(instruction);
     uint32_t rd = Rd(instruction);
@@ -183,7 +183,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
         }
         else
         {
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -225,7 +225,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
             cpu->pc += ((cpu->xreg[rs1] >= cpu->xreg[rs2]) ? imm : 4);
             break;
         default:
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -238,12 +238,12 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
         case 0b000: { // LB
             // rd <- sx(m8(rs1 + imm_i)), pc += 4
             TRACE("LB %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
-            CpuResult byteResult = ReadByte(cpu->memory, cpu->xreg[rs1] + imm);
-            if (!ResultIsByte(byteResult))
+            ArvissResult byteResult = ArvissReadByte(cpu->memory, cpu->xreg[rs1] + imm);
+            if (!ArvissResultIsByte(byteResult))
             {
                 return byteResult;
             }
-            cpu->xreg[rd] = (int32_t)(int16_t)(int8_t)ResultAsByte(byteResult);
+            cpu->xreg[rd] = (int32_t)(int16_t)(int8_t)ArvissResultAsByte(byteResult);
             cpu->pc += 4;
             cpu->xreg[0] = 0;
         }
@@ -251,12 +251,12 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
         case 0b001: { // LH
             // rd <- sx(m16(rs1 + imm_i)), pc += 4
             TRACE("LH %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
-            CpuResult halfwordResult = ReadHalfword(cpu->memory, cpu->xreg[rs1] + imm);
-            if (!ResultIsHalfword(halfwordResult))
+            ArvissResult halfwordResult = ArvissReadHalfword(cpu->memory, cpu->xreg[rs1] + imm);
+            if (!ArvissResultIsHalfword(halfwordResult))
             {
                 return halfwordResult;
             }
-            cpu->xreg[rd] = (int32_t)(int16_t)ResultAsHalfword(halfwordResult);
+            cpu->xreg[rd] = (int32_t)(int16_t)ArvissResultAsHalfword(halfwordResult);
             cpu->pc += 4;
             cpu->xreg[0] = 0;
         }
@@ -264,12 +264,12 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
         case 0b010: { // LW
             // rd <- sx(m32(rs1 + imm_i)), pc += 4
             TRACE("LW %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
-            CpuResult wordResult = ReadWord(cpu->memory, cpu->xreg[rs1] + imm);
-            if (!ResultIsWord(wordResult))
+            ArvissResult wordResult = ArvissReadWord(cpu->memory, cpu->xreg[rs1] + imm);
+            if (!ArvissResultIsWord(wordResult))
             {
                 return wordResult;
             }
-            cpu->xreg[rd] = (int32_t)ResultAsWord(wordResult);
+            cpu->xreg[rd] = (int32_t)ArvissResultAsWord(wordResult);
             cpu->pc += 4;
             cpu->xreg[0] = 0;
         }
@@ -277,12 +277,12 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
         case 0b100: { // LBU
             // rd <- zx(m8(rs1 + imm_i)), pc += 4
             TRACE("LBU x%d, %d(x%d)\n", rd, imm, rs1);
-            CpuResult byteResult = ReadByte(cpu->memory, cpu->xreg[rs1] + imm);
-            if (!ResultIsByte(byteResult))
+            ArvissResult byteResult = ArvissReadByte(cpu->memory, cpu->xreg[rs1] + imm);
+            if (!ArvissResultIsByte(byteResult))
             {
                 return byteResult;
             }
-            cpu->xreg[rd] = ResultAsByte(byteResult);
+            cpu->xreg[rd] = ArvissResultAsByte(byteResult);
             cpu->pc += 4;
             cpu->xreg[0] = 0;
         }
@@ -290,18 +290,18 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
         case 0b101: { // LHU
             // rd <- zx(m16(rs1 + imm_i)), pc += 4
             TRACE("LHU %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
-            CpuResult halfwordResult = ReadHalfword(cpu->memory, cpu->xreg[rs1] + imm);
-            if (!ResultIsHalfword(halfwordResult))
+            ArvissResult halfwordResult = ArvissReadHalfword(cpu->memory, cpu->xreg[rs1] + imm);
+            if (!ArvissResultIsHalfword(halfwordResult))
             {
                 return halfwordResult;
             }
-            cpu->xreg[rd] = ResultAsHalfword(halfwordResult);
+            cpu->xreg[rd] = ArvissResultAsHalfword(halfwordResult);
             cpu->pc += 4;
             cpu->xreg[0] = 0;
         }
         break;
         default:
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -315,8 +315,8 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
         case 0b000: // SB
             // m8(rs1 + imm_s) <- rs2[7:0], pc += 4
             TRACE("SB %s, %d(%s)\n", abiNames[rs2], imm, abiNames[rs1]);
-            CpuResult byteResult = WriteByte(cpu->memory, cpu->xreg[rs1] + imm, cpu->xreg[rs2] & 0xff);
-            if (ResultIsTrap(byteResult))
+            ArvissResult byteResult = ArvissWriteByte(cpu->memory, cpu->xreg[rs1] + imm, cpu->xreg[rs2] & 0xff);
+            if (ArvissResultIsTrap(byteResult))
             {
                 return byteResult;
             }
@@ -325,8 +325,8 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
         case 0b001: // SH
             // m16(rs1 + imm_s) <- rs2[15:0], pc += 4
             TRACE("SH %s, %d(%s)\n", abiNames[rs2], imm, abiNames[rs1]);
-            CpuResult halfwordResult = WriteHalfword(cpu->memory, cpu->xreg[rs1] + imm, cpu->xreg[rs2] & 0xffff);
-            if (ResultIsTrap(halfwordResult))
+            ArvissResult halfwordResult = ArvissWriteHalfword(cpu->memory, cpu->xreg[rs1] + imm, cpu->xreg[rs2] & 0xffff);
+            if (ArvissResultIsTrap(halfwordResult))
             {
                 return halfwordResult;
             }
@@ -335,15 +335,15 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
         case 0b010: // SW
             // m32(rs1 + imm_s) <- rs2[31:0], pc += 4
             TRACE("SW %s, %d(%s)\n", abiNames[rs2], imm, abiNames[rs1]);
-            CpuResult wordResult = WriteWord(cpu->memory, cpu->xreg[rs1] + imm, cpu->xreg[rs2]);
-            if (ResultIsTrap(wordResult))
+            ArvissResult wordResult = ArvissWriteWord(cpu->memory, cpu->xreg[rs1] + imm, cpu->xreg[rs2]);
+            if (ArvissResultIsTrap(wordResult))
             {
                 return wordResult;
             }
             cpu->pc += 4;
             break;
         default:
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -422,11 +422,11 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
                 cpu->xreg[0] = 0;
                 break;
             default:
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
         default:
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -461,7 +461,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
                 cpu->xreg[0] = 0;
                 break;
             default:
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
 
@@ -483,7 +483,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
                 cpu->xreg[0] = 0;
                 break;
             default:
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
 
@@ -505,7 +505,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
                 cpu->xreg[0] = 0;
                 break;
             default:
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
 
@@ -528,7 +528,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
                 cpu->xreg[0] = 0;
                 break;
             default:
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
 
@@ -562,7 +562,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
                 cpu->xreg[0] = 0;
                 break;
             default:
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
 
@@ -591,7 +591,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
                 cpu->xreg[0] = 0;
                 break;
             default:
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
 
@@ -625,7 +625,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
                 cpu->xreg[0] = 0;
                 break;
             default:
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
 
@@ -648,12 +648,12 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
                 cpu->xreg[0] = 0;
                 break;
             default:
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
 
         default:
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -663,11 +663,11 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
         if (funct3 == 0b000)
         {
             TRACE("FENCE\n");
-            return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+            return ArvissMakeTrap(trNOT_IMPLEMENTED_YET, 0);
         }
         else
         {
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
 
@@ -679,21 +679,21 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
             {
             case 0b000000000000: // ECALL
                 TRACE("ECALL\n");
-                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                return ArvissMakeTrap(trNOT_IMPLEMENTED_YET, 0);
 
             case 0b000000000001: // EBREAK
                 TRACE("EBREAK\n");
-                return MakeTrap(trBREAKPOINT, 0); // TODO: what should value be here?
+                return ArvissMakeTrap(trBREAKPOINT, 0); // TODO: what should value be here?
 
             case 0b000000000010: // URET
                 TRACE("URET\n");
                 // TODO: Only provide this if user mode traps are supported, otherwise raise an illegal instruction exception.
-                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                return ArvissMakeTrap(trNOT_IMPLEMENTED_YET, 0);
 
             case 0b000100000010: // SRET
                 TRACE("SRET\n");
                 // TODO: Only provide this if supervisor mode is supported, otherwise raise an illegal instruction exception.
-                return MakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                return ArvissMakeTrap(trNOT_IMPLEMENTED_YET, 0);
 
             case 0b001100000010: // MRET
                 // pc <- mepc, pc += 4
@@ -703,12 +703,12 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
                 break;
 
             default:
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
         }
         else
         {
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
         break;
 
@@ -719,19 +719,19 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
             // rd <- f32(rs1 + imm_i)
             int32_t imm = IImmediate(instruction);
             TRACE("FLW %s, %d(%s)\n", fabiNames[rd], imm, abiNames[rs1]);
-            CpuResult wordResult = ReadWord(cpu->memory, cpu->xreg[rs1] + imm);
-            if (!ResultIsWord(wordResult))
+            ArvissResult wordResult = ArvissReadWord(cpu->memory, cpu->xreg[rs1] + imm);
+            if (!ArvissResultIsWord(wordResult))
             {
                 return wordResult;
             }
-            const uint32_t resultAsWord = ResultAsWord(wordResult);
+            const uint32_t resultAsWord = ArvissResultAsWord(wordResult);
             const float resultAsFloat = U32AsFloat(resultAsWord);
             cpu->freg[rd] = resultAsFloat;
             cpu->pc += 4;
         }
         else
         {
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -745,8 +745,8 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
             int32_t imm = SImmediate(instruction);
             TRACE("FSW %s, %d(%s)\n", fabiNames[rs2], imm, abiNames[rs1]);
             uint32_t t = FloatAsU32(cpu->freg[rs2]);
-            CpuResult wordResult = WriteWord(cpu->memory, cpu->xreg[rs1] + imm, t);
-            if (ResultIsTrap(wordResult))
+            ArvissResult wordResult = ArvissWriteWord(cpu->memory, cpu->xreg[rs1] + imm, t);
+            if (ArvissResultIsTrap(wordResult))
             {
                 return wordResult;
             }
@@ -754,7 +754,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
         }
         else
         {
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -773,7 +773,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
         }
         else
         {
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -792,7 +792,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
         }
         else
         {
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -812,7 +812,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
         }
         else
         {
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -832,7 +832,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
         }
         else
         {
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
@@ -887,7 +887,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
             }
             else
             {
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
 
@@ -923,7 +923,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
             }
             break;
             default:
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
         }
         break;
@@ -948,7 +948,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
                 break;
 
             default:
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
         }
         break;
@@ -970,7 +970,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
                 // TODO: rounding.
                 break;
             default:
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
         }
         break;
@@ -1044,12 +1044,12 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
                 break;
 
                 default:
-                    return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                    return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
                 }
             }
             else
             {
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
         }
         break;
@@ -1079,7 +1079,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
                 break;
 
             default:
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
         }
         break;
@@ -1102,7 +1102,7 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
                 // TODO: rounding.
                 break;
             default:
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
         }
         break;
@@ -1117,54 +1117,54 @@ CpuResult Execute(CPU* cpu, uint32_t instruction)
             }
             else
             {
-                return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+                return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
             }
             break;
 
         default:
-            return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+            return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
         }
     }
     break;
 
     default:
-        return MakeTrap(trILLEGAL_INSTRUCTION, instruction);
+        return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
     }
 
-    return MakeOk();
+    return ArvissMakeOk();
 }
 
-CpuResult Fetch(CPU* cpu)
+ArvissResult ArvissFetch(CPU* cpu)
 {
     TRACE("%08x ", cpu->pc);
-    return ReadWord(cpu->memory, cpu->pc);
+    return ArvissReadWord(cpu->memory, cpu->pc);
 }
 
-CpuResult HandleTrap(CPU* cpu, Trap trap)
+ArvissResult ArvissHandleTrap(CPU* cpu, Trap trap)
 {
     cpu->mepc = cpu->pc;       // Save the program counter in the machine exception program counter.
     cpu->mcause = trap.mcause; // mcause <- reason for trap.
     cpu->mtval = trap.mtval;   // mtval <- exception specific information.
 
     // TODO: do something sensible other than just returning the same trap.
-    return MakeTrap(trap.mcause, trap.mtval);
+    return ArvissMakeTrap(trap.mcause, trap.mtval);
 }
 
-CpuResult Run(CPU* cpu, int count)
+ArvissResult ArvissRun(CPU* cpu, int count)
 {
-    CpuResult result = MakeOk();
+    ArvissResult result = ArvissMakeOk();
     for (int i = 0; i < count; i++)
     {
-        result = Fetch(cpu);
-        if (ResultIsWord(result))
+        result = ArvissFetch(cpu);
+        if (ArvissResultIsWord(result))
         {
-            result = Execute(cpu, ResultAsWord(result));
+            result = ArvissExecute(cpu, ArvissResultAsWord(result));
         }
 
-        if (ResultIsTrap(result))
+        if (ArvissResultIsTrap(result))
         {
-            result = HandleTrap(cpu, ResultAsTrap(result));
-            if (ResultIsTrap(result))
+            result = ArvissHandleTrap(cpu, ArvissResultAsTrap(result));
+            if (ArvissResultIsTrap(result))
             {
                 // Stop, as we can no longer proceed.
                 break;

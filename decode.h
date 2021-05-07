@@ -16,7 +16,7 @@ typedef struct CPU
     float freg[32];    // Floating point registers, f0-f31.
     uint32_t fcsr;     // Floating point control and status register.
 
-    MemoryTrait memory;
+    ArvissMemoryTrait memory;
 
 } CPU;
 
@@ -58,11 +58,21 @@ enum
 extern "C" {
 #endif
 
-void Reset(CPU* cpu, uint32_t sp);
-CpuResult Execute(CPU* cpu, uint32_t instruction);
-CpuResult Fetch(CPU* cpu);
-CpuResult HandleTrap(CPU* cpu, Trap trap);
-CpuResult Run(CPU* cpu, int count);
+void ArvissReset(CPU* cpu, uint32_t sp);
+ArvissResult ArvissExecute(CPU* cpu, uint32_t instruction);
+ArvissResult ArvissFetch(CPU* cpu);
+ArvissResult ArvissHandleTrap(CPU* cpu, Trap trap);
+ArvissResult ArvissRun(CPU* cpu, int count);
+
+// static struct
+//{
+//     void (*Reset)(CPU*, uint32_t);
+//     ArvissResult (*Execute)(CPU*, uint32_t);
+//     ArvissResult (*Fetch)(CPU*);
+//     ArvissResult (*HandleTrap)(CPU*, Trap);
+//     ArvissResult (*Run)(CPU*, int);
+//
+// } arviss = {ArvissReset, ArvissExecute, ArvissFetch, ArvissHandleTrap, ArvissRun};
 
 #ifdef __cplusplus
 }

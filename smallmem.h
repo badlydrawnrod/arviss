@@ -5,7 +5,7 @@
 #define RAMBASE 0
 #define RAMSIZE 0x8000
 
-struct Memory
+struct ArvissMemory
 {
     uint8_t ram[RAMSIZE];
 };
@@ -14,7 +14,7 @@ struct Memory
 extern "C" {
 #endif
 
-MemoryTrait smallmem_Init(Memory* memory);
+ArvissMemoryTrait SmallMemInit(ArvissMemory* memory);
 
 #ifdef __cplusplus
 }
