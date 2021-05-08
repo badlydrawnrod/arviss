@@ -1,5 +1,6 @@
 #include "arviss.h"
 #include "conversions.h"
+#include "opcodes.h"
 #include "rounding_modes.h"
 #include "smallmem.h"
 

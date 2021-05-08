@@ -1,6 +1,7 @@
 #include "arviss.h"
 
 #include "conversions.h"
+#include "opcodes.h"
 
 #include <math.h>
 #include <stdint.h>
