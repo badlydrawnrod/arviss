@@ -21,11 +21,11 @@
     } while (0)
 #endif
 
-// The ABI names of the integer registers.
+// The ABI names of the integer registers x0-x31.
 static char* abiNames[] = {"zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", "s0", "s1", "a0",  "a1",  "a2", "a3", "a4", "a5",
                            "a6",   "a7", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"};
 
-// The ABI names of the floating point registers.
+// The ABI names of the floating point registers f0-f31.
 static char* fabiNames[] = {"ft0", "ft1", "ft2", "ft3", "ft4",  "ft5",  "ft6", "ft7", "fs0",  "fs1", "fa0",
                             "fa1", "fa2", "fa3", "fa4", "fa5",  "fa6",  "fa7", "fs2", "fs3",  "fs4", "fs5",
                             "fs6", "fs7", "fs8", "fs9", "fs10", "fs11", "ft8", "ft9", "ft10", "ft11"};
@@ -112,7 +112,7 @@ static inline uint32_t Rm(uint32_t instruction)
     return (instruction >> 12) & 7;
 }
 
-void ArvissReset(CPU* cpu, uint32_t sp)
+void ArvissReset(ArvissCpu* cpu, uint32_t sp)
 {
     cpu->pc = 0;
     for (int i = 0; i < 32; i++)
@@ -131,7 +131,7 @@ void ArvissReset(CPU* cpu, uint32_t sp)
 
 // See: http://www.five-embeddev.com/riscv-isa-manual/latest/gmaps.html#rv3264g-instruction-set-listings
 // or riscv-spec-209191213.pdf.
-ArvissResult ArvissExecute(CPU* cpu, uint32_t instruction)
+ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
 {
     uint32_t opcode = Opcode(instruction);
     uint32_t rd = Rd(instruction);
@@ -1134,13 +1134,13 @@ ArvissResult ArvissExecute(CPU* cpu, uint32_t instruction)
     return ArvissMakeOk();
 }
 
-ArvissResult ArvissFetch(CPU* cpu)
+ArvissResult ArvissFetch(ArvissCpu* cpu)
 {
     TRACE("%08x ", cpu->pc);
     return ArvissReadWord(cpu->memory, cpu->pc);
 }
 
-ArvissResult ArvissHandleTrap(CPU* cpu, Trap trap)
+ArvissResult ArvissHandleTrap(ArvissCpu* cpu, Trap trap)
 {
     cpu->mepc = cpu->pc;       // Save the program counter in the machine exception program counter.
     cpu->mcause = trap.mcause; // mcause <- reason for trap.
@@ -1150,7 +1150,7 @@ ArvissResult ArvissHandleTrap(CPU* cpu, Trap trap)
     return ArvissMakeTrap(trap.mcause, trap.mtval);
 }
 
-ArvissResult ArvissRun(CPU* cpu, int count)
+ArvissResult ArvissRun(ArvissCpu* cpu, int count)
 {
     ArvissResult result = ArvissMakeOk();
     for (int i = 0; i < count; i++)

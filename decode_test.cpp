@@ -1,5 +1,6 @@
 #include "arviss.h"
 #include "conversions.h"
+#include "rounding_modes.h"
 #include "smallmem.h"
 
 #include "gtest/gtest.h"
@@ -22,7 +23,7 @@ protected:
     static constexpr uint32_t rambase = 0x1000; // Deliberately not zero.
     static constexpr uint32_t ramsize = 0x1000; // Deliberately small to keep offsets from getting out of range.
 
-    CPU cpu;
+    ArvissCpu cpu;
 
     inline static ArvissMemory memory;
 };

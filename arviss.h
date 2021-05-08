@@ -3,10 +3,9 @@
 #include "memory.h"
 #include "result.h"
 
-#include <stdbool.h>
 #include <stdint.h>
 
-typedef struct CPU
+typedef struct ArvissCpu
 {
     uint32_t pc;       // The program counter.
     uint32_t xreg[32]; // Regular registers, x0-x31.
@@ -18,7 +17,7 @@ typedef struct CPU
 
     ArvissMemoryTrait memory;
 
-} CPU;
+} ArvissCpu;
 
 enum
 {
@@ -42,27 +41,15 @@ enum
     OP_NMADD = 0b1001111,   // RV32F
 };
 
-enum
-{
-    RM_RNE = 0b000,
-    RM_RTZ = 0b001,
-    RM_RDN = 0b010,
-    RM_RUP = 0b011,
-    RM_RMM = 0b100,
-    RM_RSVD5 = 0b101,
-    RM_RSVD6 = 0b110,
-    RM_DYN = 0b111
-};
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void ArvissReset(CPU* cpu, uint32_t sp);
-ArvissResult ArvissExecute(CPU* cpu, uint32_t instruction);
-ArvissResult ArvissFetch(CPU* cpu);
-ArvissResult ArvissHandleTrap(CPU* cpu, Trap trap);
-ArvissResult ArvissRun(CPU* cpu, int count);
+void ArvissReset(ArvissCpu* cpu, uint32_t sp);
+ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction);
+ArvissResult ArvissFetch(ArvissCpu* cpu);
+ArvissResult ArvissHandleTrap(ArvissCpu* cpu, Trap trap);
+ArvissResult ArvissRun(ArvissCpu* cpu, int count);
 
 #ifdef __cplusplus
 }

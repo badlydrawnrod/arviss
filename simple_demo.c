@@ -7,7 +7,7 @@
 int main(void)
 {
     ArvissMemory memory;
-    CPU cpu = {.memory = SmallMemInit(&memory)};
+    ArvissCpu cpu = {.memory = SmallMemInit(&memory)};
     ArvissReset(&cpu, RAMBASE + RAMSIZE);
 
     printf("--- Loading program and running it\n");
