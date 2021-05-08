@@ -5,9 +5,9 @@
 static const uint32_t rambase = RAMBASE;
 static const uint32_t ramsize = RAMSIZE;
 
-static ArvissResult ReadByte(ArvissMemory* memory, uint32_t addr);
-static ArvissResult ReadHalfword(ArvissMemory* memory, uint32_t addr);
-static ArvissResult ReadWord(ArvissMemory* memory, uint32_t addr);
+static ArvissResult ReadByte(const ArvissMemory* memory, uint32_t addr);
+static ArvissResult ReadHalfword(const ArvissMemory* memory, uint32_t addr);
+static ArvissResult ReadWord(const ArvissMemory* memory, uint32_t addr);
 static ArvissResult WriteByte(ArvissMemory* memory, uint32_t addr, uint8_t byte);
 static ArvissResult WriteHalfword(ArvissMemory* memory, uint32_t addr, uint16_t halfword);
 static ArvissResult WriteWord(ArvissMemory* memory, uint32_t addr, uint32_t word);
@@ -24,7 +24,7 @@ ArvissMemoryTrait SmallMemInit(ArvissMemory* memory)
     return (ArvissMemoryTrait){.mem = memory, .vtbl = &vtbl};
 }
 
-static ArvissResult ReadByte(ArvissMemory* memory, uint32_t addr)
+static ArvissResult ReadByte(const ArvissMemory* memory, uint32_t addr)
 {
     if (addr >= rambase && addr < rambase + ramsize)
     {
@@ -33,7 +33,7 @@ static ArvissResult ReadByte(ArvissMemory* memory, uint32_t addr)
     return ArvissMakeTrap(trLOAD_ACCESS_FAULT, addr);
 }
 
-static ArvissResult ReadHalfword(ArvissMemory* memory, uint32_t addr)
+static ArvissResult ReadHalfword(const ArvissMemory* memory, uint32_t addr)
 {
     if (addr >= rambase && addr < rambase + ramsize - 1)
     {
@@ -42,7 +42,7 @@ static ArvissResult ReadHalfword(ArvissMemory* memory, uint32_t addr)
     return ArvissMakeTrap(trLOAD_ACCESS_FAULT, addr);
 }
 
-static ArvissResult ReadWord(ArvissMemory* memory, uint32_t addr)
+static ArvissResult ReadWord(const ArvissMemory* memory, uint32_t addr)
 {
     if (addr >= rambase && addr < rambase + ramsize - 3)
     {

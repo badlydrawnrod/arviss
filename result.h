@@ -54,7 +54,7 @@ typedef struct ArvissResult
 {
     union
     {
-        uint32_t nothing;
+        uint32_t ok;
         ArvissTrap trap;
         uint8_t byte;
         uint16_t halfword;
@@ -69,6 +69,10 @@ extern "C" {
 
 static inline ArvissResult ArvissMakeOk(void)
 {
+    // Not using designated initializers as...
+    // a) C++ < 20 doesn't support them
+    // b) C++ 20 doesn't like the cast
+    // return (ArvissResult){ .type = rtOK };
     ArvissResult r;
     r.type = rtOK;
     return r;

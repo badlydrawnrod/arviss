@@ -6,18 +6,18 @@
 
 typedef struct ArvissMemory ArvissMemory;
 
-typedef struct
+typedef struct ArvissMemoryVtbl
 {
-    ArvissResult (*ReadByte)(ArvissMemory* memory, uint32_t addr);
-    ArvissResult (*ReadHalfword)(ArvissMemory* memory, uint32_t addr);
-    ArvissResult (*ReadWord)(ArvissMemory* memory, uint32_t addr);
+    ArvissResult (*ReadByte)(const ArvissMemory* memory, uint32_t addr);
+    ArvissResult (*ReadHalfword)(const ArvissMemory* memory, uint32_t addr);
+    ArvissResult (*ReadWord)(const ArvissMemory* memory, uint32_t addr);
 
     ArvissResult (*WriteByte)(ArvissMemory* memory, uint32_t addr, uint8_t byte);
     ArvissResult (*WriteHalfword)(ArvissMemory* memory, uint32_t addr, uint16_t halfword);
     ArvissResult (*WriteWord)(ArvissMemory* memory, uint32_t addr, uint32_t word);
 } ArvissMemoryVtbl;
 
-typedef struct MemoryTrait
+typedef struct ArvissMemoryTrait
 {
     ArvissMemory* mem;
     ArvissMemoryVtbl* vtbl;
@@ -27,17 +27,17 @@ typedef struct MemoryTrait
 extern "C" {
 #endif
 
-static inline ArvissResult ArvissReadByte(ArvissMemoryTrait mem, uint32_t addr)
+static inline ArvissResult ArvissReadByte(const ArvissMemoryTrait mem, uint32_t addr)
 {
     return mem.vtbl->ReadByte(mem.mem, addr);
 }
 
-static ArvissResult ArvissReadHalfword(ArvissMemoryTrait mem, uint32_t addr)
+static ArvissResult ArvissReadHalfword(const ArvissMemoryTrait mem, uint32_t addr)
 {
     return mem.vtbl->ReadHalfword(mem.mem, addr);
 }
 
-static ArvissResult ArvissReadWord(ArvissMemoryTrait mem, uint32_t addr)
+static ArvissResult ArvissReadWord(const ArvissMemoryTrait mem, uint32_t addr)
 {
     return mem.vtbl->ReadWord(mem.mem, addr);
 }
