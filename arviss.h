@@ -26,7 +26,7 @@ extern "C" {
 void ArvissReset(ArvissCpu* cpu, uint32_t sp);
 ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction);
 ArvissResult ArvissFetch(ArvissCpu* cpu);
-ArvissResult ArvissHandleTrap(ArvissCpu* cpu, Trap trap);
+ArvissResult ArvissHandleTrap(ArvissCpu* cpu, ArvissTrap trap);
 ArvissResult ArvissRun(ArvissCpu* cpu, int count);
 
 #ifdef __cplusplus

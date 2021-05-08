@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 // Machine mode traps. See privileged spec, table 3.6: machine cause register (mcause) values after trap.
-typedef enum
+typedef enum ArvissTrapType
 {
     // Non-interrupt traps.
     trINSTRUCTION_MISALIGNED = 0,
@@ -33,34 +33,34 @@ typedef enum
     trSUPERVISOR_TIMER_INTERRUPT = 0x80000000 + 5,
     trRESERVED_INT_6 = 0x80000000 + 6,
     trMACHINE_TIMER_INTERRUPT = 0x80000000 + 7
-} TrapType;
+} ArvissTrapType;
 
-typedef struct Trap
+typedef struct ArvissTrap
 {
-    TrapType mcause; // TODO: interrupts.
+    ArvissTrapType mcause; // TODO: interrupts.
     uint32_t mtval;
-} Trap;
+} ArvissTrap;
 
-typedef enum
+typedef enum ArvissResultType
 {
-    rtNOTHING,
+    rtOK,
     rtTRAP,
     rtBYTE,
     rtHALFWORD,
     rtWORD,
-} ResultType;
+} ArvissResultType;
 
-typedef struct Result
+typedef struct ArvissResult
 {
     union
     {
         uint32_t nothing;
-        Trap trap;
+        ArvissTrap trap;
         uint8_t byte;
         uint16_t halfword;
         uint32_t word;
     };
-    ResultType type;
+    ArvissResultType type;
 } ArvissResult;
 
 #ifdef __cplusplus
@@ -70,11 +70,11 @@ extern "C" {
 static inline ArvissResult ArvissMakeOk(void)
 {
     ArvissResult r;
-    r.type = rtNOTHING;
+    r.type = rtOK;
     return r;
 }
 
-static inline ArvissResult ArvissMakeTrap(TrapType trap, uint32_t value)
+static inline ArvissResult ArvissMakeTrap(ArvissTrapType trap, uint32_t value)
 {
     ArvissResult r;
     r.type = rtTRAP;
@@ -112,7 +112,7 @@ static inline bool ArvissResultIsTrap(ArvissResult result)
     return result.type == rtTRAP;
 }
 
-static inline Trap ArvissResultAsTrap(ArvissResult result)
+static inline ArvissTrap ArvissResultAsTrap(ArvissResult result)
 {
     return result.trap;
 }

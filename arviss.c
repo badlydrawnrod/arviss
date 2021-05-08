@@ -1141,7 +1141,7 @@ ArvissResult ArvissFetch(ArvissCpu* cpu)
     return ArvissReadWord(cpu->memory, cpu->pc);
 }
 
-ArvissResult ArvissHandleTrap(ArvissCpu* cpu, Trap trap)
+ArvissResult ArvissHandleTrap(ArvissCpu* cpu, ArvissTrap trap)
 {
     cpu->mepc = cpu->pc;       // Save the program counter in the machine exception program counter.
     cpu->mcause = trap.mcause; // mcause <- reason for trap.

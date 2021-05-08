@@ -12,7 +12,12 @@ static ArvissResult WriteByte(ArvissMemory* memory, uint32_t addr, uint8_t byte)
 static ArvissResult WriteHalfword(ArvissMemory* memory, uint32_t addr, uint16_t halfword);
 static ArvissResult WriteWord(ArvissMemory* memory, uint32_t addr, uint32_t word);
 
-static ArvissMemoryVtbl vtbl = {ReadByte, ReadHalfword, ReadWord, WriteByte, WriteHalfword, WriteWord};
+static ArvissMemoryVtbl vtbl = {.ReadByte = ReadByte,
+                                .ReadHalfword = ReadHalfword,
+                                .ReadWord = ReadWord,
+                                .WriteByte = WriteByte,
+                                .WriteHalfword = WriteHalfword,
+                                .WriteWord = WriteWord};
 
 ArvissMemoryTrait SmallMemInit(ArvissMemory* memory)
 {

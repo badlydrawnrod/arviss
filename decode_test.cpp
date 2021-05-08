@@ -1482,7 +1482,7 @@ TEST_F(TestDecoder, Traps_Set_Mepc)
     uint32_t savedPc = cpu.pc;
 
     // Take a breakpoint.
-    Trap trap = {trBREAKPOINT, 0x0};
+    ArvissTrap trap = {trBREAKPOINT, 0x0};
     ArvissHandleTrap(&cpu, trap);
 
     // mepc <- pc
@@ -1496,7 +1496,7 @@ TEST_F(TestDecoder, Traps_Set_Mcause)
     cpu.mepc = 0;
 
     // Take a breakpoint.
-    Trap trap = {trBREAKPOINT, 0x0};
+    ArvissTrap trap = {trBREAKPOINT, 0x0};
     ArvissHandleTrap(&cpu, trap);
 
     // mcause <- reason for trap
@@ -1511,7 +1511,7 @@ TEST_F(TestDecoder, Traps_Set_Mtval)
     uint32_t address = 0x1234;
 
     // Load fault.
-    Trap trap = {trLOAD_ACCESS_FAULT, address};
+    ArvissTrap trap = {trLOAD_ACCESS_FAULT, address};
     ArvissHandleTrap(&cpu, trap);
 
     // mtval <- exception specific information
