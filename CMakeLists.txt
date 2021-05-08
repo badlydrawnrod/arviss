@@ -12,27 +12,24 @@ set(CMAKE_C_STANDARD_REQUIRED True)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Use gtest.
+# Use gtest. See: https://github.com/google/googletest/blob/master/googletest/README.md
 FetchContent_Declare(
         googletest
-        GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG release-1.10.0
+        # Specify the commit you depend on and update it regularly.
+        URL https://github.com/google/googletest/archive/refs/tags/v1.10.x.zip
 )
-FetchContent_GetProperties(googletest)
-if (NOT googletest_POPULATED)
-    FetchContent_Populate(googletest)
-    add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
-endif ()
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
-# Prevent google test from overriding the parent project's compiler/linker settings on Windows
-#set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-
-add_library(arviss arviss.c smallmem.c rounding_modes.h opcodes.h)
+add_library(arviss STATIC arviss.c smallmem.c rounding_modes.h opcodes.h)
 target_include_directories(arviss
         PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
         "$<INSTALL_INTERFACE:include>"
         )
+
+# TODO: fix it so that it doesn't install gtest.
 
 install(TARGETS arviss
         EXPORT arvissTargets
