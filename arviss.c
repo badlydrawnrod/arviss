@@ -6,9 +6,9 @@
 #include <math.h>
 #include <stdint.h>
 
-//#define BDR_TRACE_ENABLED
+//#define ARVISS_TRACE_ENABLED
 
-#if defined(BDR_TRACE_ENABLED)
+#if defined(ARVISS_TRACE_ENABLED)
 #include <stdio.h>
 #define TRACE(...)                                                                                                                 \
     do                                                                                                                             \

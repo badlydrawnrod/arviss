@@ -16,7 +16,6 @@ typedef struct ArvissCpu
     uint32_t fcsr;     // Floating point control and status register.
 
     ArvissMemoryTrait memory;
-
 } ArvissCpu;
 
 #ifdef __cplusplus
