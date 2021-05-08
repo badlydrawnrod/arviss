@@ -22,13 +22,34 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+# Arviss - the library.
 add_library(arviss STATIC arviss.c smallmem.c rounding_modes.h opcodes.h)
 target_include_directories(arviss
         PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
         "$<INSTALL_INTERFACE:include>"
         )
+target_compile_options(arviss PRIVATE
+        $<$<OR:$<C_COMPILER_ID:Clang>,$<C_COMPILER_ID:AppleClang>,$<C_COMPILER_ID:GNU>>:
+        -Wall -Werror>
+        $<$<C_COMPILER_ID:MSVC>:
+        /WX>)
 
+# Arviss tests.
+add_executable(decode_test decode_test.cpp)
+target_link_libraries(decode_test PRIVATE arviss gtest_main)
+
+
+# A placeholder demo.
+add_executable(simple_demo simple_demo.c)
+target_link_libraries(simple_demo PRIVATE arviss)
+target_compile_options(simple_demo PRIVATE
+        $<$<OR:$<C_COMPILER_ID:Clang>,$<C_COMPILER_ID:AppleClang>,$<C_COMPILER_ID:GNU>>:
+        -Wall -Werror>
+        $<$<C_COMPILER_ID:MSVC>:
+        /WX>)
+
+# Installation.
 # TODO: fix it so that it doesn't install gtest.
 
 install(TARGETS arviss
@@ -46,9 +67,3 @@ install(EXPORT arvissTargets
         NAMESPACE arviss::
         DESTINATION lib/cmake/arviss
         )
-
-add_executable(simple_demo simple_demo.c rounding_modes.h)
-target_link_libraries(simple_demo PRIVATE arviss)
-
-add_executable(decode_test decode_test.cpp rounding_modes.h opcodes.h)
-target_link_libraries(decode_test PRIVATE arviss gtest_main)

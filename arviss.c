@@ -6,8 +6,6 @@
 #include <math.h>
 #include <stdint.h>
 
-//#define ARVISS_TRACE_ENABLED
-
 #if defined(ARVISS_TRACE_ENABLED)
 #include <stdio.h>
 #define TRACE(...)                                                                                                                 \
