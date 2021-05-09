@@ -23,7 +23,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 # Arviss - the library.
-add_library(arviss STATIC arviss.c smallmem.c rounding_modes.h opcodes.h)
+add_library(arviss STATIC arviss.c rounding_modes.h opcodes.h)
 target_include_directories(arviss
         PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
@@ -36,14 +36,14 @@ target_compile_options(arviss PRIVATE
         /WX>)
 
 # Arviss tests.
-add_executable(decode_test decode_test.cpp)
+add_executable(decode_test decode_test.cpp smallmem.c smallmem.h)
 target_link_libraries(decode_test PRIVATE arviss gtest_main)
 
 
-# A placeholder demo.
-add_executable(simple_demo simple_demo.c)
-target_link_libraries(simple_demo PRIVATE arviss)
-target_compile_options(simple_demo PRIVATE
+# Run "hello world" via Arviss.
+add_executable(run_hello run_hello.c mem.c mem.h)
+target_link_libraries(run_hello PRIVATE arviss)
+target_compile_options(run_hello PRIVATE
         $<$<OR:$<C_COMPILER_ID:Clang>,$<C_COMPILER_ID:AppleClang>,$<C_COMPILER_ID:GNU>>:
         -Wall -Werror>
         $<$<C_COMPILER_ID:MSVC>:
@@ -60,7 +60,7 @@ install(TARGETS arviss
         INCLUDES DESTINATION include
         )
 
-install(FILES arviss.h smallmem.h memory.h result.h DESTINATION include/arviss)
+install(FILES arviss.h memory.h result.h DESTINATION include/arviss)
 
 install(EXPORT arvissTargets
         FILE arvissTargets.cmake
