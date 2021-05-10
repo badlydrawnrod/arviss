@@ -18,7 +18,7 @@ int main(void)
         return err;
     }
     size_t count = fread(memory.mem, 1, sizeof(memory.mem), fp);
-    printf("Read %d bytes\n", count);
+    printf("Read %zd bytes\n", count);
     fclose(fp);
 
     // Run the program, n instructions at a time.
