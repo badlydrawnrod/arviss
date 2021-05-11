@@ -32,12 +32,12 @@ static inline ArvissResult ArvissReadByte(const ArvissMemoryTrait mem, uint32_t 
     return mem.vtbl->ReadByte(mem.mem, addr);
 }
 
-static ArvissResult ArvissReadHalfword(const ArvissMemoryTrait mem, uint32_t addr)
+static inline ArvissResult ArvissReadHalfword(const ArvissMemoryTrait mem, uint32_t addr)
 {
     return mem.vtbl->ReadHalfword(mem.mem, addr);
 }
 
-static ArvissResult ArvissReadWord(const ArvissMemoryTrait mem, uint32_t addr)
+static inline ArvissResult ArvissReadWord(const ArvissMemoryTrait mem, uint32_t addr)
 {
     return mem.vtbl->ReadWord(mem.mem, addr);
 }

@@ -45,6 +45,9 @@ add_test(decode_test decode_test)
 # Run "hello world" via Arviss.
 add_executable(run_hello run_hello.c mem.c mem.h)
 target_link_libraries(run_hello PRIVATE arviss)
+target_compile_definitions(run_hello PRIVATE
+        $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>
+        )
 target_compile_options(run_hello PRIVATE
         $<$<OR:$<C_COMPILER_ID:Clang>,$<C_COMPILER_ID:AppleClang>,$<C_COMPILER_ID:GNU>>:
         -Wall -Werror>

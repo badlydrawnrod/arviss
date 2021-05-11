@@ -12,11 +12,10 @@ int main(void)
     ArvissReset(&cpu, 0);
 
     printf("--- Loading program and running it\n");
-    FILE* fp = NULL;
-    errno_t err = fopen_s(&fp, "../hello_world/hello.bin", "rb");
-    if (err != 0)
+    FILE* fp = fopen("../hello_world/hello.bin", "rb");
+    if (fp == NULL)
     {
-        return err;
+        return -1;
     }
     size_t count = fread(memory.mem, 1, sizeof(memory.mem), fp);
     printf("Read %zd bytes\n", count);
