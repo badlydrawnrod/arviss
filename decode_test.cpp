@@ -5,6 +5,7 @@
 #include "smallmem.h"
 
 #include "gtest/gtest.h"
+#include <math.h>
 
 class TestDecoder : public ::testing::Test
 {
