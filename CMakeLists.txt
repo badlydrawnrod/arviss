@@ -4,6 +4,8 @@ project(0x38_arviss
         DESCRIPTION "ARVISS - A RISC-V Instruction Set Simulator"
         LANGUAGES C CXX)
 
+enable_testing()
+
 include(FetchContent)
 
 set(CMAKE_C_STANDARD 11)
@@ -38,7 +40,7 @@ target_compile_options(arviss PRIVATE
 # Arviss tests.
 add_executable(decode_test decode_test.cpp smallmem.c smallmem.h)
 target_link_libraries(decode_test PRIVATE arviss gtest_main)
-
+add_test(decode_test decode_test)
 
 # Run "hello world" via Arviss.
 add_executable(run_hello run_hello.c mem.c mem.h)
