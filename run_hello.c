@@ -1,6 +1,7 @@
 #include "arviss.h"
 #include "mem.h"
 
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 
