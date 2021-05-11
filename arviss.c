@@ -770,7 +770,7 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
             TRACE("FMADD.S %s, %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], fabiNames[rs3], roundingModes[rm]);
             cpu->freg[rd] = (cpu->freg[rs1] * cpu->freg[rs2]) + cpu->freg[rs3];
             cpu->pc += 4;
-            // TODO: rounding.
+            (void)rm; // TODO: rounding.
         }
         else
         {
@@ -789,7 +789,7 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
             TRACE("FMSUB.S %s, %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], fabiNames[rs3], roundingModes[rm]);
             cpu->freg[rd] = (cpu->freg[rs1] * cpu->freg[rs2]) - cpu->freg[rs3];
             cpu->pc += 4;
-            // TODO: rounding.
+            (void)rm; // TODO: rounding.
         }
         else
         {
@@ -809,7 +809,7 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
                   roundingModes[rm]);
             cpu->freg[rd] = -(cpu->freg[rs1] * cpu->freg[rs2]) + cpu->freg[rs3];
             cpu->pc += 4;
-            // TODO: rounding.
+            (void)rm; // TODO: rounding.
         }
         else
         {
@@ -829,7 +829,7 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
                   roundingModes[rm]);
             cpu->freg[rd] = -(cpu->freg[rs1] * cpu->freg[rs2]) - cpu->freg[rs3];
             cpu->pc += 4;
-            // TODO: rounding.
+            (void)rm; // TODO: rounding.
         }
         else
         {
@@ -850,7 +850,7 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
             TRACE("FADD.S %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], roundingModes[rm]);
             cpu->freg[rd] = cpu->freg[rs1] + cpu->freg[rs2];
             cpu->pc += 4;
-            // TODO: rounding.
+            (void)rm; // TODO: rounding.
             break;
 
         case 0b0000100: // FSUB.S
@@ -858,7 +858,7 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
             TRACE("FSUB.S %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], roundingModes[rm]);
             cpu->freg[rd] = cpu->freg[rs1] - cpu->freg[rs2];
             cpu->pc += 4;
-            // TODO: rounding.
+            (void)rm; // TODO: rounding.
             break;
 
         case 0b0001000: // FMUL.S
@@ -866,7 +866,7 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
             TRACE("FMUL.S %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], roundingModes[rm]);
             cpu->freg[rd] = cpu->freg[rs1] * cpu->freg[rs2];
             cpu->pc += 4;
-            // TODO: rounding.
+            (void)rm; // TODO: rounding.
             break;
 
         case 0b0001100: // FDIV.S
@@ -874,7 +874,7 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
             TRACE("FDIV.S %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], roundingModes[rm]);
             cpu->freg[rd] = cpu->freg[rs1] / cpu->freg[rs2];
             cpu->pc += 4;
-            // TODO: rounding.
+            (void)rm; // TODO: rounding.
             break;
 
         case 0b0101100:
@@ -884,7 +884,7 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
                 TRACE("FSQRT.S %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], roundingModes[rm]);
                 cpu->freg[rd] = sqrtf(cpu->freg[rs1]);
                 cpu->pc += 4;
-                // TODO: rounding.
+                (void)rm; // TODO: rounding.
             }
             else
             {
@@ -937,7 +937,7 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
                 TRACE("FMIN.S %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2]);
                 cpu->freg[rd] = fminf(cpu->freg[rs1], cpu->freg[rs2]);
                 cpu->pc += 4;
-                // TODO: rounding.
+                (void)rm; // TODO: rounding.
                 break;
 
             case 0b001: // FMAX.S
@@ -945,7 +945,7 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
                 TRACE("FMAX.S %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2]);
                 cpu->freg[rd] = fmaxf(cpu->freg[rs1], cpu->freg[rs2]);
                 cpu->pc += 4;
-                // TODO: rounding.
+                (void)rm; // TODO: rounding.
                 break;
 
             default:
@@ -962,13 +962,13 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
                 TRACE("FCVT.W.S %s, %s, %s\n", abiNames[rd], fabiNames[rs1], roundingModes[rm]);
                 cpu->xreg[rd] = (int32_t)cpu->freg[rs1];
                 cpu->pc += 4;
-                // TODO: rounding.
+                (void)rm; // TODO: rounding.
                 break;
             case 0b00001:
                 TRACE("FCVT.WU.S %s, %s, %s\n", abiNames[rd], fabiNames[rs1], roundingModes[rm]);
                 cpu->xreg[rd] = (uint32_t)cpu->freg[rs1];
                 cpu->pc += 4;
-                // TODO: rounding.
+                (void)rm; // TODO: rounding.
                 break;
             default:
                 return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
@@ -1093,14 +1093,14 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
                 TRACE("FCVT.S.W %s, %s, %s\n", fabiNames[rd], abiNames[rs1], roundingModes[rm]);
                 cpu->freg[rd] = (float)(int32_t)cpu->xreg[rs1];
                 cpu->pc += 4;
-                // TODO: rounding.
+                (void)rm; // TODO: rounding.
                 break;
             case 0b00001: // FVCT.S.WU
                 // rd <- float(rs1)
                 TRACE("FVCT.S.WU %s, %s, %s\n", fabiNames[rd], abiNames[rs1], roundingModes[rm]);
                 cpu->freg[rd] = (float)cpu->xreg[rs1];
                 cpu->pc += 4;
-                // TODO: rounding.
+                (void)rm; // TODO: rounding.
                 break;
             default:
                 return ArvissMakeTrap(trILLEGAL_INSTRUCTION, instruction);
