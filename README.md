@@ -1,4 +1,3 @@
 # ARVISS - A RISC-V Instruction Set Simulator
 
-WIP
-
+![Builds](https://github.com/badlydrawnrod/arviss/actions/workflows/cmake.yml/badge.svg)
