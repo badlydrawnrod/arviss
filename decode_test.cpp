@@ -1945,7 +1945,7 @@ TEST_F(TestDecoder, OpFp_Fcvt_wu_s)
     uint32_t rm = RM_DYN;
     cpu.freg[rs1] = -12345678.910f;
 
-    uint32_t expected = (uint32_t)(cpu.freg[rs1]); // TODO: is this true?
+    uint32_t expected = (uint32_t)(int32_t)(cpu.freg[rs1]); // TODO: is this true?
 
     ArvissExecute(&cpu, (0b1100000 << 25) | EncodeRs2(op) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
 
