@@ -36,12 +36,7 @@ jobs:
         shell: cmd
         working-directory: hello_world
         run: |
-          where cmake
-          where scoop
-          where ninja
-          cmake --version
-          cmake -G
-          cmake -G Ninja -B build "-DCMAKE_C_COMPILER=clang" "-DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}"
+          cmake -G Ninja -B build "-DCMAKE_C_COMPILER=clang" "-DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}" -DCMAKE_OBJCOPY=%USERPROFILE%\scoop\shims\llvm-objcopy
 
       - name: Build
         # Build your program with the given configuration
