@@ -30,4 +30,5 @@ jobs:
 
       - name: Build
         # Build your program with the given configuration
-        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+        working-directory: hello_world
+        run: cmake --build build --config ${{env.BUILD_TYPE}}
