@@ -22,11 +22,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Set environment
+        shell: bash
+        run: echo "PATH=$PATH:C:\msys64\mingw64\bin" >> $GITHUB_ENV
+
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         shell: bash
-        run: echo "PATH=$PATH:C:\msys64\mingw64\bin" >> $GITHUB_ENV
         working-directory: hello_world
         run: cmake -G "MinGW Makefiles" -B build "-DCMAKE_C_COMPILER=clang" "-DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}"
 
