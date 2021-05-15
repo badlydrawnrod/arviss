@@ -22,10 +22,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: seanmiddleditch/gha-setup-ninja@master
-
-      - name: Set environment
-        run: echo "::add-path::C:\msys64\mingw64\bin"
+      - name: Install Ninja and LLVM
+        run: |
+          iex (new-object net.webclient).downloadstring('https://get.scoop.sh')
+          scoop install ninja llvm --global
 
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
