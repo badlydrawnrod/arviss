@@ -12,8 +12,10 @@ Install clang. It's much easier than getting the right gcc toolchain.
 
 - Build the example with `cmake`
 
+```
     cmake -G ninja -B build -D CMAKE_C_COMPILER=clang
     cmake --build build
+```
 
 ## Run
 
