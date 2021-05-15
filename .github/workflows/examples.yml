@@ -34,7 +34,9 @@ jobs:
         shell: cmd
         working-directory: hello_world
         run: |
-          echo %GITHUB_WORKSPACE%
+          where cmake
+          cmake --version
+          cmake -G
           cmake -G Ninja -B build "-DCMAKE_C_COMPILER=clang" "-DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}"
 
       - name: Build
