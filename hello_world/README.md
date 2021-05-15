@@ -10,11 +10,6 @@ Install clang. It's much easier than getting the right gcc toolchain.
 
 ## Build with CMake
 
-- Build Arviss
-- Run "run_hello"
-
-### Build with CMake
-
 - Build the example with `cmake`
 
     cmake -G ninja -B build -D CMAKE_C_COMPILER=clang
