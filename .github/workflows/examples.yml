@@ -22,6 +22,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - uses: seanmiddleditch/gha-setup-ninja@master
+
       - name: Set environment
         shell: bash
         run: echo "PATH=$PATH:C:\msys64\mingw64\bin" >> $GITHUB_ENV
@@ -31,7 +33,7 @@ jobs:
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         shell: bash
         working-directory: hello_world
-        run: cmake -G "MinGW Makefiles" -B build "-DCMAKE_C_COMPILER=clang" "-DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}"
+        run: cmake -G Ninja -B build "-DCMAKE_C_COMPILER=clang" "-DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}"
 
       - name: Build
         # Build your program with the given configuration
