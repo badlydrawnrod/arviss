@@ -1,23 +1,47 @@
-# To run this with Arviss
+# Building the examples
 
-## Install clang
+The examples are designed to be run with **Arviss**, so they must be compiled for RISC-V. This requires a cross-compiler
+toolchain, such as a **gcc** toolchain that targets RISC-V, or **clang** which can compile for many targets.
 
-Install clang. It's much easier than getting the right gcc toolchain.
+## Windows
 
-## Build with batch files / scripts
+The simplest way to build the examples on Windows is to install **clang** with a package manager such as **scoop** or
+**chocolatey**.
 
-- Run `build.bat`
+### Install scoop
 
-## Build with CMake
+Install **scoop**, as documented here: https://scoop.sh/ and add it to the `PATH`.
 
-- Build the example with `cmake`
+### Install CMake, Ninja, and LLVM
 
+Use scoop to install **CMake**, **Ninja**, and **LLVM**.
+
+```commandline
+C:> scoop install cmake
+C:> scoop install ninja
+C:> scoop install llvm
 ```
-    cmake -G ninja -B build -D CMAKE_C_COMPILER=clang
-    cmake --build build
+
+## Building
+
+### Build the examples with batch files (quick and easy)
+
+```commandline
+C:> cd hello_world
+C:> build.bat
 ```
 
-## Run
+### Build the examples with CMake (preferred)
 
-- Build Arviss
-- Run "run_hello"
+```commandline
+C:> cd hello_world
+C:> cmake -G Ninja -B build -DCMAKE_C_COMPILER=clang -DCMAKE_OBJCOPY=%USERPROFILE%\scoop\shims\llvm-objcopy
+C:> cmake --build build
+```
+
+## Running
+
+- Build Arviss using a native toolchain.
+- Copy `hello.bin` from the build directory.
+- Run "run_hello".
+ 
