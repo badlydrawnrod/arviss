@@ -21,7 +21,7 @@ C:> ctest --test-dir build --verbose
 
 This assumes that **CMake** and **Ninja** are installed and are on the path.
 
-Open a Visual Studio Developer command prompt.
+Run the following from a Visual Studio Developer Command Prompt.
 
 ```
 C:> cmake -G Ninja -B build -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl .
@@ -32,6 +32,8 @@ C:> ctest --test-dir build --verbose
 ### Building with clang and Ninja on Windows
 
 This assumes that **CMake**, **clang** and **Ninja** are installed and are on the path.
+
+Run the following from a command prompt.
 
 ```
 C:> cmake -G Ninja -B build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang .
