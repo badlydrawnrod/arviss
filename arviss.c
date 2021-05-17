@@ -965,8 +965,9 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
                 (void)rm; // TODO: rounding.
                 break;
             case 0b00001:
+                // rd <- uint32_t(rs1)
                 TRACE("FCVT.WU.S %s, %s, %s\n", abiNames[rd], fabiNames[rs1], roundingModes[rm]);
-                cpu->xreg[rd] = (uint32_t)cpu->freg[rs1];
+                cpu->xreg[rd] = (uint32_t)(int32_t)cpu->freg[rs1];
                 cpu->pc += 4;
                 (void)rm; // TODO: rounding.
                 break;
