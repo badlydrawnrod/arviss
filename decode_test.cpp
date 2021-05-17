@@ -1921,9 +1921,9 @@ TEST_F(TestDecoder, OpFp_Fcvt_w_s)
     uint32_t rs1 = 13;
     uint32_t op = 0b00000;
     uint32_t rm = RM_DYN;
-    cpu.freg[rs1] = 456.7f;
+    cpu.freg[rs1] = -12345678.910f; // Actually -12345679.0f because of rounding.
 
-    int32_t expected = (int32_t)(cpu.freg[rs1]); // TODO: is this true?
+    int32_t expected = -12345679;
 
     ArvissExecute(&cpu, (0b1100000 << 25) | EncodeRs2(op) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
 
@@ -1943,9 +1943,9 @@ TEST_F(TestDecoder, OpFp_Fcvt_wu_s)
     uint32_t rs1 = 13;
     uint32_t op = 0b00001;
     uint32_t rm = RM_DYN;
-    cpu.freg[rs1] = -12345678.910f;
+    cpu.freg[rs1] = -12345678.910f; // Actually -12345679.0f because of rounding.
 
-    uint32_t expected = (uint32_t)(int32_t)(cpu.freg[rs1]); // TODO: is this true?
+    uint32_t expected = (uint32_t)-12345679;
 
     ArvissExecute(&cpu, (0b1100000 << 25) | EncodeRs2(op) | EncodeRs1(rs1) | EncodeRm(rm) | EncodeRd(rd) | OP_OPFP);
 
