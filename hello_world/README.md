@@ -16,7 +16,7 @@ Install **scoop**, as documented here: https://scoop.sh/ and add it to the `PATH
 
 Use scoop to install **CMake**, **Ninja**, and **LLVM**.
 
-```commandline
+```
 C:> scoop install cmake
 C:> scoop install ninja
 C:> scoop install llvm
@@ -26,16 +26,16 @@ C:> scoop install llvm
 
 ### Build the examples with batch files (quick and easy)
 
-```commandline
+```
 C:> cd hello_world
 C:> build.bat
 ```
 
 ### Build the examples with CMake (preferred)
 
-```commandline
+```
 C:> cd hello_world
-C:> cmake -G Ninja -B build -DCMAKE_C_COMPILER=clang -DCMAKE_OBJCOPY=%USERPROFILE%\scoop\shims\llvm-objcopy
+C:> cmake -G Ninja -B build -DCMAKE_C_COMPILER=clang -DCMAKE_OBJCOPY=%USERPROFILE%\scoop\shims\llvm-objcopy .
 C:> cmake --build build
 ```
 
@@ -44,4 +44,3 @@ C:> cmake --build build
 - Build Arviss using a native toolchain.
 - Copy `hello.bin` from the build directory.
 - Run "run_hello".
- 
