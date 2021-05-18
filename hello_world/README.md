@@ -22,8 +22,6 @@ C:> scoop install ninja
 C:> scoop install llvm
 ```
 
-## Building
-
 ### Build the examples with batch files (quick and easy)
 
 ```
@@ -39,8 +37,33 @@ C:> cmake -G Ninja -B build -DCMAKE_C_COMPILER=clang -DCMAKE_OBJCOPY=%USERPROFIL
 C:> cmake --build build
 ```
 
-## Running
+## Linux
 
-- Build Arviss using a native toolchain.
-- Copy `hello.bin` from the build directory.
+These instructions are for Ubuntu 20.04. It appears to ship with clang-10, so an upgrade to clang-11 or later is
+required.
+
+### Install clang
+
+Install **clang-11** and the **lld-11** linker.
+
+```shell
+sudo apt install clang-11 lld-11
+```
+
+### Build the examples with CMake
+
+```shell
+cd hello_world
+cmake -G Ninja -B build -DCMAKE_C_COMPILER=clang-11 -DCMAKE_OBJCOPY=/usr/bin/llvm-objcopy
+cmake --build build
+```
+
+## Termux (on Android)
+
+TODO: but works with clang-12 and lld-12.
+
+# Running
+
+- Build Arviss using a native toolchain as described in the parent `README.md`.
+- Copy `hello.bin` from the build directory to the hello_world directory.
 - Run "run_hello".
