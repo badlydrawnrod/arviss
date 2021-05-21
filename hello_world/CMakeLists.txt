@@ -31,11 +31,15 @@ set(CMAKE_C_LINK_FLAGS "-Wl,--gc-sections -Wl,-T,,${CMAKE_SOURCE_DIR}/minimal.ld
 project(hello
         LANGUAGES C ASM)
 
+# Create the bin directory when CMake generates the build system.
+set(SAMPLES_BIN "${CMAKE_SOURCE_DIR}/bin")
+file(MAKE_DIRECTORY ${SAMPLES_BIN})
+
 add_executable(hello crt0.s main.c printf.c putchar.c)
 target_compile_definitions(hello PRIVATE PRINTF_DISABLE_SUPPORT_FLOAT PRINTF_DISABLE_SUPPORT_LONG_LONG)
 
 add_custom_command(TARGET hello
         POST_BUILD
-        COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:hello> ${CMAKE_CURRENT_BINARY_DIR}/hello.bin
+        COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:hello> ${SAMPLES_BIN}/hello.bin
         VERBATIM
         )

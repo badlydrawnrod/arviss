@@ -31,6 +31,7 @@ C:> build.bat
 
 ### Build the examples with CMake (preferred)
 
+Built samples are output to `hello_world/bin` in a format that can be loaded into ARVISS.
 ```
 C:> cd hello_world
 C:> cmake -G Ninja -B build -DCMAKE_C_COMPILER=clang -DCMAKE_OBJCOPY=%USERPROFILE%\scoop\shims\llvm-objcopy .
@@ -47,15 +48,17 @@ required.
 Install **clang-11** and the **lld-11** linker.
 
 ```shell
-sudo apt install clang-11 lld-11
+$ sudo apt install clang-11 lld-11
 ```
 
 ### Build the examples with CMake
 
+Built samples are output to `hello_world/bin` in a format that can be loaded into ARVISS.
+
 ```shell
-cd hello_world
-cmake -G Ninja -B build -DCMAKE_C_COMPILER=clang-11 -DCMAKE_OBJCOPY=/usr/bin/llvm-objcopy
-cmake --build build
+$ cd hello_world
+$ cmake -G Ninja -B build -DCMAKE_C_COMPILER=clang-11 -DCMAKE_OBJCOPY=/usr/bin/llvm-objcopy
+$ cmake --build build
 ```
 
 ## Termux (on Android)
@@ -65,5 +68,4 @@ TODO: but works with clang-12 and lld-12.
 # Running
 
 - Build Arviss using a native toolchain as described in the parent `README.md`.
-- Copy `hello.bin` from the build directory to the hello_world directory.
-- Run "run_hello".
+- Run `run_hello`.
