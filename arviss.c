@@ -680,7 +680,7 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
             {
             case 0b000000000000: // ECALL
                 TRACE("ECALL\n");
-                return ArvissMakeTrap(trNOT_IMPLEMENTED_YET, 0);
+                return ArvissMakeTrap(trENVIRONMENT_CALL_FROM_M_MODE, 0);
 
             case 0b000000000001: // EBREAK
                 TRACE("EBREAK\n");
