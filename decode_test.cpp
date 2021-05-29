@@ -1483,8 +1483,7 @@ TEST_F(TestDecoder, Traps_Set_Mepc)
     uint32_t savedPc = cpu.pc;
 
     // Take a breakpoint.
-    ArvissTrap trap = {trBREAKPOINT, 0x0};
-    ArvissHandleTrap(&cpu, trap);
+    ArvissExecute(&cpu, (0b000000000001 << 20) | OP_SYSTEM);
 
     // mepc <- pc
     ASSERT_EQ(savedPc, cpu.mepc);
@@ -1497,8 +1496,7 @@ TEST_F(TestDecoder, Traps_Set_Mcause)
     cpu.mepc = 0;
 
     // Take a breakpoint.
-    ArvissTrap trap = {trBREAKPOINT, 0x0};
-    ArvissHandleTrap(&cpu, trap);
+    ArvissExecute(&cpu, (0b000000000001 << 20) | OP_SYSTEM);
 
     // mcause <- reason for trap
     ASSERT_EQ(trBREAKPOINT, cpu.mcause);
@@ -1507,13 +1505,16 @@ TEST_F(TestDecoder, Traps_Set_Mcause)
 TEST_F(TestDecoder, Traps_Set_Mtval)
 {
     // mtval <- exception specific information
-    cpu.pc = 0x8086;
+    uint32_t address = 0x80000000;
     cpu.mepc = 0;
-    uint32_t address = 0x1234;
 
-    // Load fault.
-    ArvissTrap trap = {trLOAD_ACCESS_FAULT, address};
-    ArvissHandleTrap(&cpu, trap);
+    // Attempt to read from invalid memory.
+    uint32_t pc = cpu.pc;
+    int32_t imm_i = 0;
+    uint32_t rd = 14;
+    uint32_t rs1 = 15;
+    cpu.xreg[rs1] = address;
+    ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // mtval <- exception specific information
     ASSERT_EQ(address, cpu.mtval);
