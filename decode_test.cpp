@@ -2251,3 +2251,29 @@ TEST_F(TestDecoder, OpFp_Fmv_w_x)
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
 }
+
+TEST_F(TestDecoder, OpSystem_ECall)
+{
+    // As Arviss currently supports a machine mode only CPU, executing an ECALL is essentially a request from the CPU to Arviss
+    // itself, so we don't do anything to update the program counter.
+    uint32_t pc = cpu.pc;
+
+    ArvissResult result = ArvissExecute(&cpu, (0b000000000000 << 20) | OP_SYSTEM);
+
+    // Executing an ECALL will always generate an environment call from machine mode as Arviss currently supports machine mode only.
+    ASSERT_TRUE(ArvissResultIsTrap(result));
+    ArvissTrap trap = ArvissResultAsTrap(result);
+    ASSERT_EQ(trENVIRONMENT_CALL_FROM_M_MODE, trap.mcause);
+    ASSERT_EQ(0, trap.mtval);
+}
+
+TEST_F(TestDecoder, OpSystem_Mret)
+{
+    // pc <- mepc, pc += 4
+    uint32_t mepc = cpu.mepc;
+
+    ArvissExecute(&cpu, (0b001100000010 << 20) | OP_SYSTEM);
+
+    // pc <- mepc + 4
+    ASSERT_EQ(mepc + 4, cpu.pc);
+}
