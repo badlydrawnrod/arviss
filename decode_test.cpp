@@ -2257,9 +2257,14 @@ TEST_F(TestDecoder, OpSystem_ECall)
 {
     // As Arviss currently supports a machine mode only CPU, executing an ECALL is essentially a request from the CPU to Arviss
     // itself, so we don't do anything to update the program counter.
+
+    // mepc <- pc
     uint32_t pc = cpu.pc;
 
     ArvissResult result = ArvissExecute(&cpu, (0b000000000000 << 20) | OP_SYSTEM);
+
+    // mepc <- pc
+    ASSERT_EQ(pc, cpu.mepc);
 
     // Executing an ECALL will always generate an environment call from machine mode as Arviss currently supports machine mode only.
     ASSERT_TRUE(ArvissResultIsTrap(result));
