@@ -1483,8 +1483,7 @@ TEST_F(TestDecoder, Traps_Set_Mepc)
     uint32_t savedPc = cpu.pc;
 
     // Take a breakpoint.
-    ArvissTrap trap = {trBREAKPOINT, 0x0};
-    ArvissHandleTrap(&cpu, trap);
+    ArvissExecute(&cpu, (0b000000000001 << 20) | OP_SYSTEM);
 
     // mepc <- pc
     ASSERT_EQ(savedPc, cpu.mepc);
@@ -1497,8 +1496,7 @@ TEST_F(TestDecoder, Traps_Set_Mcause)
     cpu.mepc = 0;
 
     // Take a breakpoint.
-    ArvissTrap trap = {trBREAKPOINT, 0x0};
-    ArvissHandleTrap(&cpu, trap);
+    ArvissExecute(&cpu, (0b000000000001 << 20) | OP_SYSTEM);
 
     // mcause <- reason for trap
     ASSERT_EQ(trBREAKPOINT, cpu.mcause);
@@ -1507,13 +1505,16 @@ TEST_F(TestDecoder, Traps_Set_Mcause)
 TEST_F(TestDecoder, Traps_Set_Mtval)
 {
     // mtval <- exception specific information
-    cpu.pc = 0x8086;
+    uint32_t address = 0x80000000;
     cpu.mepc = 0;
-    uint32_t address = 0x1234;
 
-    // Load fault.
-    ArvissTrap trap = {trLOAD_ACCESS_FAULT, address};
-    ArvissHandleTrap(&cpu, trap);
+    // Attempt to read from invalid memory.
+    uint32_t pc = cpu.pc;
+    int32_t imm_i = 0;
+    uint32_t rd = 14;
+    uint32_t rs1 = 15;
+    cpu.xreg[rs1] = address;
+    ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // mtval <- exception specific information
     ASSERT_EQ(address, cpu.mtval);
@@ -2250,4 +2251,35 @@ TEST_F(TestDecoder, OpFp_Fmv_w_x)
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
+}
+
+TEST_F(TestDecoder, OpSystem_ECall)
+{
+    // As Arviss currently supports a machine mode only CPU, executing an ECALL is essentially a request from the CPU to Arviss
+    // itself, so we don't do anything to update the program counter.
+
+    // mepc <- pc
+    uint32_t pc = cpu.pc;
+
+    ArvissResult result = ArvissExecute(&cpu, (0b000000000000 << 20) | OP_SYSTEM);
+
+    // mepc <- pc
+    ASSERT_EQ(pc, cpu.mepc);
+
+    // Executing an ECALL will always generate an environment call from machine mode as Arviss currently supports machine mode only.
+    ASSERT_TRUE(ArvissResultIsTrap(result));
+    ArvissTrap trap = ArvissResultAsTrap(result);
+    ASSERT_EQ(trENVIRONMENT_CALL_FROM_M_MODE, trap.mcause);
+    ASSERT_EQ(0, trap.mtval);
+}
+
+TEST_F(TestDecoder, OpSystem_Mret)
+{
+    // pc <- mepc, pc += 4
+    uint32_t mepc = cpu.mepc;
+
+    ArvissExecute(&cpu, (0b001100000010 << 20) | OP_SYSTEM);
+
+    // pc <- mepc + 4
+    ASSERT_EQ(mepc + 4, cpu.pc);
 }
