@@ -4,6 +4,7 @@
 #include "opcodes.h"
 
 #include <math.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #if defined(ARVISS_TRACE_ENABLED)
@@ -1102,7 +1103,6 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
     case OP_OPIMM: {
         uint32_t funct3 = Funct3(instruction);
         int32_t imm = IImmediate(instruction);
-        uint32_t shamt = imm & 0x1f;
         uint32_t funct7 = Funct7(instruction);
         switch (funct3)
         {
