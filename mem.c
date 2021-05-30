@@ -60,8 +60,8 @@ static ArvissResult ReadWord(const ArvissMemory* memory, uint32_t addr)
 {
     if (addr >= membase && addr < membase + memsize - 3)
     {
-        return ArvissMakeWord(memory->mem[addr - membase] | (memory->mem[addr + 1 - membase] << 8)
-                              | (memory->mem[addr + 2 - membase] << 16) | (memory->mem[addr + 3 - membase] << 24));
+        const uint8_t* base = &memory->mem[addr - membase];
+        return ArvissMakeWord(base[0] | (base[1] << 8) | (base[2] << 16) | (base[3] << 24));
     }
 
     return ArvissMakeTrap(trLOAD_ACCESS_FAULT, addr);
@@ -77,7 +77,7 @@ static ArvissResult WriteByte(ArvissMemory* memory, uint32_t addr, uint8_t byte)
 
     if (addr == TTY_DATA) // TODO: only write when the status says that we can.
     {
-        putchar(byte);
+        //        putchar(byte);
         return ArvissMakeOk();
     }
 
