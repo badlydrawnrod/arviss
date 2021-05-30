@@ -22,6 +22,7 @@ int main(void)
     fclose(fp);
 
     // Run the program, n instructions at a time.
+    ArvissReset(&cpu, 0);
     ArvissResult result = ArvissMakeOk();
     while (!ArvissResultIsTrap(result))
     {
