@@ -147,7 +147,7 @@ void ArvissReset(ArvissCpu* cpu, uint32_t sp)
     cpu->mtval = 0;
 }
 
-inline static ArvissResult OpLui(ArvissCpu* cpu, size_t rd, int32_t upper)
+static inline ArvissResult OpLui(ArvissCpu* cpu, size_t rd, int32_t upper)
 {
     // rd <- imm_u, pc += 4
     TRACE("LUI %s, %d\n", abiNames[rd], upper >> 12);
@@ -157,7 +157,7 @@ inline static ArvissResult OpLui(ArvissCpu* cpu, size_t rd, int32_t upper)
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpAuiPc(ArvissCpu* cpu, size_t rd, int32_t upper)
+static inline ArvissResult OpAuiPc(ArvissCpu* cpu, size_t rd, int32_t upper)
 {
     // rd <- pc + imm_u, pc += 4
     TRACE("AUIPC %s, %d\n", abiNames[rd], upper >> 12);
@@ -167,7 +167,7 @@ inline static ArvissResult OpAuiPc(ArvissCpu* cpu, size_t rd, int32_t upper)
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpJal(ArvissCpu* cpu, size_t rd, int32_t imm)
+static inline ArvissResult OpJal(ArvissCpu* cpu, size_t rd, int32_t imm)
 {
     // rd <- pc + 4, pc <- pc + imm_j
     TRACE("JAL %s, %d\n", abiNames[rd], imm);
@@ -177,7 +177,7 @@ inline static ArvissResult OpJal(ArvissCpu* cpu, size_t rd, int32_t imm)
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpJalr(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
+static inline ArvissResult OpJalr(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
 {
     // rd <- pc + 4, pc <- (rs1 + imm_i) & ~1
     TRACE("JALR %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
@@ -188,7 +188,7 @@ inline static ArvissResult OpJalr(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpBranch_Beq(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
+static inline ArvissResult OpBranch_Beq(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
 {
     // pc <- pc + ((rs1 == rs2) ? imm_b : 4)
     TRACE("BEQ %s, %s, %d\n", abiNames[rs1], abiNames[rs2], imm);
@@ -196,7 +196,7 @@ inline static ArvissResult OpBranch_Beq(ArvissCpu* cpu, size_t rs1, size_t rs2, 
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpBranch_Bne(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
+static inline ArvissResult OpBranch_Bne(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
 {
     // pc <- pc + ((rs1 != rs2) ? imm_b : 4)
     TRACE("BNE %s, %s, %d\n", abiNames[rs1], abiNames[rs2], imm);
@@ -204,7 +204,7 @@ inline static ArvissResult OpBranch_Bne(ArvissCpu* cpu, size_t rs1, size_t rs2, 
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpBranch_Blt(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
+static inline ArvissResult OpBranch_Blt(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
 {
     // pc <- pc + ((rs1 < rs2) ? imm_b : 4)
     TRACE("BLT %s, %s, %d\n", abiNames[rs1], abiNames[rs2], imm);
@@ -212,7 +212,7 @@ inline static ArvissResult OpBranch_Blt(ArvissCpu* cpu, size_t rs1, size_t rs2, 
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpBranch_Bge(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
+static inline ArvissResult OpBranch_Bge(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
 {
     // pc <- pc + ((rs1 >= rs2) ? imm_b : 4)
     TRACE("BGE %s, %s, %d\n", abiNames[rs1], abiNames[rs2], imm);
@@ -220,7 +220,7 @@ inline static ArvissResult OpBranch_Bge(ArvissCpu* cpu, size_t rs1, size_t rs2, 
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpBranch_Bltu(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
+static inline ArvissResult OpBranch_Bltu(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
 {
     // pc <- pc + ((rs1 < rs2) ? imm_b : 4)
     TRACE("BLTU %s, %s, %d\n", abiNames[rs1], abiNames[rs2], imm);
@@ -228,7 +228,7 @@ inline static ArvissResult OpBranch_Bltu(ArvissCpu* cpu, size_t rs1, size_t rs2,
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpBranch_Bgeu(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
+static inline ArvissResult OpBranch_Bgeu(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
 {
     // pc <- pc + ((rs1 >= rs2) ? imm_b : 4)
     TRACE("BGEU %s, %s, %d\n", abiNames[rs1], abiNames[rs2], imm);
@@ -236,7 +236,7 @@ inline static ArvissResult OpBranch_Bgeu(ArvissCpu* cpu, size_t rs1, size_t rs2,
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpLoad_Lb(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
+static inline ArvissResult OpLoad_Lb(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
 {
     // rd <- sx(m8(rs1 + imm_i)), pc += 4
     TRACE("LB %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
@@ -251,7 +251,7 @@ inline static ArvissResult OpLoad_Lb(ArvissCpu* cpu, size_t rd, size_t rs1, int3
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpLoad_Lh(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
+static inline ArvissResult OpLoad_Lh(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
 {
     // rd <- sx(m16(rs1 + imm_i)), pc += 4
     TRACE("LH %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
@@ -267,7 +267,7 @@ inline static ArvissResult OpLoad_Lh(ArvissCpu* cpu, size_t rd, size_t rs1, int3
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpLoad_Lw(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
+static inline ArvissResult OpLoad_Lw(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
 {
     // rd <- sx(m32(rs1 + imm_i)), pc += 4
     TRACE("LW %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
@@ -282,7 +282,7 @@ inline static ArvissResult OpLoad_Lw(ArvissCpu* cpu, size_t rd, size_t rs1, int3
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpLoad_Lbu(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
+static inline ArvissResult OpLoad_Lbu(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
 {
     // rd <- zx(m8(rs1 + imm_i)), pc += 4
     TRACE("LBU x%d, %d(x%d)\n", rd, imm, rs1);
@@ -297,7 +297,7 @@ inline static ArvissResult OpLoad_Lbu(ArvissCpu* cpu, size_t rd, size_t rs1, int
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpLoad_Lhu(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
+static inline ArvissResult OpLoad_Lhu(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
 {
     // rd <- zx(m16(rs1 + imm_i)), pc += 4
     TRACE("LHU %s, %d(%s)\n", abiNames[rd], imm, abiNames[rs1]);
@@ -312,7 +312,7 @@ inline static ArvissResult OpLoad_Lhu(ArvissCpu* cpu, size_t rd, size_t rs1, int
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpStore_Sb(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
+static inline ArvissResult OpStore_Sb(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
 {
     // m8(rs1 + imm_s) <- rs2[7:0], pc += 4
     TRACE("SB %s, %d(%s)\n", abiNames[rs2], imm, abiNames[rs1]);
@@ -325,7 +325,7 @@ inline static ArvissResult OpStore_Sb(ArvissCpu* cpu, size_t rs1, size_t rs2, in
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpStore_Sh(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
+static inline ArvissResult OpStore_Sh(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
 {
     // m16(rs1 + imm_s) <- rs2[15:0], pc += 4
     TRACE("SH %s, %d(%s)\n", abiNames[rs2], imm, abiNames[rs1]);
@@ -338,7 +338,7 @@ inline static ArvissResult OpStore_Sh(ArvissCpu* cpu, size_t rs1, size_t rs2, in
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpStore_Sw(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
+static inline ArvissResult OpStore_Sw(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
 {
     // m32(rs1 + imm_s) <- rs2[31:0], pc += 4
     TRACE("SW %s, %d(%s)\n", abiNames[rs2], imm, abiNames[rs1]);
@@ -351,7 +351,7 @@ inline static ArvissResult OpStore_Sw(ArvissCpu* cpu, size_t rs1, size_t rs2, in
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpImm_Addi(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
+static inline ArvissResult OpImm_Addi(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
 {
     // rd <- rs1 + imm_i, pc += 4
     TRACE("ADDI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
@@ -361,7 +361,7 @@ inline static ArvissResult OpImm_Addi(ArvissCpu* cpu, size_t rd, size_t rs1, int
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpImm_Slti(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
+static inline ArvissResult OpImm_Slti(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
 {
     // rd <- (rs1 < imm_i) ? 1 : 0, pc += 4
     TRACE("SLTI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
@@ -371,7 +371,7 @@ inline static ArvissResult OpImm_Slti(ArvissCpu* cpu, size_t rd, size_t rs1, int
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpImm_Sltiu(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
+static inline ArvissResult OpImm_Sltiu(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
 {
     // rd <- (rs1 < imm_i) ? 1 : 0, pc += 4
     TRACE("SLTIU %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
@@ -381,7 +381,7 @@ inline static ArvissResult OpImm_Sltiu(ArvissCpu* cpu, size_t rd, size_t rs1, in
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpImm_Xori(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
+static inline ArvissResult OpImm_Xori(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
 {
     // rd <- rs1 ^ imm_i, pc += 4
     TRACE("XORI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
@@ -391,7 +391,7 @@ inline static ArvissResult OpImm_Xori(ArvissCpu* cpu, size_t rd, size_t rs1, int
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpImm_Ori(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
+static inline ArvissResult OpImm_Ori(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
 {
     // rd <- rs1 | imm_i, pc += 4
     TRACE("ORI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
@@ -401,7 +401,7 @@ inline static ArvissResult OpImm_Ori(ArvissCpu* cpu, size_t rd, size_t rs1, int3
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpImm_Andi(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
+static inline ArvissResult OpImm_Andi(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
 {
     // rd <- rs1 & imm_i, pc += 4
     TRACE("ANDI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
@@ -411,7 +411,7 @@ inline static ArvissResult OpImm_Andi(ArvissCpu* cpu, size_t rd, size_t rs1, int
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpImm_Slli(ArvissCpu* cpu, size_t rd, size_t rs1, uint32_t shamt)
+static inline ArvissResult OpImm_Slli(ArvissCpu* cpu, size_t rd, size_t rs1, uint32_t shamt)
 {
     TRACE("SLLI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
     cpu->xreg[rd] = cpu->xreg[rs1] << shamt;
@@ -420,7 +420,7 @@ inline static ArvissResult OpImm_Slli(ArvissCpu* cpu, size_t rd, size_t rs1, uin
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpImm_Srli(ArvissCpu* cpu, size_t rd, size_t rs1, uint32_t shamt)
+static inline ArvissResult OpImm_Srli(ArvissCpu* cpu, size_t rd, size_t rs1, uint32_t shamt)
 {
     // rd <- rs1 >> shamt_i, pc += 4
     TRACE("SRLI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
@@ -430,7 +430,7 @@ inline static ArvissResult OpImm_Srli(ArvissCpu* cpu, size_t rd, size_t rs1, uin
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpImm_Srai(ArvissCpu* cpu, size_t rd, size_t rs1, uint32_t shamt)
+static inline ArvissResult OpImm_Srai(ArvissCpu* cpu, size_t rd, size_t rs1, uint32_t shamt)
 {
     // rd <- rs1 >> shamt_i, pc += 4
     TRACE("SRAI %s, %s, %d\n", abiNames[rd], abiNames[rs1], imm);
@@ -440,7 +440,7 @@ inline static ArvissResult OpImm_Srai(ArvissCpu* cpu, size_t rd, size_t rs1, uin
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Add(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Add(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     // rd <- rs1 + rs2, pc += 4
     TRACE("ADD %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
@@ -450,7 +450,7 @@ inline static ArvissResult OpOp_Add(ArvissCpu* cpu, size_t rd, size_t rs1, size_
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Sub(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Sub(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     // rd <- rs1 - rs2, pc += 4
     TRACE("SUB %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
@@ -460,7 +460,7 @@ inline static ArvissResult OpOp_Sub(ArvissCpu* cpu, size_t rd, size_t rs1, size_
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Mul(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Mul(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     TRACE("MUL %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
     cpu->xreg[rd] = cpu->xreg[rs1] * cpu->xreg[rs2];
@@ -469,7 +469,7 @@ inline static ArvissResult OpOp_Mul(ArvissCpu* cpu, size_t rd, size_t rs1, size_
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Sll(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Sll(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     // rd <- rs1 << (rs2 % XLEN), pc += 4
     TRACE("SLL %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
@@ -479,7 +479,7 @@ inline static ArvissResult OpOp_Sll(ArvissCpu* cpu, size_t rd, size_t rs1, size_
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Mulh(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Mulh(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     TRACE("MULH %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
     int64_t t = (int64_t)(int32_t)cpu->xreg[rs1] * (int64_t)(int32_t)cpu->xreg[rs2];
@@ -489,7 +489,7 @@ inline static ArvissResult OpOp_Mulh(ArvissCpu* cpu, size_t rd, size_t rs1, size
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Slt(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Slt(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     // rd <- (rs1 < rs2) ? 1 : 0, pc += 4
     TRACE("SLT %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
@@ -499,7 +499,7 @@ inline static ArvissResult OpOp_Slt(ArvissCpu* cpu, size_t rd, size_t rs1, size_
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Mulhsu(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Mulhsu(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     TRACE("MULHSU %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
     int64_t t = (int64_t)(int32_t)cpu->xreg[rs1] * (uint64_t)cpu->xreg[rs2];
@@ -509,7 +509,7 @@ inline static ArvissResult OpOp_Mulhsu(ArvissCpu* cpu, size_t rd, size_t rs1, si
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Sltu(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Sltu(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     // rd <- (rs1 < rs2) ? 1 : 0, pc += 4
     TRACE("SLTU %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
@@ -520,7 +520,7 @@ inline static ArvissResult OpOp_Sltu(ArvissCpu* cpu, size_t rd, size_t rs1, size
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Mulhu(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Mulhu(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     TRACE("MULHU %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
     uint64_t t = (uint64_t)cpu->xreg[rs1] * (uint64_t)cpu->xreg[rs2];
@@ -530,7 +530,7 @@ inline static ArvissResult OpOp_Mulhu(ArvissCpu* cpu, size_t rd, size_t rs1, siz
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Xor(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Xor(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     // rd <- rs1 ^ rs2, pc += 4
     TRACE("XOR %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
@@ -540,7 +540,7 @@ inline static ArvissResult OpOp_Xor(ArvissCpu* cpu, size_t rd, size_t rs1, size_
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Div(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Div(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     TRACE("DIV %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
     const int32_t dividend = (int32_t)cpu->xreg[rs1];
@@ -562,7 +562,7 @@ inline static ArvissResult OpOp_Div(ArvissCpu* cpu, size_t rd, size_t rs1, size_
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Srl(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Srl(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     // rd <- rs1 >> (rs2 % XLEN), pc += 4
     TRACE("SRL %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
@@ -572,7 +572,7 @@ inline static ArvissResult OpOp_Srl(ArvissCpu* cpu, size_t rd, size_t rs1, size_
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Sra(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Sra(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     // rd <- rs1 >> (rs2 % XLEN), pc += 4
     TRACE("SRA %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
@@ -582,7 +582,7 @@ inline static ArvissResult OpOp_Sra(ArvissCpu* cpu, size_t rd, size_t rs1, size_
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Divu(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Divu(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     TRACE("DIVU %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
     uint32_t divisor = cpu->xreg[rs2];
@@ -592,7 +592,7 @@ inline static ArvissResult OpOp_Divu(ArvissCpu* cpu, size_t rd, size_t rs1, size
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Or(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Or(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     // rd <- rs1 | rs2, pc += 4
     TRACE("OR %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
@@ -602,7 +602,7 @@ inline static ArvissResult OpOp_Or(ArvissCpu* cpu, size_t rd, size_t rs1, size_t
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Rem(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Rem(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     TRACE("REM %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
     const int32_t dividend = (int32_t)cpu->xreg[rs1];
@@ -624,7 +624,7 @@ inline static ArvissResult OpOp_Rem(ArvissCpu* cpu, size_t rd, size_t rs1, size_
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_And(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_And(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     // rd <- rs1 & rs2, pc += 4
     TRACE("AND %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
@@ -634,7 +634,7 @@ inline static ArvissResult OpOp_And(ArvissCpu* cpu, size_t rd, size_t rs1, size_
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpOp_Remu(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOp_Remu(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     TRACE("REMU %s, %s, %s\n", abiNames[rd], abiNames[rs1], abiNames[rs2]);
     const uint32_t dividend = cpu->xreg[rs1];
@@ -645,39 +645,39 @@ inline static ArvissResult OpOp_Remu(ArvissCpu* cpu, size_t rd, size_t rs1, size
     return ArvissMakeOk();
 }
 
-inline static ArvissResult OpMiscmem_Fence(ArvissCpu* cpu)
+static inline ArvissResult OpMiscmem_Fence(ArvissCpu* cpu)
 {
     TRACE("FENCE\n");
     return CreateTrap(cpu, trNOT_IMPLEMENTED_YET, 0);
 }
 
-inline static ArvissResult OpSystem_Ecall(ArvissCpu* cpu)
+static inline ArvissResult OpSystem_Ecall(ArvissCpu* cpu)
 {
     TRACE("ECALL\n");
     return CreateTrap(cpu, trENVIRONMENT_CALL_FROM_M_MODE, 0);
 }
 
-inline static ArvissResult OpSystem_Ebreak(ArvissCpu* cpu)
+static inline ArvissResult OpSystem_Ebreak(ArvissCpu* cpu)
 {
     TRACE("EBREAK\n");
     return CreateTrap(cpu, trBREAKPOINT, 0); // TODO: what should value be here?
 }
 
-inline static ArvissResult OpSystem_Uret(ArvissCpu* cpu)
+static inline ArvissResult OpSystem_Uret(ArvissCpu* cpu)
 {
     TRACE("URET\n");
     // TODO: Only provide this if user mode traps are supported, otherwise raise an illegal instruction exception.
     return CreateTrap(cpu, trNOT_IMPLEMENTED_YET, 0);
 }
 
-inline static ArvissResult OpSystem_Sret(ArvissCpu* cpu)
+static inline ArvissResult OpSystem_Sret(ArvissCpu* cpu)
 {
     TRACE("SRET\n");
     // TODO: Only provide this if supervisor mode is supported, otherwise raise an illegal instruction exception.
     return CreateTrap(cpu, trNOT_IMPLEMENTED_YET, 0);
 }
 
-inline static ArvissResult OpSystem_Mret(ArvissCpu* cpu)
+static inline ArvissResult OpSystem_Mret(ArvissCpu* cpu)
 {
     // pc <- mepc, pc += 4
     TRACE("MRET\n");
@@ -686,7 +686,7 @@ inline static ArvissResult OpSystem_Mret(ArvissCpu* cpu)
     return ArvissMakeOk();
 }
 
-ArvissResult OpLoadFp_Flw(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
+static inline ArvissResult OpLoadFp_Flw(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
 {
     // rd <- f32(rs1 + imm_i)
     TRACE("FLW %s, %d(%s)\n", fabiNames[rd], imm, abiNames[rs1]);
@@ -702,7 +702,7 @@ ArvissResult OpLoadFp_Flw(ArvissCpu* cpu, size_t rd, size_t rs1, int32_t imm)
     return ArvissMakeOk();
 }
 
-ArvissResult OpStoreFp_Fsw(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
+static inline ArvissResult OpStoreFp_Fsw(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
 {
     // f32(rs1 + imm_s) = rs2
     TRACE("FSW %s, %d(%s)\n", fabiNames[rs2], imm, abiNames[rs1]);
@@ -716,7 +716,7 @@ ArvissResult OpStoreFp_Fsw(ArvissCpu* cpu, size_t rs1, size_t rs2, int32_t imm)
     return ArvissMakeOk();
 }
 
-ArvissResult OpMadd_Fmadd_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, size_t rs3, uint32_t rm)
+static inline ArvissResult OpMadd_Fmadd_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, size_t rs3, uint32_t rm)
 {
     // rd <- (rs1 * rs2) + rs3
     TRACE("FMADD.S %s, %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], fabiNames[rs3], roundingModes[rm]);
@@ -726,7 +726,7 @@ ArvissResult OpMadd_Fmadd_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, s
     return ArvissMakeOk();
 }
 
-ArvissResult OpMsub_Fmsub_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, size_t rs3, uint32_t rm)
+static inline ArvissResult OpMsub_Fmsub_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, size_t rs3, uint32_t rm)
 {
     // rd <- (rs1 x rs2) - rs3
     TRACE("FMSUB.S %s, %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], fabiNames[rs3], roundingModes[rm]);
@@ -736,7 +736,7 @@ ArvissResult OpMsub_Fmsub_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, s
     return ArvissMakeOk();
 }
 
-ArvissResult OpNmsub_Fnmsub_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, size_t rs3, uint32_t rm)
+static inline ArvissResult OpNmsub_Fnmsub_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, size_t rs3, uint32_t rm)
 {
     // rd <- -(rs1 x rs2) + rs3
     TRACE("FNMSUB.S %s, %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], fabiNames[rs3], roundingModes[rm]);
@@ -746,7 +746,7 @@ ArvissResult OpNmsub_Fnmsub_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2,
     return ArvissMakeOk();
 }
 
-ArvissResult OpNmadd_Fnmadd_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, size_t rs3, uint32_t rm)
+static inline ArvissResult OpNmadd_Fnmadd_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, size_t rs3, uint32_t rm)
 {
     // rd <- -(rs1 x rs2) - rs3
     TRACE("FNMADD.S %s, %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], fabiNames[rs3], roundingModes[rm]);
@@ -756,7 +756,7 @@ ArvissResult OpNmadd_Fnmadd_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2,
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fadd_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
+static inline ArvissResult OpOpFp_Fadd_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
 {
     // rd <- rs1 + rs2
     TRACE("FADD.S %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], roundingModes[rm]);
@@ -766,7 +766,7 @@ ArvissResult OpOpFp_Fadd_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, ui
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fsub_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
+static inline ArvissResult OpOpFp_Fsub_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
 {
     // rd <- rs1 - rs2
     TRACE("FSUB.S %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], roundingModes[rm]);
@@ -776,7 +776,7 @@ ArvissResult OpOpFp_Fsub_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, ui
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fmul_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
+static inline ArvissResult OpOpFp_Fmul_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
 {
     // rd <- rs1 * rs2
     TRACE("FMUL.S %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], roundingModes[rm]);
@@ -786,7 +786,7 @@ ArvissResult OpOpFp_Fmul_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, ui
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fdiv_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
+static inline ArvissResult OpOpFp_Fdiv_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
 {
     // rd <- rs1 / rs2
     TRACE("FDIV.S %s, %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2], roundingModes[rm]);
@@ -796,7 +796,7 @@ ArvissResult OpOpFp_Fdiv_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, ui
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fsqrt_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
+static inline ArvissResult OpOpFp_Fsqrt_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
 {
     // rd <- sqrt(rs1)
     TRACE("FSQRT.S %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], roundingModes[rm]);
@@ -806,7 +806,7 @@ ArvissResult OpOpFp_Fsqrt_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, u
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fsgnj_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
+static inline ArvissResult OpOpFp_Fsgnj_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
 {
     // rd <- abs(rs1) * sgn(rs2)
     TRACE("FSGNJ.S %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2]);
@@ -815,7 +815,7 @@ ArvissResult OpOpFp_Fsgnj_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, u
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fsgnjn_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
+static inline ArvissResult OpOpFp_Fsgnjn_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
 {
     // rd <- abs(rs1) * -sgn(rs2)
     TRACE("FSGNJN.S %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2]);
@@ -824,7 +824,7 @@ ArvissResult OpOpFp_Fsgnjn_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, 
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fsgnjx_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
+static inline ArvissResult OpOpFp_Fsgnjx_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
 {
     float m; // The sign bit is the XOR of the sign bits of rs1 and rs2.
     if ((cpu->freg[rs1] < 0.0f && cpu->freg[rs2] >= 0.0f) || (cpu->freg[rs1] >= 0.0f && cpu->freg[rs2] < 0.0f))
@@ -842,7 +842,7 @@ ArvissResult OpOpFp_Fsgnjx_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, 
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fmin_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
+static inline ArvissResult OpOpFp_Fmin_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
 {
     // rd <- min(rs1, rs2)
     TRACE("FMIN.S %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2]);
@@ -852,7 +852,7 @@ ArvissResult OpOpFp_Fmin_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, ui
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fmax_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
+static inline ArvissResult OpOpFp_Fmax_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
 {
     // rd <- max(rs1, rs2)
     TRACE("FMAX.S %s, %s, %s\n", fabiNames[rd], fabiNames[rs1], fabiNames[rs2]);
@@ -862,7 +862,7 @@ ArvissResult OpOpFp_Fmax_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, ui
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fcvt_w_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
+static inline ArvissResult OpOpFp_Fcvt_w_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
 {
     // rd <- int32_t(rs1)
     TRACE("FCVT.W.S %s, %s, %s\n", abiNames[rd], fabiNames[rs1], roundingModes[rm]);
@@ -872,7 +872,7 @@ ArvissResult OpOpFp_Fcvt_w_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, 
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fcvt_wu_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
+static inline ArvissResult OpOpFp_Fcvt_wu_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2, uint32_t rm)
 {
     // rd <- uint32_t(rs1)
     TRACE("FCVT.WU.S %s, %s, %s\n", abiNames[rd], fabiNames[rs1], roundingModes[rm]);
@@ -882,7 +882,7 @@ ArvissResult OpOpFp_Fcvt_wu_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2,
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fmv_x_w(ArvissCpu* cpu, size_t rd, size_t rs1)
+static inline ArvissResult OpOpFp_Fmv_x_w(ArvissCpu* cpu, size_t rd, size_t rs1)
 {
     // bits(rd) <- bits(rs1)
     TRACE("FMV.X.W %s, %s\n", abiNames[rd], fabiNames[rs1]);
@@ -891,7 +891,7 @@ ArvissResult OpOpFp_Fmv_x_w(ArvissCpu* cpu, size_t rd, size_t rs1)
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fclass_s(ArvissCpu* cpu, size_t rd, size_t rs1)
+static ArvissResult OpOpFp_Fclass_s(ArvissCpu* cpu, size_t rd, size_t rs1)
 {
     TRACE("FCLASS.S %s, %s\n", abiNames[rd], fabiNames[rs1]);
     const float v = cpu->freg[rs1];
@@ -948,7 +948,7 @@ ArvissResult OpOpFp_Fclass_s(ArvissCpu* cpu, size_t rd, size_t rs1)
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Feq_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOpFp_Feq_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     // rd <- (rs1 == rs2) ? 1 : 0;
     TRACE("FEQ.S %s, %s, %s\n", abiNames[rd], fabiNames[rs1], fabiNames[rs2]);
@@ -957,7 +957,7 @@ ArvissResult OpOpFp_Feq_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Flt_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOpFp_Flt_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     // rd <- (rs1 < rs2) ? 1 : 0;
     TRACE("FLT.S %s, %s, %s\n", abiNames[rd], fabiNames[rs1], fabiNames[rs2]);
@@ -966,7 +966,7 @@ ArvissResult OpOpFp_Flt_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fle_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
+static inline ArvissResult OpOpFp_Fle_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
 {
     // rd <- (rs1 <= rs2) ? 1 : 0;
     TRACE("FLE.S %s, %s, %s\n", abiNames[rd], fabiNames[rs1], fabiNames[rs2]);
@@ -975,7 +975,7 @@ ArvissResult OpOpFp_Fle_s(ArvissCpu* cpu, size_t rd, size_t rs1, size_t rs2)
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fcvt_s_w(ArvissCpu* cpu, size_t rd, size_t rs1, uint32_t rm)
+static inline ArvissResult OpOpFp_Fcvt_s_w(ArvissCpu* cpu, size_t rd, size_t rs1, uint32_t rm)
 {
     // rd <- float(int32_t((rs1))
     TRACE("FCVT.S.W %s, %s, %s\n", fabiNames[rd], abiNames[rs1], roundingModes[rm]);
@@ -985,7 +985,7 @@ ArvissResult OpOpFp_Fcvt_s_w(ArvissCpu* cpu, size_t rd, size_t rs1, uint32_t rm)
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fcvt_s_wu(ArvissCpu* cpu, size_t rd, size_t rs1, uint32_t rm)
+static inline ArvissResult OpOpFp_Fcvt_s_wu(ArvissCpu* cpu, size_t rd, size_t rs1, uint32_t rm)
 {
     // rd <- float(rs1)
     TRACE("FVCT.S.WU %s, %s, %s\n", fabiNames[rd], abiNames[rs1], roundingModes[rm]);
@@ -995,7 +995,7 @@ ArvissResult OpOpFp_Fcvt_s_wu(ArvissCpu* cpu, size_t rd, size_t rs1, uint32_t rm
     return ArvissMakeOk();
 }
 
-ArvissResult OpOpFp_Fmv_w_x(ArvissCpu* cpu, size_t rd, size_t rs1)
+static inline ArvissResult OpOpFp_Fmv_w_x(ArvissCpu* cpu, size_t rd, size_t rs1)
 {
     // bits(rd) <- bits(rs1)
     TRACE("FMV.W.X %s, %s\n", fabiNames[rd], abiNames[rs1]);
