@@ -34,6 +34,684 @@ static char* fabiNames[] = {"ft0", "ft1", "ft2", "ft3", "ft4",  "ft5",  "ft6", "
 static char* roundingModes[] = {"rne", "rtz", "rdn", "rup", "rmm", "reserved5", "reserved6", "dyn"};
 #endif
 
+typedef struct DecodedInstruction
+{
+    uint16_t opcode;
+    union
+    {
+        struct RdImm
+        {
+            uint8_t rd;
+            int32_t imm;
+        } rd_imm;
+
+        struct RdRs1
+        {
+            uint8_t rd;
+            uint8_t rs1;
+        } rd_rs1;
+
+        struct RdRs1Imm
+        {
+            uint8_t rd;
+            uint8_t rs1;
+            int32_t imm;
+        } rd_rs1_imm;
+
+        struct RdRs1Rs2
+        {
+            uint8_t rd;
+            uint8_t rs1;
+            uint8_t rs2;
+        } rd_rs1_rs2;
+
+        struct Rs1Rs2Imm
+        {
+            uint8_t rs1;
+            uint8_t rs2;
+            int32_t imm;
+        } rs1_rs2_imm;
+
+        struct RdRs1Rs2Rs3Rm
+        {
+            uint8_t rd;
+            uint8_t rs1;
+            uint8_t rs2;
+            uint8_t rs3;
+            uint8_t rm;
+        } rd_rs1_rs2_rs3_rm;
+
+        struct RdRs1Rm
+        {
+            uint8_t rd;
+            uint8_t rs1;
+            uint8_t rm;
+        } rd_rs1_rm;
+
+        struct RdRs1Rs2Rm
+        {
+            uint8_t rd;
+            uint8_t rs1;
+            uint8_t rs2;
+            uint8_t rm;
+        } rd_rs1_rs2_rm;
+    };
+    uint32_t instruction;
+} DecodedInstruction;
+
+typedef enum DecodedInstructions
+{
+    DECODED_ILLEGAL_INSTRUCTION,
+    DECODED_LUI,
+    DECODED_AUIPC,
+    DECODED_JAL,
+    DECODED_JALR,
+    DECODED_BEQ,
+    DECODED_BNE,
+    DECODED_BLT,
+    DECODED_BGE,
+    DECODED_BLTU,
+    DECODED_BGEU,
+    DECODED_LB,
+    DECODED_LH,
+    DECODED_LW,
+    DECODED_LBU,
+    DECODED_LHU,
+    DECODED_SB,
+    DECODED_SH,
+    DECODED_SW,
+    DECODED_ADDI,
+    DECODED_SLTI,
+    DECODED_SLTIU,
+    DECODED_XORI,
+    DECODED_ORI,
+    DECODED_ANDI,
+    DECODED_SLLI,
+    DECODED_SRLI,
+    DECODED_SRAI,
+    DECODED_ADD,
+    DECODED_SUB,
+    DECODED_MUL,
+    DECODED_SLL,
+    DECODED_MULH,
+    DECODED_SLT,
+    DECODED_MULHSU,
+    DECODED_SLTU,
+    DECODED_MULHU,
+    DECODED_XOR,
+    DECODED_DIV,
+    DECODED_SRL,
+    DECODED_SRA,
+    DECODED_DIVU,
+    DECODED_OR,
+    DECODED_REM,
+    DECODED_AND,
+    DECODED_REMU,
+    DECODED_FENCE,
+    DECODED_ECALL,
+    DECODED_EBREAK,
+    DECODED_URET,
+    DECODED_SRET,
+    DECODED_MRET,
+    DECODED_FLW,
+    DECODED_FSW,
+    DECODED_FMADD_S,
+    DECODED_FMSUB_S,
+    DECODED_FNMSUB_S,
+    DECODED_FNMADD_S,
+    DECODED_FADD_S,
+    DECODED_FSUB_S,
+    DECODED_FMUL_S,
+    DECODED_FDIV_S,
+    DECODED_FSQRT_S,
+    DECODED_FSGNJ_S,
+    DECODED_FSGNJN_S,
+    DECODED_FSGNJX_S,
+    DECODED_FMIN_S,
+    DECODED_FMAX_S,
+    DECODED_FCVT_W_S,
+    DECODED_FCVT_WU_S,
+    DECODED_FMV_X_W,
+    DECODED_FCLASS_S,
+    DECODED_FEQ_S,
+    DECODED_FLT_S,
+    DECODED_FLE_S,
+    DECODED_FCVT_S_W,
+    DECODED_FCVT_S_WU,
+    DECODED_FMV_W_X,
+} DecodedInstructions;
+
+typedef ArvissResult (*ExecFn)(ArvissCpu* cpu, DecodedInstruction ins);
+
+static inline DecodedInstruction MkNoArg(uint16_t opcode, uint32_t instruction)
+{
+    return (DecodedInstruction){.opcode = opcode, .instruction = instruction};
+}
+
+static inline DecodedInstruction MkTrap(uint16_t opcode, uint32_t instruction)
+{
+    return MkNoArg(opcode, instruction);
+}
+
+static inline DecodedInstruction MkRdImm(uint16_t opcode, uint32_t instruction, uint8_t rd, int32_t imm)
+{
+    return (DecodedInstruction){.opcode = opcode, .rd_imm = {.rd = rd, .imm = imm}, .instruction = instruction};
+}
+
+static inline DecodedInstruction MkRdRs1Imm(uint16_t opcode, uint32_t instruction, uint8_t rd, uint8_t rs1, int32_t imm)
+{
+    return (DecodedInstruction){.opcode = opcode, .rd_rs1_imm = {.rd = rd, .rs1 = rs1, .imm = imm}, .instruction = instruction};
+}
+
+static inline DecodedInstruction MkRdRs1(uint16_t opcode, uint32_t instruction, uint8_t rd, uint8_t rs1)
+{
+    return (DecodedInstruction){.opcode = opcode, .rd_rs1 = {.rd = rd, .rs1 = rs1}, .instruction = instruction};
+}
+
+static inline DecodedInstruction MkRdRs1Rs2(uint16_t opcode, uint32_t instruction, uint8_t rd, uint8_t rs1, uint8_t rs2)
+{
+    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rs2 = {.rd = rd, .rs1 = rs1, .rs2 = rs2}, .instruction = instruction};
+}
+
+static inline DecodedInstruction MkRs1Rs2Imm(uint16_t opcode, uint32_t instruction, uint8_t rs1, uint8_t rs2, int32_t imm)
+{
+    return (DecodedInstruction){.opcode = opcode, .rs1_rs2_imm = {.rs1 = rs1, .rs2 = rs2, .imm = imm}, .instruction = instruction};
+}
+
+static inline DecodedInstruction MkRdRs1Rs2Rs3Rm(uint16_t opcode, uint32_t instruction, uint8_t rd, uint8_t rs1, uint8_t rs2,
+                                                 uint8_t rs3, uint8_t rm)
+{
+    return (DecodedInstruction){.opcode = opcode,
+                                .rd_rs1_rs2_rs3_rm = {.rd = rd, .rs1 = rs1, .rs2 = rs2, .rs3 = rs3, .rm = rm},
+                                .instruction = instruction};
+}
+
+static inline DecodedInstruction MkRdRs1Rm(uint16_t opcode, uint32_t instruction, uint8_t rd, uint8_t rs1, uint8_t rm)
+{
+    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rm = {.rd = rd, .rs1 = rs1, .rm = rm}, .instruction = instruction};
+}
+
+static inline DecodedInstruction MkRdRs1Rs2Rm(uint16_t opcode, uint32_t instruction, uint8_t rd, uint8_t rs1, uint8_t rs2,
+                                              uint8_t rm)
+{
+    return (DecodedInstruction){.opcode = opcode,
+                                .rd_rs1_rs2_rm = {.rd = rd, .rs1 = rs1, .rs2 = rs2, .rm = rm},
+                                .instruction = instruction};
+}
+
+static inline ArvissResult CreateTrap(ArvissCpu* cpu, ArvissTrapType trap, uint32_t value);
+
+ArvissResult Exec_IllegalInstruction(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Lui(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Auipc(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Jal(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Jalr(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Beq(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Bne(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Blt(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Bge(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Bltu(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Bgeu(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Lb(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Lh(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Lw(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Lbu(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Lhu(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Sb(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Sh(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Sw(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Addi(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Slti(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Sltiu(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Xori(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Ori(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Andi(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Slli(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Srli(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Srai(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Add(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Sub(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Mul(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Sll(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Mulh(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Slt(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Mulhsu(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Sltu(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Mulhu(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Xor(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Div(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Srl(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Sra(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Divu(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Or(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Rem(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_And(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Remu(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fence(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Ecall(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Ebreak(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Uret(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Sret(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Mret(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Flw(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fsw(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fmadd_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fmsub_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fnmsub_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fnmadd_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fadd_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fsub_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fmul_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fdiv_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fsqrt_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fsgnj_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fsgnjn_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fsgnjx_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fmin_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fmax_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fcvt_w_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fcvt_wu_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fmv_x_w(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fclass_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Feq_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Flt_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fle_s(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fcvt_s_w(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fcvt_s_wu(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+ArvissResult Exec_Fmv_w_x(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+}
+
+static ExecFn decodedTable[] = {
+        Exec_IllegalInstruction, // DECODED_ILLEGAL_INSTRUCTION,
+        Exec_Lui,                // DECODED_LUI,
+        Exec_Auipc,              // DECODED_AUIPC,
+        Exec_Jal,                // DECODED_JAL,
+        Exec_Jalr,               // DECODED_JALR,
+        Exec_Beq,                // DECODED_BEQ,
+        Exec_Bne,                // DECODED_BNE,
+        Exec_Blt,                // DECODED_BLT,
+        Exec_Bge,                // DECODED_BGE,
+        Exec_Bltu,               // DECODED_BLTU,
+        Exec_Bgeu,               // DECODED_BGEU,
+        Exec_Lb,                 // DECODED_LB,
+        Exec_Lh,                 // DECODED_LH,
+        Exec_Lw,                 // DECODED_LW,
+        Exec_Lbu,                // DECODED_LBU,
+        Exec_Lhu,                // DECODED_LHU,
+        Exec_Sb,                 // DECODED_SB,
+        Exec_Sh,                 // DECODED_SH,
+        Exec_Sw,                 // DECODED_SW,
+        Exec_Addi,               // DECODED_ADDI,
+        Exec_Slti,               // DECODED_SLTI,
+        Exec_Sltiu,              // DECODED_SLTIU,
+        Exec_Xori,               // DECODED_XORI,
+        Exec_Ori,                // DECODED_ORI,
+        Exec_Andi,               // DECODED_ANDI,
+        Exec_Slli,               // DECODED_SLLI,
+        Exec_Srli,               // DECODED_SRLI,
+        Exec_Srai,               // DECODED_SRAI,
+        Exec_Add,                // DECODED_ADD,
+        Exec_Sub,                // DECODED_SUB,
+        Exec_Mul,                // DECODED_MUL,
+        Exec_Sll,                // DECODED_SLL,
+        Exec_Mulh,               // DECODED_MULH,
+        Exec_Slt,                // DECODED_SLT,
+        Exec_Mulhsu,             // DECODED_MULHSU,
+        Exec_Sltu,               // DECODED_SLTU,
+        Exec_Mulhu,              // DECODED_MULHU,
+        Exec_Xor,                // DECODED_XOR,
+        Exec_Div,                // DECODED_DIV,
+        Exec_Srl,                // DECODED_SRL,
+        Exec_Sra,                // DECODED_SRA,
+        Exec_Divu,               // DECODED_DIVU,
+        Exec_Or,                 // DECODED_OR,
+        Exec_Rem,                // DECODED_REM,
+        Exec_And,                // DECODED_AND,
+        Exec_Remu,               // DECODED_REMU,
+        Exec_Fence,              // DECODED_FENCE,
+        Exec_Ecall,              // DECODED_ECALL,
+        Exec_Ebreak,             // DECODED_EBREAK,
+        Exec_Uret,               // DECODED_URET,
+        Exec_Sret,               // DECODED_SRET,
+        Exec_Mret,               // DECODED_MRET,
+        Exec_Flw,                // DECODED_FLW,
+        Exec_Fsw,                // DECODED_FSW,
+        Exec_Fmadd_s,            // DECODED_FMADD_S,
+        Exec_Fmsub_s,            // DECODED_FMSUB_S,
+        Exec_Fnmsub_s,           // DECODED_FNMSUB_S,
+        Exec_Fnmadd_s,           // DECODED_FNMADD_S,
+        Exec_Fadd_s,             // DECODED_FADD_S,
+        Exec_Fsub_s,             // DECODED_FSUB_S,
+        Exec_Fmul_s,             // DECODED_FMUL_S,
+        Exec_Fdiv_s,             // DECODED_FDIV_S,
+        Exec_Fsqrt_s,            // DECODED_FSQRT_S,
+        Exec_Fsgnj_s,            // DECODED_FSGNJ_S,
+        Exec_Fsgnjn_s,           // DECODED_FSGNJN_S,
+        Exec_Fsgnjx_s,           // DECODED_FSGNJX_S,
+        Exec_Fmin_s,             // DECODED_FMIN_S,
+        Exec_Fmax_s,             // DECODED_FMAX_S,
+        Exec_Fcvt_w_s,           // DECODED_FCVT_W_S,
+        Exec_Fcvt_wu_s,          // DECODED_FCVT_WU_S,
+        Exec_Fmv_x_w,            // DECODED_FMV_X_W,
+        Exec_Fclass_s,           // DECODED_FCLASS_S,
+        Exec_Feq_s,              // DECODED_FEQ_S,
+        Exec_Flt_s,              // DECODED_FLT_S,
+        Exec_Fle_s,              // DECODED_FLE_S,
+        Exec_Fcvt_s_w,           // DECODED_FCVT_S_W,
+        Exec_Fcvt_s_wu,          // DECODED_FCVT_S_WU,
+        Exec_Fmv_w_x             // DECODED_FMV_W_X,
+};
+
 static inline int32_t IImmediate(uint32_t instruction)
 {
     return (int32_t)instruction >> 20; // inst[31:20] -> sext(imm[11:0])
@@ -1003,6 +1681,469 @@ static inline ArvissResult OpOpFp_Fmv_w_x(ArvissCpu* cpu, size_t rd, size_t rs1)
     cpu->freg[rd] = U32AsFloat(cpu->xreg[rs1]);
     cpu->pc += 4;
     return ArvissMakeOk();
+}
+
+// See: http://www.five-embeddev.com/riscv-isa-manual/latest/gmaps.html#rv3264g-instruction-set-listings
+// or riscv-spec-209191213.pdf.
+DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
+{
+    uint32_t opcode = Opcode(instruction);
+    uint32_t rd = Rd(instruction);
+    uint32_t rs1 = Rs1(instruction);
+
+    switch (opcode)
+    {
+    case OP_LUI: {
+        const int32_t upper = UImmediate(instruction);
+        return MkRdImm(DECODED_LUI, instruction, rd, upper);
+    }
+
+    case OP_AUIPC: {
+        const int32_t upper = UImmediate(instruction);
+        return MkRdImm(DECODED_AUIPC, instruction, rd, upper);
+    }
+
+    case OP_JAL: {
+        const int32_t imm = JImmediate(instruction);
+        return MkRdImm(DECODED_JAL, instruction, rd, imm);
+    }
+
+    case OP_JALR: {
+        const uint32_t funct3 = Funct3(instruction);
+        if (funct3 == 0b000)
+        {
+            const int32_t imm = IImmediate(instruction);
+            return MkRdRs1Imm(DECODED_JALR, instruction, rd, rs1, imm);
+        }
+        return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+    }
+
+    case OP_BRANCH: {
+        const uint32_t funct3 = Funct3(instruction);
+        const uint32_t rs2 = Rs2(instruction);
+        const int32_t imm = BImmediate(instruction);
+        switch (funct3)
+        {
+        case 0b000: // BEQ
+            return MkRs1Rs2Imm(DECODED_BEQ, instruction, rs1, rs2, imm);
+        case 0b001: // BNE
+            return MkRs1Rs2Imm(DECODED_BNE, instruction, rs1, rs2, imm);
+        case 0b100: // BLT
+            return MkRs1Rs2Imm(DECODED_BLT, instruction, rs1, rs2, imm);
+        case 0b101: // BGE
+            return MkRs1Rs2Imm(DECODED_BGE, instruction, rs1, rs2, imm);
+        case 0b110: // BLTU
+            return MkRs1Rs2Imm(DECODED_BLTU, instruction, rs1, rs2, imm);
+        case 0b111: // BGEU
+            return MkRs1Rs2Imm(DECODED_BGEU, instruction, rs1, rs2, imm);
+        default:
+            return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+        }
+    }
+
+    case OP_LOAD: {
+        const uint32_t funct3 = Funct3(instruction);
+        const int32_t imm = IImmediate(instruction);
+        switch (funct3)
+        {
+        case 0b000: // LB
+            return MkRdRs1Imm(DECODED_LB, instruction, rd, rs1, imm);
+        case 0b001: // LH
+            return MkRdRs1Imm(DECODED_LH, instruction, rd, rs1, imm);
+        case 0b010: // LW
+            return MkRdRs1Imm(DECODED_LW, instruction, rd, rs1, imm);
+        case 0b100: // LBU
+            return MkRdRs1Imm(DECODED_LBU, instruction, rd, rs1, imm);
+        case 0b101: // LHU
+            return MkRdRs1Imm(DECODED_LHU, instruction, rd, rs1, imm);
+        default:
+            return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+        }
+    }
+
+    case OP_STORE: {
+        const uint32_t funct3 = Funct3(instruction);
+        const uint32_t rs2 = Rs2(instruction);
+        const int32_t imm = SImmediate(instruction);
+        switch (funct3)
+        {
+        case 0b000: // SB
+            return MkRs1Rs2Imm(DECODED_SB, instruction, rs1, rs2, imm);
+        case 0b001: // SH
+            return MkRs1Rs2Imm(DECODED_SH, instruction, rs1, rs2, imm);
+        case 0b010: // SW
+            return MkRs1Rs2Imm(DECODED_SW, instruction, rs1, rs2, imm);
+        default:
+            return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+        }
+    }
+
+    case OP_OPIMM: {
+        const uint32_t funct3 = Funct3(instruction);
+        const int32_t imm = IImmediate(instruction);
+        const uint32_t funct7 = Funct7(instruction);
+        switch (funct3)
+        {
+        case 0b000: // ADDI
+            return MkRdRs1Imm(DECODED_ADDI, instruction, rd, rs1, imm);
+        case 0b010: // SLTI
+            return MkRdRs1Imm(DECODED_SLTI, instruction, rd, rs1, imm);
+        case 0b011: // SLTIU
+            return MkRdRs1Imm(DECODED_SLTIU, instruction, rd, rs1, imm);
+        case 0b100: // XORI
+            return MkRdRs1Imm(DECODED_XORI, instruction, rd, rs1, imm);
+        case 0b110: // ORI
+            return MkRdRs1Imm(DECODED_ORI, instruction, rd, rs1, imm);
+        case 0b111: // ANDI
+            return MkRdRs1Imm(DECODED_ANDI, instruction, rd, rs1, imm);
+        case 0b001: // SLLI
+            return MkRdRs1Imm(DECODED_SLLI, instruction, rd, rs1, imm);
+        case 0b101:
+            switch (funct7)
+            {
+            case 0b0000000: // SRLI
+                return MkRdRs1Imm(DECODED_SRLI, instruction, rd, rs1, imm);
+            case 0b0100000: // SRAI
+                return MkRdRs1Imm(DECODED_SRAI, instruction, rd, rs1, imm);
+            default:
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        default:
+            return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+        }
+    }
+
+    case OP_OP: {
+        const uint32_t funct3 = Funct3(instruction);
+        const uint32_t rs2 = Rs2(instruction);
+        const uint32_t funct7 = Funct7(instruction);
+        switch (funct3)
+        {
+        case 0b000:
+            switch (funct7)
+            {
+            case 0b0000000: // ADD
+                return MkRdRs1Rs2(DECODED_ADD, instruction, rd, rs1, rs2);
+            case 0b0100000: // SUB
+                return MkRdRs1Rs2(DECODED_SUB, instruction, rd, rs1, rs2);
+            case 0b00000001: // MUL (RV32M)
+                return MkRdRs1Rs2(DECODED_MUL, instruction, rd, rs1, rs2);
+            default:
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        case 0b001:
+            switch (funct7)
+            {
+            case 0b0000000: // SLL
+                return MkRdRs1Rs2(DECODED_SLL, instruction, rd, rs1, rs2);
+            case 0b00000001: // MULH (RV32M)
+                return MkRdRs1Rs2(DECODED_MULH, instruction, rd, rs1, rs2);
+            default:
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        case 0b010:
+            switch (funct7)
+            {
+            case 0b0000000: // SLT
+                return MkRdRs1Rs2(DECODED_SLT, instruction, rd, rs1, rs2);
+            case 0b00000001: // MULHSU (RV32M)
+                return MkRdRs1Rs2(DECODED_MULHSU, instruction, rd, rs1, rs2);
+            default:
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        case 0b011:
+            switch (funct7)
+            {
+            case 0b0000000: // SLTU
+                return MkRdRs1Rs2(DECODED_SLTU, instruction, rd, rs1, rs2);
+            case 0b00000001: // MULHU (RV32M)
+                return MkRdRs1Rs2(DECODED_MULHU, instruction, rd, rs1, rs2);
+            default:
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        case 0b100:
+            switch (funct7)
+            {
+            case 0b0000000: // XOR
+                return MkRdRs1Rs2(DECODED_XOR, instruction, rd, rs1, rs2);
+            case 0b00000001: // DIV (RV32M)
+                return MkRdRs1Rs2(DECODED_DIV, instruction, rd, rs1, rs2);
+            default:
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        case 0b101:
+            switch (funct7)
+            {
+            case 0b0000000: // SRL
+                return MkRdRs1Rs2(DECODED_SRL, instruction, rd, rs1, rs2);
+            case 0b0100000: // SRA
+                return MkRdRs1Rs2(DECODED_SRA, instruction, rd, rs1, rs2);
+            case 0b00000001: // DIVU (RV32M)
+                return MkRdRs1Rs2(DECODED_DIVU, instruction, rd, rs1, rs2);
+            default:
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        case 0b110:
+            switch (funct7)
+            {
+            case 0b0000000: // OR
+                return MkRdRs1Rs2(DECODED_OR, instruction, rd, rs1, rs2);
+            case 0b00000001: // REM
+                return MkRdRs1Rs2(DECODED_REM, instruction, rd, rs1, rs2);
+            default:
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        case 0b111:
+            switch (funct7)
+            {
+            case 0b0000000: // AND
+                return MkRdRs1Rs2(DECODED_AND, instruction, rd, rs1, rs2);
+            case 0b00000001: // REMU
+                return MkRdRs1Rs2(DECODED_REMU, instruction, rd, rs1, rs2);
+            default:
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        default:
+            return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+        }
+    }
+
+    case OP_MISCMEM: {
+        const uint32_t funct3 = Funct3(instruction);
+        if (funct3 == 0b000)
+        {
+            return MkNoArg(DECODED_FENCE, instruction);
+        }
+        else
+        {
+            return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+        }
+    }
+
+    case OP_SYSTEM:
+        if ((instruction & 0b00000000000011111111111110000000) == 0)
+        {
+            const uint32_t funct12 = Funct12(instruction);
+            switch (funct12)
+            {
+            case 0b000000000000: // ECALL
+                return MkNoArg(DECODED_ECALL, instruction);
+            case 0b000000000001: // EBREAK
+                return MkNoArg(DECODED_EBREAK, instruction);
+            case 0b000000000010: // URET
+                return MkNoArg(DECODED_URET, instruction);
+            case 0b000100000010: // SRET
+                return MkNoArg(DECODED_SRET, instruction);
+            case 0b001100000010: // MRET
+                return MkNoArg(DECODED_MRET, instruction);
+            default:
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        }
+        else
+        {
+            return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+        }
+
+    case OP_LOADFP: { // Floating point load (RV32F)
+        const uint32_t funct3 = Funct3(instruction);
+        if (funct3 == 0b010) // FLW
+        {
+            const int32_t imm = IImmediate(instruction);
+            return MkRdRs1Imm(DECODED_FLW, instruction, rd, rs1, imm);
+        }
+        else
+        {
+            return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+        }
+    }
+
+    case OP_STOREFP: { // Floating point store (RV32F)
+        const uint32_t funct3 = Funct3(instruction);
+        if (funct3 == 0b010) // FSW
+        {
+            // f32(rs1 + imm_s) = rs2
+            const uint32_t rs2 = Rs2(instruction);
+            const int32_t imm = SImmediate(instruction);
+            return MkRs1Rs2Imm(DECODED_FSW, instruction, rs1, rs2, imm);
+        }
+        else
+        {
+            return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+        }
+    }
+
+    case OP_MADD: {                            // Floating point fused multiply-add (RV32F)
+        if (((instruction >> 25) & 0b11) == 0) // FMADD.S
+        {
+            const uint32_t rm = Rm(instruction);
+            const uint32_t rs2 = Rs2(instruction);
+            const uint32_t rs3 = Rs3(instruction);
+            return MkRdRs1Rs2Rs3Rm(DECODED_FMADD_S, instruction, rd, rs1, rs2, rs3, rm);
+        }
+        else
+        {
+            return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+        }
+    }
+
+    case OP_MSUB: {                            // Floating point fused multiply-sub (RV32F)
+        if (((instruction >> 25) & 0b11) == 0) // FMSUB.S
+        {
+            const uint32_t rm = Rm(instruction);
+            const uint32_t rs2 = Rs2(instruction);
+            const uint32_t rs3 = Rs3(instruction);
+            return MkRdRs1Rs2Rs3Rm(DECODED_FMSUB_S, instruction, rd, rs1, rs2, rs3, rm);
+        }
+        else
+        {
+            return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+        }
+    }
+
+    case OP_NMSUB: {                           // Floating point negated fused multiply-sub (RV32F)
+        if (((instruction >> 25) & 0b11) == 0) // FNMSUB.S
+        {
+            const uint32_t rm = Rm(instruction);
+            const uint32_t rs2 = Rs2(instruction);
+            const uint32_t rs3 = Rs3(instruction);
+            return MkRdRs1Rs2Rs3Rm(DECODED_FNMSUB_S, instruction, rd, rs1, rs2, rs3, rm);
+        }
+        else
+        {
+            return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+        }
+    }
+
+    case OP_NMADD: {                           // Floating point negated fused multiple-add (RV32F)
+        if (((instruction >> 25) & 0b11) == 0) // FNMADD.S
+        {
+            const uint32_t rm = Rm(instruction);
+            const uint32_t rs2 = Rs2(instruction);
+            const uint32_t rs3 = Rs3(instruction);
+            return MkRdRs1Rs2Rs3Rm(DECODED_FNMADD_S, instruction, rd, rs1, rs2, rs3, rm);
+        }
+        else
+        {
+            return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+        }
+    }
+
+    case OP_OPFP: { // Floating point operations (RV32F)
+        const uint32_t funct7 = Funct7(instruction);
+        const uint32_t funct3 = Funct3(instruction);
+        const uint32_t rm = funct3;
+        const uint32_t rs2 = Rs2(instruction);
+        switch (funct7)
+        {
+        case 0b0000000: // FADD.S
+            return MkRdRs1Rs2Rm(DECODED_FADD_S, instruction, rd, rs1, rs2, rm);
+        case 0b0000100: // FSUB.S
+            return MkRdRs1Rs2Rm(DECODED_FSUB_S, instruction, rd, rs1, rs2, rm);
+        case 0b0001000: // FMUL.S
+            return MkRdRs1Rs2Rm(DECODED_FMUL_S, instruction, rd, rs1, rs2, rm);
+        case 0b0001100: // FDIV.S
+            return MkRdRs1Rs2Rm(DECODED_FDIV_S, instruction, rd, rs1, rs2, rm);
+        case 0b0101100:
+            if (rs2 == 0b00000) // FSQRT.S
+            {
+                return MkRdRs1Rs2Rm(DECODED_FSQRT_S, instruction, rd, rs1, rs2, rm);
+            }
+            else
+            {
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        case 0b0010000: {
+            switch (funct3)
+            {
+            case 0b000: // FSGNJ.S
+                return MkRdRs1Rs2Rm(DECODED_FSGNJ_S, instruction, rd, rs1, rs2, rm);
+            case 0b001: // FSGNJN.S
+                return MkRdRs1Rs2Rm(DECODED_FSGNJN_S, instruction, rd, rs1, rs2, rm);
+            case 0b010: // FSGNJX.S
+                return MkRdRs1Rs2Rm(DECODED_FSGNJX_S, instruction, rd, rs1, rs2, rm);
+            default:
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        }
+        case 0b0010100: {
+            switch (funct3)
+            {
+            case 0b000: // FMIN.S
+                return MkRdRs1Rs2Rm(DECODED_FMIN_S, instruction, rd, rs1, rs2, rm);
+            case 0b001: // FMAX.S
+                return MkRdRs1Rs2Rm(DECODED_FMAX_S, instruction, rd, rs1, rs2, rm);
+            default:
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        }
+        case 0b1100000: {
+            switch (rs2) // Not actually rs2 - just the same bits.
+            {
+            case 0b00000: // FCVT.W.S
+                return MkRdRs1Rm(DECODED_FCVT_W_S, instruction, rd, rs1, rm);
+            case 0b00001: // FVCT.WU.S
+                return MkRdRs1Rm(DECODED_FCVT_WU_S, instruction, rd, rs1, rm);
+            default:
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        }
+        case 0b1110000: {
+            if (rs2 == 0b00000) // Not actually rs2 - just the same bits.
+            {
+                switch (funct3)
+                {
+                case 0b000: // FMV.X.W
+                    return MkRdRs1(DECODED_FMV_X_W, instruction, rd, rs1);
+                case 0b001: // FCLASS.S
+                    return MkRdRs1(DECODED_FCLASS_S, instruction, rd, rs1);
+                default:
+                    return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+                }
+            }
+            return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+        }
+        case 0b1010000: {
+            switch (funct3)
+            {
+            case 0b010: // FEQ.S
+                return MkRdRs1Rs2(DECODED_FEQ_S, instruction, rd, rs1, rs2);
+            case 0b001: // FLT.S
+                return MkRdRs1Rs2(DECODED_FLT_S, instruction, rd, rs1, rs2);
+            case 0b000: // FLE.S
+                return MkRdRs1Rs2(DECODED_FLE_S, instruction, rd, rs1, rs2);
+            default:
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        }
+        case 0b1101000: {
+            switch (rs2) // No actually rs2 - just the same bits,
+            {
+            case 0b00000: // FCVT.S.W
+                return MkRdRs1(DECODED_FCVT_S_W, instruction, rd, rs1);
+            case 0b00001: // FVCT.S.WU
+                return MkRdRs1(DECODED_FCVT_S_WU, instruction, rd, rs1);
+            default:
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        }
+        case 0b1111000:
+            if (rs2 == 0b00000 && funct3 == 0b000) // FMV.W.X
+            {
+                return MkRdRs1(DECODED_FMV_W_X, instruction, rd, rs1);
+            }
+            else
+            {
+                return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+            }
+        default:
+            return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+        }
+    }
+
+    default:
+        return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
+    }
 }
 
 // See: http://www.five-embeddev.com/riscv-isa-manual/latest/gmaps.html#rv3264g-instruction-set-listings
