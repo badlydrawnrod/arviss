@@ -34,76 +34,6 @@ static char* fabiNames[] = {"ft0", "ft1", "ft2", "ft3", "ft4",  "ft5",  "ft6", "
 static char* roundingModes[] = {"rne", "rtz", "rdn", "rup", "rmm", "reserved5", "reserved6", "dyn"};
 #endif
 
-typedef struct DecodedInstruction DecodedInstruction;
-
-typedef ArvissResult (*ExecFn)(ArvissCpu* cpu, DecodedInstruction ins);
-
-struct DecodedInstruction
-{
-    ExecFn opcode;
-    union
-    {
-        struct RdImm
-        {
-            uint8_t rd;
-            int32_t imm;
-        } rd_imm;
-
-        struct RdRs1
-        {
-            uint8_t rd;
-            uint8_t rs1;
-        } rd_rs1;
-
-        struct RdRs1Imm
-        {
-            uint8_t rd;
-            uint8_t rs1;
-            int32_t imm;
-        } rd_rs1_imm;
-
-        struct RdRs1Rs2
-        {
-            uint8_t rd;
-            uint8_t rs1;
-            uint8_t rs2;
-        } rd_rs1_rs2;
-
-        struct Rs1Rs2Imm
-        {
-            uint8_t rs1;
-            uint8_t rs2;
-            int32_t imm;
-        } rs1_rs2_imm;
-
-        struct RdRs1Rs2Rs3Rm
-        {
-            uint8_t rd;
-            uint8_t rs1;
-            uint8_t rs2;
-            uint8_t rs3;
-            uint8_t rm;
-        } rd_rs1_rs2_rs3_rm;
-
-        struct RdRs1Rm
-        {
-            uint8_t rd;
-            uint8_t rs1;
-            uint8_t rm;
-        } rd_rs1_rm;
-
-        struct RdRs1Rs2Rm
-        {
-            uint8_t rd;
-            uint8_t rs1;
-            uint8_t rs2;
-            uint8_t rm;
-        } rd_rs1_rs2_rm;
-
-        uint32_t ins;
-    };
-};
-
 typedef enum DecodedInstructions
 {
     DECODED_ILLEGAL_INSTRUCTION,
@@ -1309,6 +1239,10 @@ void ArvissReset(ArvissCpu* cpu, uint32_t sp)
     cpu->mepc = 0;
     cpu->mcause = 0;
     cpu->mtval = 0;
+    for (int i = 0; i < CACHE_LINES; i++)
+    {
+        cpu->cache.line[i].isValid = false;
+    }
 }
 
 // See: http://www.five-embeddev.com/riscv-isa-manual/latest/gmaps.html#rv3264g-instruction-set-listings
@@ -1774,28 +1708,14 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
     }
 }
 
-#define CACHE_LINES 64
-#define CACHE_LINE_LENGTH 32
-
-typedef struct DecodedCache
-{
-    struct
-    {
-        uint32_t owner;
-        DecodedInstruction instructions[CACHE_LINE_LENGTH];
-        bool isValid;
-    } line[CACHE_LINES];
-} DecodedCache;
-
-static DecodedCache decodedCache;
-
 DecodedInstruction FetchFromCache(ArvissCpu* cpu)
 {
-    uint32_t addr = cpu->pc;
-    uint32_t owner = ((addr / 4) / CACHE_LINE_LENGTH);
-    uint32_t cacheLine = owner % CACHE_LINES;
-    uint32_t lineIndex = (addr / 4) % CACHE_LINE_LENGTH;
-    if (!decodedCache.line[cacheLine].isValid || owner != decodedCache.line[cacheLine].owner)
+    const uint32_t addr = cpu->pc;
+    const uint32_t owner = ((addr / 4) / CACHE_LINE_LENGTH);
+    const uint32_t cacheLine = owner % CACHE_LINES;
+    const uint32_t lineIndex = (addr / 4) % CACHE_LINE_LENGTH;
+    DecodedCache* restrict decodedCache = &cpu->cache;
+    if (!decodedCache->line[cacheLine].isValid || owner != decodedCache->line[cacheLine].owner)
     {
         uint32_t start = addr - (lineIndex * 4);
         for (int i = 0; i < CACHE_LINE_LENGTH; i++)
@@ -1803,12 +1723,12 @@ DecodedInstruction FetchFromCache(ArvissCpu* cpu)
             ArvissResult result = ArvissReadWord(cpu->memory, start + (4 * i));
             uint32_t instruction = ArvissResultAsWord(result);
             DecodedInstruction decoded = ArvissDecode(cpu, instruction);
-            decodedCache.line[cacheLine].instructions[i] = decoded;
+            decodedCache->line[cacheLine].instructions[i] = decoded;
         }
-        decodedCache.line[cacheLine].isValid = true;
-        decodedCache.line[cacheLine].owner = owner;
+        decodedCache->line[cacheLine].isValid = true;
+        decodedCache->line[cacheLine].owner = owner;
     }
-    return decodedCache.line[cacheLine].instructions[lineIndex];
+    return decodedCache->line[cacheLine].instructions[lineIndex];
 }
 
 // See: http://www.five-embeddev.com/riscv-isa-manual/latest/gmaps.html#rv3264g-instruction-set-listings
