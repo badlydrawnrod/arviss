@@ -82,7 +82,7 @@ struct DecodedInstruction
 
 typedef struct DecodedCache
 {
-    struct
+    struct CacheLine
     {
         uint32_t owner;
         DecodedInstruction instructions[CACHE_LINE_LENGTH];
@@ -113,8 +113,6 @@ extern "C" {
 
 void ArvissReset(ArvissCpu* cpu, uint32_t sp);
 ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction);
-ArvissResult ArvissFetch(ArvissCpu* cpu);
-ArvissResult ArvissHandleTrap(ArvissCpu* cpu, ArvissTrap trap);
 ArvissResult ArvissRun(ArvissCpu* cpu, int count);
 
 #ifdef __cplusplus
