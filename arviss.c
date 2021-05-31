@@ -1776,6 +1776,43 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
     }
 }
 
+#define CACHE_LINES 64
+#define CACHE_LINE_LENGTH 32
+
+typedef struct DecodedCache
+{
+    struct
+    {
+        uint32_t owner;
+        DecodedInstruction instructions[CACHE_LINE_LENGTH];
+        bool isValid;
+    } line[CACHE_LINES];
+} DecodedCache;
+
+static DecodedCache decodedCache;
+
+DecodedInstruction FetchFromCache(ArvissCpu* cpu)
+{
+    uint32_t addr = cpu->pc;
+    uint32_t owner = ((addr / 4) / CACHE_LINE_LENGTH);
+    uint32_t cacheLine = owner % CACHE_LINES;
+    uint32_t lineIndex = (addr / 4) % CACHE_LINE_LENGTH;
+    if (!decodedCache.line[cacheLine].isValid || owner != decodedCache.line[cacheLine].owner)
+    {
+        uint32_t start = addr - (lineIndex * 4);
+        for (int i = 0; i < CACHE_LINE_LENGTH; i++)
+        {
+            ArvissResult result = ArvissReadWord(cpu->memory, start + (4 * i));
+            uint32_t instruction = ArvissResultAsWord(result);
+            DecodedInstruction decoded = ArvissDecode(cpu, instruction);
+            decodedCache.line[cacheLine].instructions[i] = decoded;
+        }
+        decodedCache.line[cacheLine].isValid = true;
+        decodedCache.line[cacheLine].owner = owner;
+    }
+    return decodedCache.line[cacheLine].instructions[lineIndex];
+}
+
 // See: http://www.five-embeddev.com/riscv-isa-manual/latest/gmaps.html#rv3264g-instruction-set-listings
 // or riscv-spec-209191213.pdf.
 ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
@@ -1800,11 +1837,13 @@ ArvissResult ArvissRun(ArvissCpu* cpu, int count)
     ArvissResult result = ArvissMakeOk();
     for (int i = 0; i < count; i++)
     {
-        result = ArvissFetch(cpu);
-        if (ArvissResultIsWord(result))
-        {
-            result = ArvissExecute(cpu, ArvissResultAsWord(result));
-        }
+        //        result = ArvissFetch(cpu);
+        //        if (ArvissResultIsWord(result))
+        //        {
+        //            result = ArvissExecute(cpu, ArvissResultAsWord(result));
+        //        }
+        DecodedInstruction decoded = FetchFromCache(cpu);
+        result = decodedTable[decoded.opcode](cpu, decoded);
 
         if (ArvissResultIsTrap(result))
         {
