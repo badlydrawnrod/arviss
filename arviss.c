@@ -34,9 +34,13 @@ static char* fabiNames[] = {"ft0", "ft1", "ft2", "ft3", "ft4",  "ft5",  "ft6", "
 static char* roundingModes[] = {"rne", "rtz", "rdn", "rup", "rmm", "reserved5", "reserved6", "dyn"};
 #endif
 
-typedef struct DecodedInstruction
+typedef struct DecodedInstruction DecodedInstruction;
+
+typedef ArvissResult (*ExecFn)(ArvissCpu* cpu, DecodedInstruction ins);
+
+struct DecodedInstruction
 {
-    uint16_t opcode;
+    ExecFn opcode;
     union
     {
         struct RdImm
@@ -95,9 +99,10 @@ typedef struct DecodedInstruction
             uint8_t rs2;
             uint8_t rm;
         } rd_rs1_rs2_rm;
+
+        uint32_t ins;
     };
-    uint32_t instruction;
-} DecodedInstruction;
+};
 
 typedef enum DecodedInstructions
 {
@@ -181,70 +186,12 @@ typedef enum DecodedInstructions
     DECODED_FMV_W_X,
 } DecodedInstructions;
 
-typedef ArvissResult (*ExecFn)(ArvissCpu* cpu, DecodedInstruction ins);
-
-static inline DecodedInstruction MkNoArg(uint16_t opcode, uint32_t instruction)
-{
-    return (DecodedInstruction){.opcode = opcode, .instruction = instruction};
-}
-
-static inline DecodedInstruction MkTrap(uint16_t opcode, uint32_t instruction)
-{
-    return MkNoArg(opcode, instruction);
-}
-
-static inline DecodedInstruction MkRdImm(uint16_t opcode, uint32_t instruction, uint8_t rd, int32_t imm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_imm = {.rd = rd, .imm = imm}, .instruction = instruction};
-}
-
-static inline DecodedInstruction MkRdRs1Imm(uint16_t opcode, uint32_t instruction, uint8_t rd, uint8_t rs1, int32_t imm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1_imm = {.rd = rd, .rs1 = rs1, .imm = imm}, .instruction = instruction};
-}
-
-static inline DecodedInstruction MkRdRs1(uint16_t opcode, uint32_t instruction, uint8_t rd, uint8_t rs1)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1 = {.rd = rd, .rs1 = rs1}, .instruction = instruction};
-}
-
-static inline DecodedInstruction MkRdRs1Rs2(uint16_t opcode, uint32_t instruction, uint8_t rd, uint8_t rs1, uint8_t rs2)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rs2 = {.rd = rd, .rs1 = rs1, .rs2 = rs2}, .instruction = instruction};
-}
-
-static inline DecodedInstruction MkRs1Rs2Imm(uint16_t opcode, uint32_t instruction, uint8_t rs1, uint8_t rs2, int32_t imm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rs1_rs2_imm = {.rs1 = rs1, .rs2 = rs2, .imm = imm}, .instruction = instruction};
-}
-
-static inline DecodedInstruction MkRdRs1Rs2Rs3Rm(uint16_t opcode, uint32_t instruction, uint8_t rd, uint8_t rs1, uint8_t rs2,
-                                                 uint8_t rs3, uint8_t rm)
-{
-    return (DecodedInstruction){.opcode = opcode,
-                                .rd_rs1_rs2_rs3_rm = {.rd = rd, .rs1 = rs1, .rs2 = rs2, .rs3 = rs3, .rm = rm},
-                                .instruction = instruction};
-}
-
-static inline DecodedInstruction MkRdRs1Rm(uint16_t opcode, uint32_t instruction, uint8_t rd, uint8_t rs1, uint8_t rm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rm = {.rd = rd, .rs1 = rs1, .rm = rm}, .instruction = instruction};
-}
-
-static inline DecodedInstruction MkRdRs1Rs2Rm(uint16_t opcode, uint32_t instruction, uint8_t rd, uint8_t rs1, uint8_t rs2,
-                                              uint8_t rm)
-{
-    return (DecodedInstruction){.opcode = opcode,
-                                .rd_rs1_rs2_rm = {.rd = rd, .rs1 = rs1, .rs2 = rs2, .rm = rm},
-                                .instruction = instruction};
-}
-
 static inline ArvissResult TakeTrap(ArvissCpu* cpu, ArvissResult result);
 static inline ArvissResult CreateTrap(ArvissCpu* cpu, ArvissTrapType trap, uint32_t value);
 
 ArvissResult Exec_IllegalInstruction(ArvissCpu* cpu, DecodedInstruction ins)
 {
-    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.instruction);
+    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.ins);
 }
 
 ArvissResult Exec_Lui(ArvissCpu* cpu, DecodedInstruction ins)
@@ -1199,6 +1146,57 @@ static ExecFn decodedTable[] = {
         Exec_Fmv_w_x             // DECODED_FMV_W_X,
 };
 
+static inline DecodedInstruction MkNoArg(uint16_t opcode)
+{
+    return (DecodedInstruction){.opcode = decodedTable[opcode]};
+}
+
+static inline DecodedInstruction MkTrap(uint16_t opcode, uint32_t instruction)
+{
+    return (DecodedInstruction){.opcode = decodedTable[opcode], .ins = instruction};
+}
+
+static inline DecodedInstruction MkRdImm(uint16_t opcode, uint8_t rd, int32_t imm)
+{
+    return (DecodedInstruction){.opcode = decodedTable[opcode], .rd_imm = {.rd = rd, .imm = imm}};
+}
+
+static inline DecodedInstruction MkRdRs1Imm(uint16_t opcode, uint8_t rd, uint8_t rs1, int32_t imm)
+{
+    return (DecodedInstruction){.opcode = decodedTable[opcode], .rd_rs1_imm = {.rd = rd, .rs1 = rs1, .imm = imm}};
+}
+
+static inline DecodedInstruction MkRdRs1(uint16_t opcode, uint8_t rd, uint8_t rs1)
+{
+    return (DecodedInstruction){.opcode = decodedTable[opcode], .rd_rs1 = {.rd = rd, .rs1 = rs1}};
+}
+
+static inline DecodedInstruction MkRdRs1Rs2(uint16_t opcode, uint8_t rd, uint8_t rs1, uint8_t rs2)
+{
+    return (DecodedInstruction){.opcode = decodedTable[opcode], .rd_rs1_rs2 = {.rd = rd, .rs1 = rs1, .rs2 = rs2}};
+}
+
+static inline DecodedInstruction MkRs1Rs2Imm(uint16_t opcode, uint8_t rs1, uint8_t rs2, int32_t imm)
+{
+    return (DecodedInstruction){.opcode = decodedTable[opcode], .rs1_rs2_imm = {.rs1 = rs1, .rs2 = rs2, .imm = imm}};
+}
+
+static inline DecodedInstruction MkRdRs1Rs2Rs3Rm(uint16_t opcode, uint8_t rd, uint8_t rs1, uint8_t rs2, uint8_t rs3, uint8_t rm)
+{
+    return (DecodedInstruction){.opcode = decodedTable[opcode],
+                                .rd_rs1_rs2_rs3_rm = {.rd = rd, .rs1 = rs1, .rs2 = rs2, .rs3 = rs3, .rm = rm}};
+}
+
+static inline DecodedInstruction MkRdRs1Rm(uint16_t opcode, uint8_t rd, uint8_t rs1, uint8_t rm)
+{
+    return (DecodedInstruction){.opcode = decodedTable[opcode], .rd_rs1_rm = {.rd = rd, .rs1 = rs1, .rm = rm}};
+}
+
+static inline DecodedInstruction MkRdRs1Rs2Rm(uint16_t opcode, uint8_t rd, uint8_t rs1, uint8_t rs2, uint8_t rm)
+{
+    return (DecodedInstruction){.opcode = decodedTable[opcode], .rd_rs1_rs2_rm = {.rd = rd, .rs1 = rs1, .rs2 = rs2, .rm = rm}};
+}
+
 static inline int32_t IImmediate(uint32_t instruction)
 {
     return (int32_t)instruction >> 20; // inst[31:20] -> sext(imm[11:0])
@@ -1325,17 +1323,17 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
     {
     case OP_LUI: {
         const int32_t upper = UImmediate(instruction);
-        return MkRdImm(DECODED_LUI, instruction, rd, upper);
+        return MkRdImm(DECODED_LUI, rd, upper);
     }
 
     case OP_AUIPC: {
         const int32_t upper = UImmediate(instruction);
-        return MkRdImm(DECODED_AUIPC, instruction, rd, upper);
+        return MkRdImm(DECODED_AUIPC, rd, upper);
     }
 
     case OP_JAL: {
         const int32_t imm = JImmediate(instruction);
-        return MkRdImm(DECODED_JAL, instruction, rd, imm);
+        return MkRdImm(DECODED_JAL, rd, imm);
     }
 
     case OP_JALR: {
@@ -1343,7 +1341,7 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
         if (funct3 == 0b000)
         {
             const int32_t imm = IImmediate(instruction);
-            return MkRdRs1Imm(DECODED_JALR, instruction, rd, rs1, imm);
+            return MkRdRs1Imm(DECODED_JALR, rd, rs1, imm);
         }
         return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
     }
@@ -1355,17 +1353,17 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
         switch (funct3)
         {
         case 0b000: // BEQ
-            return MkRs1Rs2Imm(DECODED_BEQ, instruction, rs1, rs2, imm);
+            return MkRs1Rs2Imm(DECODED_BEQ, rs1, rs2, imm);
         case 0b001: // BNE
-            return MkRs1Rs2Imm(DECODED_BNE, instruction, rs1, rs2, imm);
+            return MkRs1Rs2Imm(DECODED_BNE, rs1, rs2, imm);
         case 0b100: // BLT
-            return MkRs1Rs2Imm(DECODED_BLT, instruction, rs1, rs2, imm);
+            return MkRs1Rs2Imm(DECODED_BLT, rs1, rs2, imm);
         case 0b101: // BGE
-            return MkRs1Rs2Imm(DECODED_BGE, instruction, rs1, rs2, imm);
+            return MkRs1Rs2Imm(DECODED_BGE, rs1, rs2, imm);
         case 0b110: // BLTU
-            return MkRs1Rs2Imm(DECODED_BLTU, instruction, rs1, rs2, imm);
+            return MkRs1Rs2Imm(DECODED_BLTU, rs1, rs2, imm);
         case 0b111: // BGEU
-            return MkRs1Rs2Imm(DECODED_BGEU, instruction, rs1, rs2, imm);
+            return MkRs1Rs2Imm(DECODED_BGEU, rs1, rs2, imm);
         default:
             return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
         }
@@ -1377,15 +1375,15 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
         switch (funct3)
         {
         case 0b000: // LB
-            return MkRdRs1Imm(DECODED_LB, instruction, rd, rs1, imm);
+            return MkRdRs1Imm(DECODED_LB, rd, rs1, imm);
         case 0b001: // LH
-            return MkRdRs1Imm(DECODED_LH, instruction, rd, rs1, imm);
+            return MkRdRs1Imm(DECODED_LH, rd, rs1, imm);
         case 0b010: // LW
-            return MkRdRs1Imm(DECODED_LW, instruction, rd, rs1, imm);
+            return MkRdRs1Imm(DECODED_LW, rd, rs1, imm);
         case 0b100: // LBU
-            return MkRdRs1Imm(DECODED_LBU, instruction, rd, rs1, imm);
+            return MkRdRs1Imm(DECODED_LBU, rd, rs1, imm);
         case 0b101: // LHU
-            return MkRdRs1Imm(DECODED_LHU, instruction, rd, rs1, imm);
+            return MkRdRs1Imm(DECODED_LHU, rd, rs1, imm);
         default:
             return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
         }
@@ -1398,11 +1396,11 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
         switch (funct3)
         {
         case 0b000: // SB
-            return MkRs1Rs2Imm(DECODED_SB, instruction, rs1, rs2, imm);
+            return MkRs1Rs2Imm(DECODED_SB, rs1, rs2, imm);
         case 0b001: // SH
-            return MkRs1Rs2Imm(DECODED_SH, instruction, rs1, rs2, imm);
+            return MkRs1Rs2Imm(DECODED_SH, rs1, rs2, imm);
         case 0b010: // SW
-            return MkRs1Rs2Imm(DECODED_SW, instruction, rs1, rs2, imm);
+            return MkRs1Rs2Imm(DECODED_SW, rs1, rs2, imm);
         default:
             return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
         }
@@ -1415,26 +1413,26 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
         switch (funct3)
         {
         case 0b000: // ADDI
-            return MkRdRs1Imm(DECODED_ADDI, instruction, rd, rs1, imm);
+            return MkRdRs1Imm(DECODED_ADDI, rd, rs1, imm);
         case 0b010: // SLTI
-            return MkRdRs1Imm(DECODED_SLTI, instruction, rd, rs1, imm);
+            return MkRdRs1Imm(DECODED_SLTI, rd, rs1, imm);
         case 0b011: // SLTIU
-            return MkRdRs1Imm(DECODED_SLTIU, instruction, rd, rs1, imm);
+            return MkRdRs1Imm(DECODED_SLTIU, rd, rs1, imm);
         case 0b100: // XORI
-            return MkRdRs1Imm(DECODED_XORI, instruction, rd, rs1, imm);
+            return MkRdRs1Imm(DECODED_XORI, rd, rs1, imm);
         case 0b110: // ORI
-            return MkRdRs1Imm(DECODED_ORI, instruction, rd, rs1, imm);
+            return MkRdRs1Imm(DECODED_ORI, rd, rs1, imm);
         case 0b111: // ANDI
-            return MkRdRs1Imm(DECODED_ANDI, instruction, rd, rs1, imm);
+            return MkRdRs1Imm(DECODED_ANDI, rd, rs1, imm);
         case 0b001: // SLLI
-            return MkRdRs1Imm(DECODED_SLLI, instruction, rd, rs1, imm);
+            return MkRdRs1Imm(DECODED_SLLI, rd, rs1, imm);
         case 0b101:
             switch (funct7)
             {
             case 0b0000000: // SRLI
-                return MkRdRs1Imm(DECODED_SRLI, instruction, rd, rs1, imm);
+                return MkRdRs1Imm(DECODED_SRLI, rd, rs1, imm);
             case 0b0100000: // SRAI
-                return MkRdRs1Imm(DECODED_SRAI, instruction, rd, rs1, imm);
+                return MkRdRs1Imm(DECODED_SRAI, rd, rs1, imm);
             default:
                 return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
             }
@@ -1453,11 +1451,11 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             switch (funct7)
             {
             case 0b0000000: // ADD
-                return MkRdRs1Rs2(DECODED_ADD, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_ADD, rd, rs1, rs2);
             case 0b0100000: // SUB
-                return MkRdRs1Rs2(DECODED_SUB, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_SUB, rd, rs1, rs2);
             case 0b00000001: // MUL (RV32M)
-                return MkRdRs1Rs2(DECODED_MUL, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_MUL, rd, rs1, rs2);
             default:
                 return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
             }
@@ -1465,9 +1463,9 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             switch (funct7)
             {
             case 0b0000000: // SLL
-                return MkRdRs1Rs2(DECODED_SLL, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_SLL, rd, rs1, rs2);
             case 0b00000001: // MULH (RV32M)
-                return MkRdRs1Rs2(DECODED_MULH, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_MULH, rd, rs1, rs2);
             default:
                 return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
             }
@@ -1475,9 +1473,9 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             switch (funct7)
             {
             case 0b0000000: // SLT
-                return MkRdRs1Rs2(DECODED_SLT, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_SLT, rd, rs1, rs2);
             case 0b00000001: // MULHSU (RV32M)
-                return MkRdRs1Rs2(DECODED_MULHSU, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_MULHSU, rd, rs1, rs2);
             default:
                 return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
             }
@@ -1485,9 +1483,9 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             switch (funct7)
             {
             case 0b0000000: // SLTU
-                return MkRdRs1Rs2(DECODED_SLTU, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_SLTU, rd, rs1, rs2);
             case 0b00000001: // MULHU (RV32M)
-                return MkRdRs1Rs2(DECODED_MULHU, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_MULHU, rd, rs1, rs2);
             default:
                 return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
             }
@@ -1495,9 +1493,9 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             switch (funct7)
             {
             case 0b0000000: // XOR
-                return MkRdRs1Rs2(DECODED_XOR, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_XOR, rd, rs1, rs2);
             case 0b00000001: // DIV (RV32M)
-                return MkRdRs1Rs2(DECODED_DIV, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_DIV, rd, rs1, rs2);
             default:
                 return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
             }
@@ -1505,11 +1503,11 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             switch (funct7)
             {
             case 0b0000000: // SRL
-                return MkRdRs1Rs2(DECODED_SRL, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_SRL, rd, rs1, rs2);
             case 0b0100000: // SRA
-                return MkRdRs1Rs2(DECODED_SRA, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_SRA, rd, rs1, rs2);
             case 0b00000001: // DIVU (RV32M)
-                return MkRdRs1Rs2(DECODED_DIVU, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_DIVU, rd, rs1, rs2);
             default:
                 return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
             }
@@ -1517,9 +1515,9 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             switch (funct7)
             {
             case 0b0000000: // OR
-                return MkRdRs1Rs2(DECODED_OR, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_OR, rd, rs1, rs2);
             case 0b00000001: // REM
-                return MkRdRs1Rs2(DECODED_REM, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_REM, rd, rs1, rs2);
             default:
                 return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
             }
@@ -1527,9 +1525,9 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             switch (funct7)
             {
             case 0b0000000: // AND
-                return MkRdRs1Rs2(DECODED_AND, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_AND, rd, rs1, rs2);
             case 0b00000001: // REMU
-                return MkRdRs1Rs2(DECODED_REMU, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_REMU, rd, rs1, rs2);
             default:
                 return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
             }
@@ -1542,7 +1540,7 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
         const uint32_t funct3 = Funct3(instruction);
         if (funct3 == 0b000)
         {
-            return MkNoArg(DECODED_FENCE, instruction);
+            return MkNoArg(DECODED_FENCE);
         }
         else
         {
@@ -1557,15 +1555,15 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             switch (funct12)
             {
             case 0b000000000000: // ECALL
-                return MkNoArg(DECODED_ECALL, instruction);
+                return MkNoArg(DECODED_ECALL);
             case 0b000000000001: // EBREAK
-                return MkNoArg(DECODED_EBREAK, instruction);
+                return MkNoArg(DECODED_EBREAK);
             case 0b000000000010: // URET
-                return MkNoArg(DECODED_URET, instruction);
+                return MkNoArg(DECODED_URET);
             case 0b000100000010: // SRET
-                return MkNoArg(DECODED_SRET, instruction);
+                return MkNoArg(DECODED_SRET);
             case 0b001100000010: // MRET
-                return MkNoArg(DECODED_MRET, instruction);
+                return MkNoArg(DECODED_MRET);
             default:
                 return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
             }
@@ -1580,7 +1578,7 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
         if (funct3 == 0b010) // FLW
         {
             const int32_t imm = IImmediate(instruction);
-            return MkRdRs1Imm(DECODED_FLW, instruction, rd, rs1, imm);
+            return MkRdRs1Imm(DECODED_FLW, rd, rs1, imm);
         }
         else
         {
@@ -1595,7 +1593,7 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             // f32(rs1 + imm_s) = rs2
             const uint32_t rs2 = Rs2(instruction);
             const int32_t imm = SImmediate(instruction);
-            return MkRs1Rs2Imm(DECODED_FSW, instruction, rs1, rs2, imm);
+            return MkRs1Rs2Imm(DECODED_FSW, rs1, rs2, imm);
         }
         else
         {
@@ -1609,7 +1607,7 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             const uint32_t rm = Rm(instruction);
             const uint32_t rs2 = Rs2(instruction);
             const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(DECODED_FMADD_S, instruction, rd, rs1, rs2, rs3, rm);
+            return MkRdRs1Rs2Rs3Rm(DECODED_FMADD_S, rd, rs1, rs2, rs3, rm);
         }
         else
         {
@@ -1623,7 +1621,7 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             const uint32_t rm = Rm(instruction);
             const uint32_t rs2 = Rs2(instruction);
             const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(DECODED_FMSUB_S, instruction, rd, rs1, rs2, rs3, rm);
+            return MkRdRs1Rs2Rs3Rm(DECODED_FMSUB_S, rd, rs1, rs2, rs3, rm);
         }
         else
         {
@@ -1637,7 +1635,7 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             const uint32_t rm = Rm(instruction);
             const uint32_t rs2 = Rs2(instruction);
             const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(DECODED_FNMSUB_S, instruction, rd, rs1, rs2, rs3, rm);
+            return MkRdRs1Rs2Rs3Rm(DECODED_FNMSUB_S, rd, rs1, rs2, rs3, rm);
         }
         else
         {
@@ -1651,7 +1649,7 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             const uint32_t rm = Rm(instruction);
             const uint32_t rs2 = Rs2(instruction);
             const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(DECODED_FNMADD_S, instruction, rd, rs1, rs2, rs3, rm);
+            return MkRdRs1Rs2Rs3Rm(DECODED_FNMADD_S, rd, rs1, rs2, rs3, rm);
         }
         else
         {
@@ -1667,17 +1665,17 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
         switch (funct7)
         {
         case 0b0000000: // FADD.S
-            return MkRdRs1Rs2Rm(DECODED_FADD_S, instruction, rd, rs1, rs2, rm);
+            return MkRdRs1Rs2Rm(DECODED_FADD_S, rd, rs1, rs2, rm);
         case 0b0000100: // FSUB.S
-            return MkRdRs1Rs2Rm(DECODED_FSUB_S, instruction, rd, rs1, rs2, rm);
+            return MkRdRs1Rs2Rm(DECODED_FSUB_S, rd, rs1, rs2, rm);
         case 0b0001000: // FMUL.S
-            return MkRdRs1Rs2Rm(DECODED_FMUL_S, instruction, rd, rs1, rs2, rm);
+            return MkRdRs1Rs2Rm(DECODED_FMUL_S, rd, rs1, rs2, rm);
         case 0b0001100: // FDIV.S
-            return MkRdRs1Rs2Rm(DECODED_FDIV_S, instruction, rd, rs1, rs2, rm);
+            return MkRdRs1Rs2Rm(DECODED_FDIV_S, rd, rs1, rs2, rm);
         case 0b0101100:
             if (rs2 == 0b00000) // FSQRT.S
             {
-                return MkRdRs1Rm(DECODED_FSQRT_S, instruction, rd, rs1, rm);
+                return MkRdRs1Rm(DECODED_FSQRT_S, rd, rs1, rm);
             }
             else
             {
@@ -1687,11 +1685,11 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             switch (funct3)
             {
             case 0b000: // FSGNJ.S
-                return MkRdRs1Rs2Rm(DECODED_FSGNJ_S, instruction, rd, rs1, rs2, rm);
+                return MkRdRs1Rs2Rm(DECODED_FSGNJ_S, rd, rs1, rs2, rm);
             case 0b001: // FSGNJN.S
-                return MkRdRs1Rs2Rm(DECODED_FSGNJN_S, instruction, rd, rs1, rs2, rm);
+                return MkRdRs1Rs2Rm(DECODED_FSGNJN_S, rd, rs1, rs2, rm);
             case 0b010: // FSGNJX.S
-                return MkRdRs1Rs2Rm(DECODED_FSGNJX_S, instruction, rd, rs1, rs2, rm);
+                return MkRdRs1Rs2Rm(DECODED_FSGNJX_S, rd, rs1, rs2, rm);
             default:
                 return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
             }
@@ -1700,9 +1698,9 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             switch (funct3)
             {
             case 0b000: // FMIN.S
-                return MkRdRs1Rs2(DECODED_FMIN_S, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_FMIN_S, rd, rs1, rs2);
             case 0b001: // FMAX.S
-                return MkRdRs1Rs2(DECODED_FMAX_S, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_FMAX_S, rd, rs1, rs2);
             default:
                 return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
             }
@@ -1711,9 +1709,9 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             switch (rs2) // Not actually rs2 - just the same bits.
             {
             case 0b00000: // FCVT.W.S
-                return MkRdRs1Rm(DECODED_FCVT_W_S, instruction, rd, rs1, rm);
+                return MkRdRs1Rm(DECODED_FCVT_W_S, rd, rs1, rm);
             case 0b00001: // FVCT.WU.S
-                return MkRdRs1Rm(DECODED_FCVT_WU_S, instruction, rd, rs1, rm);
+                return MkRdRs1Rm(DECODED_FCVT_WU_S, rd, rs1, rm);
             default:
                 return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
             }
@@ -1724,9 +1722,9 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
                 switch (funct3)
                 {
                 case 0b000: // FMV.X.W
-                    return MkRdRs1(DECODED_FMV_X_W, instruction, rd, rs1);
+                    return MkRdRs1(DECODED_FMV_X_W, rd, rs1);
                 case 0b001: // FCLASS.S
-                    return MkRdRs1(DECODED_FCLASS_S, instruction, rd, rs1);
+                    return MkRdRs1(DECODED_FCLASS_S, rd, rs1);
                 default:
                     return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
                 }
@@ -1737,11 +1735,11 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             switch (funct3)
             {
             case 0b010: // FEQ.S
-                return MkRdRs1Rs2(DECODED_FEQ_S, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_FEQ_S, rd, rs1, rs2);
             case 0b001: // FLT.S
-                return MkRdRs1Rs2(DECODED_FLT_S, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_FLT_S, rd, rs1, rs2);
             case 0b000: // FLE.S
-                return MkRdRs1Rs2(DECODED_FLE_S, instruction, rd, rs1, rs2);
+                return MkRdRs1Rs2(DECODED_FLE_S, rd, rs1, rs2);
             default:
                 return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
             }
@@ -1750,9 +1748,9 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
             switch (rs2) // No actually rs2 - just the same bits,
             {
             case 0b00000: // FCVT.S.W
-                return MkRdRs1(DECODED_FCVT_S_W, instruction, rd, rs1);
+                return MkRdRs1(DECODED_FCVT_S_W, rd, rs1);
             case 0b00001: // FVCT.S.WU
-                return MkRdRs1(DECODED_FCVT_S_WU, instruction, rd, rs1);
+                return MkRdRs1(DECODED_FCVT_S_WU, rd, rs1);
             default:
                 return MkTrap(DECODED_ILLEGAL_INSTRUCTION, instruction);
             }
@@ -1760,7 +1758,7 @@ DecodedInstruction ArvissDecode(ArvissCpu* cpu, uint32_t instruction)
         case 0b1111000:
             if (rs2 == 0b00000 && funct3 == 0b000) // FMV.W.X
             {
-                return MkRdRs1(DECODED_FMV_W_X, instruction, rd, rs1);
+                return MkRdRs1(DECODED_FMV_W_X, rd, rs1);
             }
             else
             {
@@ -1818,7 +1816,7 @@ DecodedInstruction FetchFromCache(ArvissCpu* cpu)
 ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
 {
     DecodedInstruction decoded = ArvissDecode(cpu, instruction);
-    return decodedTable[decoded.opcode](cpu, decoded);
+    return decoded.opcode(cpu, decoded);
 }
 
 ArvissResult ArvissFetch(ArvissCpu* cpu)
@@ -1837,13 +1835,8 @@ ArvissResult ArvissRun(ArvissCpu* cpu, int count)
     ArvissResult result = ArvissMakeOk();
     for (int i = 0; i < count; i++)
     {
-        //        result = ArvissFetch(cpu);
-        //        if (ArvissResultIsWord(result))
-        //        {
-        //            result = ArvissExecute(cpu, ArvissResultAsWord(result));
-        //        }
         DecodedInstruction decoded = FetchFromCache(cpu);
-        result = decodedTable[decoded.opcode](cpu, decoded);
+        result = decoded.opcode(cpu, decoded);
 
         if (ArvissResultIsTrap(result))
         {
