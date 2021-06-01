@@ -16,46 +16,46 @@ struct DecodedInstruction
     ExecFn opcode;
     union
     {
-        struct Fdr
+        struct
         {
             uint32_t cacheLine;
             uint32_t index;
         } fdr;
 
-        struct RdImm
+        struct
         {
             uint8_t rd;
             int32_t imm;
         } rd_imm;
 
-        struct RdRs1
+        struct
         {
             uint8_t rd;
             uint8_t rs1;
         } rd_rs1;
 
-        struct RdRs1Imm
+        struct
         {
             uint8_t rd;
             uint8_t rs1;
             int32_t imm;
         } rd_rs1_imm;
 
-        struct RdRs1Rs2
+        struct
         {
             uint8_t rd;
             uint8_t rs1;
             uint8_t rs2;
         } rd_rs1_rs2;
 
-        struct Rs1Rs2Imm
+        struct
         {
             uint8_t rs1;
             uint8_t rs2;
             int32_t imm;
         } rs1_rs2_imm;
 
-        struct RdRs1Rs2Rs3Rm
+        struct
         {
             uint8_t rd;
             uint8_t rs1;
@@ -64,14 +64,14 @@ struct DecodedInstruction
             uint8_t rm;
         } rd_rs1_rs2_rs3_rm;
 
-        struct RdRs1Rm
+        struct
         {
             uint8_t rd;
             uint8_t rs1;
             uint8_t rm;
         } rd_rs1_rm;
 
-        struct RdRs1Rs2Rm
+        struct
         {
             uint8_t rd;
             uint8_t rs1;
