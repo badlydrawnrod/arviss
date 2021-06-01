@@ -16,6 +16,12 @@ struct DecodedInstruction
     ExecFn opcode;
     union
     {
+        struct Fdr
+        {
+            uint32_t cacheLine;
+            uint32_t index;
+        } fdr;
+
         struct RdImm
         {
             uint8_t rd;

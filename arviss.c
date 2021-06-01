@@ -34,12 +34,40 @@ static char* fabiNames[] = {"ft0", "ft1", "ft2", "ft3", "ft4",  "ft5",  "ft6", "
 static char* roundingModes[] = {"rne", "rtz", "rdn", "rup", "rmm", "reserved5", "reserved6", "dyn"};
 #endif
 
+DecodedInstruction ArvissDecode(uint32_t instruction);
+
 static inline ArvissResult TakeTrap(ArvissCpu* cpu, ArvissResult result);
 static inline ArvissResult CreateTrap(ArvissCpu* cpu, ArvissTrapType trap, uint32_t value);
 
 ArvissResult Exec_IllegalInstruction(ArvissCpu* cpu, DecodedInstruction ins)
 {
     return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins.ins);
+}
+
+ArvissResult Exec_FetchDecodeReplace(ArvissCpu* cpu, DecodedInstruction ins)
+{
+    // Reconstitute the address given the cache line and index.
+    const uint32_t cacheLine = ins.fdr.cacheLine;
+    const uint32_t index = ins.fdr.index;
+    struct CacheLine* line = &cpu->cache.line[cacheLine];
+    const uint32_t owner = line->owner;
+    const uint32_t addr = owner * 4 * CACHE_LINE_LENGTH + index * 4;
+
+    // Fetch a word from memory at the address.
+    ArvissResult result = ArvissReadWord(cpu->memory, addr);
+
+    // Decode it, save the result in the cache, then execute it.
+    if (ArvissResultIsWord(result))
+    {
+        uint32_t instruction = ArvissResultAsWord(result);
+        DecodedInstruction decoded = ArvissDecode(instruction);
+        line->instructions[index] = decoded;
+
+        // Execute the decoded instruction.
+        result = decoded.opcode(cpu, decoded);
+    }
+
+    return result;
 }
 
 ArvissResult Exec_Lui(ArvissCpu* cpu, DecodedInstruction ins)
@@ -923,6 +951,11 @@ static inline DecodedInstruction MkTrap(ExecFn opcode, uint32_t instruction)
     return (DecodedInstruction){.opcode = opcode, .ins = instruction};
 }
 
+static inline DecodedInstruction MkFetchDecodeReplace(ExecFn opcode, uint32_t cacheLine, uint32_t index)
+{
+    return (DecodedInstruction){.opcode = opcode, .fdr = {.cacheLine = cacheLine, .index = index}};
+}
+
 static inline DecodedInstruction MkRdImm(ExecFn opcode, uint8_t rd, int32_t imm)
 {
     return (DecodedInstruction){.opcode = opcode, .rd_imm = {.rd = rd, .imm = imm}};
@@ -1557,15 +1590,14 @@ DecodedInstruction FetchFromCache(ArvissCpu* cpu)
     const uint32_t cacheLine = owner % CACHE_LINES;
     const uint32_t lineIndex = (addr / 4) % CACHE_LINE_LENGTH;
     struct CacheLine* line = &cpu->cache.line[cacheLine];
-    if (!line->isValid || owner != line->owner)
+    if (owner != line->owner || !line->isValid)
     {
-        const uint32_t start = addr - (lineIndex * 4);
+        // Initialise this cache line with fetch/decode/replace operations which, when called, replace themselves with a decoded
+        // version of the instruction at the corresponding address. This way we don't incur an overhead for decoding instructions
+        // that are never run.
         for (uint32_t i = 0u; i < CACHE_LINE_LENGTH; i++)
         {
-            ArvissResult result = ArvissReadWord(cpu->memory, start + (4 * i));
-            uint32_t instruction = ArvissResultAsWord(result);
-            DecodedInstruction decoded = ArvissDecode(instruction);
-            line->instructions[i] = decoded;
+            line->instructions[i] = MkFetchDecodeReplace(Exec_FetchDecodeReplace, cacheLine, i);
         }
         line->isValid = true;
         line->owner = owner;

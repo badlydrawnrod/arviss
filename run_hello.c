@@ -21,7 +21,7 @@ int main(void)
     printf("Read %zd bytes\n", count);
     fclose(fp);
 
-    for (int i = 0; i < 100000; i++)
+    for (int i = 0; i < 1000000; i++)
     {
         // Run the program, n instructions at a time.
         ArvissReset(&cpu, 0);
