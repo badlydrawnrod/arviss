@@ -1583,7 +1583,7 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
     return decoded.opcode(cpu, decoded);
 }
 
-static DecodedInstruction FetchFromCache(ArvissCpu* cpu)
+static DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
 {
     const uint32_t addr = cpu->pc;
     const uint32_t owner = ((addr / 4) / CACHE_LINE_LENGTH);
@@ -1602,7 +1602,7 @@ static DecodedInstruction FetchFromCache(ArvissCpu* cpu)
         line->isValid = true;
         line->owner = owner;
     }
-    return line->instructions[lineIndex];
+    return &line->instructions[lineIndex];
 }
 
 ArvissResult ArvissRun(ArvissCpu* cpu, int count)
@@ -1610,8 +1610,8 @@ ArvissResult ArvissRun(ArvissCpu* cpu, int count)
     ArvissResult result = ArvissMakeOk();
     for (int i = 0; i < count; i++)
     {
-        DecodedInstruction decoded = FetchFromCache(cpu);
-        result = decoded.opcode(cpu, decoded);
+        DecodedInstruction* decoded = FetchFromCache(cpu);
+        result = (*decoded).opcode(cpu, *decoded);
 
         if (ArvissResultIsTrap(result))
         {
