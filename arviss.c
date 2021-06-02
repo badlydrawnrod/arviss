@@ -1583,7 +1583,7 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
     return decoded.opcode(cpu, &decoded);
 }
 
-static DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
+static inline DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
 {
     const uint32_t addr = cpu->pc;
     const uint32_t owner = ((addr / 4) / CACHE_LINE_LENGTH);
