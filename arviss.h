@@ -9,7 +9,7 @@ typedef struct DecodedInstruction DecodedInstruction;
 
 typedef struct ArvissCpu ArvissCpu;
 
-typedef ArvissResult (*ExecFn)(ArvissCpu* cpu, DecodedInstruction ins);
+typedef ArvissResult (*ExecFn)(ArvissCpu* cpu, const DecodedInstruction* ins);
 
 struct DecodedInstruction
 {
@@ -97,8 +97,6 @@ typedef struct DecodedCache
 } DecodedCache;
 
 typedef struct ArvissCpu ArvissCpu;
-
-typedef ArvissResult (*ExecFn)(ArvissCpu* cpu, DecodedInstruction ins);
 
 struct ArvissCpu
 {
