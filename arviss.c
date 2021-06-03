@@ -39,12 +39,12 @@ DecodedInstruction ArvissDecode(uint32_t instruction);
 static inline ArvissResult TakeTrap(ArvissCpu* cpu, ArvissResult result);
 static inline ArvissResult CreateTrap(ArvissCpu* cpu, ArvissTrapType trap, uint32_t value);
 
-static ArvissResult Exec_IllegalInstruction(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_IllegalInstruction(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
-    return CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins->ins);
+    cpu->result = CreateTrap(cpu, trILLEGAL_INSTRUCTION, ins->ins);
 }
 
-static ArvissResult Exec_FetchDecodeReplace(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_FetchDecodeReplace(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // Reconstitute the address given the cache line and index.
     const uint32_t cacheLine = ins->fdr.cacheLine;
@@ -64,43 +64,42 @@ static ArvissResult Exec_FetchDecodeReplace(ArvissCpu* cpu, const DecodedInstruc
         line->instructions[index] = decoded;
 
         // Execute the decoded instruction.
-        result = decoded.opcode(cpu, &decoded);
+        decoded.opcode(cpu, &decoded);
     }
-
-    return result;
+    else
+    {
+        cpu->result = result;
+    }
 }
 
-static ArvissResult Exec_Lui(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Lui(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- imm_u, pc += 4
     TRACE("LUI %s, %d\n", abiNames[ins->rd_imm.rd], ins->rd_imm.imm >> 12);
     cpu->xreg[ins->rd_imm.rd] = ins->rd_imm.imm;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Auipc(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Auipc(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- pc + imm_u, pc += 4
-    TRACE("AUIPC %s, %d\n", abiNames[ins->rd_imm.rd], upper >> 12);
+    TRACE("AUIPC %s, %d\n", abiNames[ins->rd_imm.rd], ins->rd_imm.imm >> 12);
     cpu->xreg[ins->rd_imm.rd] = cpu->pc + ins->rd_imm.imm;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Jal(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Jal(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- pc + 4, pc <- pc + imm_j
-    TRACE("JAL %s, %d\n", abiNames[ins->rd_imm.rd], imm);
+    TRACE("JAL %s, %d\n", abiNames[ins->rd_imm.rd], ins->rd_imm.imm);
     cpu->xreg[ins->rd_imm.rd] = cpu->pc + 4;
     cpu->pc += ins->rd_imm.imm;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Jalr(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Jalr(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- pc + 4, pc <- (rs1 + imm_i) & ~1
     TRACE("JALR %s, %s, %d\n", abiNames[ins->rd_rs1_imm.rd], abiNames[ins->rd_rs1_imm.rs1], ins->rd_rs1_imm.imm);
@@ -108,134 +107,126 @@ static ArvissResult Exec_Jalr(ArvissCpu* cpu, const DecodedInstruction* ins)
     cpu->xreg[ins->rd_rs1_imm.rd] = cpu->pc + 4;
     cpu->pc = (rs1Before + ins->rd_rs1_imm.imm) & ~1;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Beq(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Beq(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // pc <- pc + ((rs1 == rs2) ? imm_b : 4)
     TRACE("BEQ %s, %s, %d\n", abiNames[ins->rs1_rs2_imm.rs1], abiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm);
     cpu->pc += ((cpu->xreg[ins->rs1_rs2_imm.rs1] == cpu->xreg[ins->rs1_rs2_imm.rs2]) ? ins->rs1_rs2_imm.imm : 4);
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Bne(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Bne(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // pc <- pc + ((rs1 != rs2) ? imm_b : 4)
     TRACE("BNE %s, %s, %d\n", abiNames[ins->rs1_rs2_imm.rs1], abiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm);
     cpu->pc += ((cpu->xreg[ins->rs1_rs2_imm.rs1] != cpu->xreg[ins->rs1_rs2_imm.rs2]) ? ins->rs1_rs2_imm.imm : 4);
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Blt(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Blt(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // pc <- pc + ((rs1 < rs2) ? imm_b : 4)
     TRACE("BLT %s, %s, %d\n", abiNames[ins->rs1_rs2_imm.rs1], abiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm);
     cpu->pc += (((int32_t)cpu->xreg[ins->rs1_rs2_imm.rs1] < (int32_t)cpu->xreg[ins->rs1_rs2_imm.rs2]) ? ins->rs1_rs2_imm.imm : 4);
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Bge(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Bge(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // pc <- pc + ((rs1 >= rs2) ? imm_b : 4)
     TRACE("BGE %s, %s, %d\n", abiNames[ins->rs1_rs2_imm.rs1], abiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm);
     cpu->pc += (((int32_t)cpu->xreg[ins->rs1_rs2_imm.rs1] >= (int32_t)cpu->xreg[ins->rs1_rs2_imm.rs2]) ? ins->rs1_rs2_imm.imm : 4);
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Bltu(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Bltu(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // pc <- pc + ((rs1 < rs2) ? imm_b : 4)
     TRACE("BLTU %s, %s, %d\n", abiNames[ins->rs1_rs2_imm.rs1], abiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm);
     cpu->pc += ((cpu->xreg[ins->rs1_rs2_imm.rs1] < cpu->xreg[ins->rs1_rs2_imm.rs2]) ? ins->rs1_rs2_imm.imm : 4);
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Bgeu(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Bgeu(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // pc <- pc + ((rs1 >= rs2) ? imm_b : 4)
     TRACE("BGEU %s, %s, %d\n", abiNames[ins->rs1_rs2_imm.rs1], abiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm);
     cpu->pc += ((cpu->xreg[ins->rs1_rs2_imm.rs1] >= cpu->xreg[ins->rs1_rs2_imm.rs2]) ? ins->rs1_rs2_imm.imm : 4);
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Lb(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Lb(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- sx(m8(rs1 + imm_i)), pc += 4
-    TRACE("LB %s, %d(%s)\n", abiNames[ins->rd_rs1_imm.rd], imm, abiNames[ins->rd_rs1_imm.rs1]);
+    TRACE("LB %s, %d(%s)\n", abiNames[ins->rd_rs1_imm.rd], ins->rd_rs1_imm.imm, abiNames[ins->rd_rs1_imm.rs1]);
     ArvissResult byteResult = ArvissReadByte(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm);
     if (!ArvissResultIsByte(byteResult))
     {
-        return TakeTrap(cpu, byteResult);
+        cpu->result = TakeTrap(cpu, byteResult);
+        return;
     }
     cpu->xreg[ins->rd_rs1_imm.rd] = (int32_t)(int16_t)(int8_t)ArvissResultAsByte(byteResult);
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Lh(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Lh(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- sx(m16(rs1 + imm_i)), pc += 4
     TRACE("LH %s, %d(%s)\n", abiNames[ins->rd_rs1_imm.rd], ins->rd_rs1_imm.imm, abiNames[ins->rd_rs1_imm.rs1]);
     ArvissResult halfwordResult = ArvissReadHalfword(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm);
     if (!ArvissResultIsHalfword(halfwordResult))
     {
-        TakeTrap(cpu, halfwordResult);
-        return halfwordResult;
+        cpu->result = TakeTrap(cpu, halfwordResult);
+        return;
     }
     cpu->xreg[ins->rd_rs1_imm.rd] = (int32_t)(int16_t)ArvissResultAsHalfword(halfwordResult);
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Lw(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Lw(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- sx(m32(rs1 + imm_i)), pc += 4
     TRACE("LW %s, %d(%s)\n", abiNames[ins->rd_rs1_imm.rd], ins->rd_rs1_imm.imm, abiNames[ins->rd_rs1_imm.rs1]);
     ArvissResult wordResult = ArvissReadWord(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm);
     if (!ArvissResultIsWord(wordResult))
     {
-        return TakeTrap(cpu, wordResult);
+        cpu->result = TakeTrap(cpu, wordResult);
+        return;
     }
     cpu->xreg[ins->rd_rs1_imm.rd] = (int32_t)ArvissResultAsWord(wordResult);
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Lbu(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Lbu(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- zx(m8(rs1 + imm_i)), pc += 4
     TRACE("LBU x%d, %d(x%d)\n", ins->rd_rs1_imm.rd, ins->rd_rs1_imm.imm, ins->rd_rs1_imm.rs1);
     ArvissResult byteResult = ArvissReadByte(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm);
     if (!ArvissResultIsByte(byteResult))
     {
-        return TakeTrap(cpu, byteResult);
+        cpu->result = TakeTrap(cpu, byteResult);
+        return;
     }
     cpu->xreg[ins->rd_rs1_imm.rd] = ArvissResultAsByte(byteResult);
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Lhu(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Lhu(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- zx(m16(rs1 + imm_i)), pc += 4
     TRACE("LHU %s, %d(%s)\n", abiNames[ins->rd_rs1_imm.rd], ins->rd_rs1_imm.imm, abiNames[ins->rd_rs1_imm.rs1]);
     ArvissResult halfwordResult = ArvissReadHalfword(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm);
     if (!ArvissResultIsHalfword(halfwordResult))
     {
-        return TakeTrap(cpu, halfwordResult);
+        cpu->result = TakeTrap(cpu, halfwordResult);
+        return;
     }
     cpu->xreg[ins->rd_rs1_imm.rd] = ArvissResultAsHalfword(halfwordResult);
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Sb(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Sb(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // m8(rs1 + imm_s) <- rs2[7:0], pc += 4
     TRACE("SB %s, %d(%s)\n", abiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm, abiNames[ins->rs1_rs2_imm.rs1]);
@@ -243,13 +234,13 @@ static ArvissResult Exec_Sb(ArvissCpu* cpu, const DecodedInstruction* ins)
                                               cpu->xreg[ins->rs1_rs2_imm.rs2] & 0xff);
     if (ArvissResultIsTrap(byteResult))
     {
-        return TakeTrap(cpu, byteResult);
+        cpu->result = TakeTrap(cpu, byteResult);
+        return;
     }
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Sh(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Sh(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // m16(rs1 + imm_s) <- rs2[15:0], pc += 4
     TRACE("SH %s, %d(%s)\n", abiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm, abiNames[ins->rs1_rs2_imm.rs1]);
@@ -257,13 +248,13 @@ static ArvissResult Exec_Sh(ArvissCpu* cpu, const DecodedInstruction* ins)
                                                       cpu->xreg[ins->rs1_rs2_imm.rs2] & 0xffff);
     if (ArvissResultIsTrap(halfwordResult))
     {
-        return TakeTrap(cpu, halfwordResult);
+        cpu->result = TakeTrap(cpu, halfwordResult);
+        return;
     }
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Sw(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Sw(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // m32(rs1 + imm_s) <- rs2[31:0], pc += 4
     TRACE("SW %s, %d(%s)\n", abiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm, abiNames[ins->rs1_rs2_imm.rs1]);
@@ -271,171 +262,155 @@ static ArvissResult Exec_Sw(ArvissCpu* cpu, const DecodedInstruction* ins)
             ArvissWriteWord(cpu->memory, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm, cpu->xreg[ins->rs1_rs2_imm.rs2]);
     if (ArvissResultIsTrap(wordResult))
     {
-        return TakeTrap(cpu, wordResult);
+        cpu->result = TakeTrap(cpu, wordResult);
+        return;
     }
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Addi(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Addi(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 + imm_i, pc += 4
     TRACE("ADDI %s, %s, %d\n", abiNames[ins->rd_rs1_imm.rd], abiNames[ins->rd_rs1_imm.rs1], ins->rd_rs1_imm.imm);
     cpu->xreg[ins->rd_rs1_imm.rd] = cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Slti(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Slti(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- (rs1 < imm_i) ? 1 : 0, pc += 4
     TRACE("SLTI %s, %s, %d\n", abiNames[ins->rd_rs1_imm.rd], abiNames[ins->rd_rs1_imm.rs1], ins->rd_rs1_imm.imm);
     cpu->xreg[ins->rd_rs1_imm.rd] = ((int32_t)cpu->xreg[ins->rd_rs1_imm.rs1] < ins->rd_rs1_imm.imm) ? 1 : 0;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Sltiu(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Sltiu(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- (rs1 < imm_i) ? 1 : 0, pc += 4
     TRACE("SLTIU %s, %s, %d\n", abiNames[ins->rd_rs1_imm.rd], abiNames[ins->rd_rs1_imm.rs1], ins->rd_rs1_imm.imm);
     cpu->xreg[ins->rd_rs1_imm.rd] = (cpu->xreg[ins->rd_rs1_imm.rs1] < (uint32_t)ins->rd_rs1_imm.imm) ? 1 : 0;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Xori(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Xori(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 ^ imm_i, pc += 4
     TRACE("XORI %s, %s, %d\n", abiNames[ins->rd_rs1_imm.rd], abiNames[ins->rd_rs1_imm.rs1], ins->rd_rs1_imm.imm);
     cpu->xreg[ins->rd_rs1_imm.rd] = cpu->xreg[ins->rd_rs1_imm.rs1] ^ ins->rd_rs1_imm.imm;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Ori(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Ori(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 | imm_i, pc += 4
     TRACE("ORI %s, %s, %d\n", abiNames[ins->rd_rs1_imm.rd], abiNames[ins->rd_rs1_imm.rs1], ins->rd_rs1_imm.imm);
     cpu->xreg[ins->rd_rs1_imm.rd] = cpu->xreg[ins->rd_rs1_imm.rs1] | ins->rd_rs1_imm.imm;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Andi(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Andi(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 & imm_i, pc += 4
     TRACE("ANDI %s, %s, %d\n", abiNames[ins->rd_rs1_imm.rd], abiNames[ins->rd_rs1_imm.rs1], ins->rd_rs1_imm.imm);
     cpu->xreg[ins->rd_rs1_imm.rd] = cpu->xreg[ins->rd_rs1_imm.rs1] & ins->rd_rs1_imm.imm;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Slli(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Slli(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     TRACE("SLLI %s, %s, %d\n", abiNames[ins->rd_rs1_imm.rd], abiNames[ins->rd_rs1_imm.rs1], ins->rd_rs1_imm.imm);
     cpu->xreg[ins->rd_rs1_imm.rd] = cpu->xreg[ins->rd_rs1_imm.rs1] << ins->rd_rs1_imm.imm;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Srli(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Srli(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 >> shamt_i, pc += 4
-    TRACE("SRLI %s, %s, %d\n", abiNames[ins->rd_rs1_imm.rd], abiNames[ins->rd_rs1_imm.rs1], immins.rd_rs1_imm.);
+    TRACE("SRLI %s, %s, %d\n", abiNames[ins->rd_rs1_imm.rd], abiNames[ins->rd_rs1_imm.rs1], ins->rd_rs1_imm.imm);
     cpu->xreg[ins->rd_rs1_imm.rd] = cpu->xreg[ins->rd_rs1_imm.rs1] >> ins->rd_rs1_imm.imm;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Srai(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Srai(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 >> shamt_i, pc += 4
     TRACE("SRAI %s, %s, %d\n", abiNames[ins->rd_rs1_imm.rd], abiNames[ins->rd_rs1_imm.rs1], ins->rd_rs1_imm.imm);
     cpu->xreg[ins->rd_rs1_imm.rd] = (int32_t)cpu->xreg[ins->rd_rs1_imm.rs1] >> ins->rd_rs1_imm.imm;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Add(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Add(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 + rs2, pc += 4
     TRACE("ADD %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     cpu->xreg[ins->rd_rs1_rs2.rd] = cpu->xreg[ins->rd_rs1_rs2.rs1] + cpu->xreg[ins->rd_rs1_rs2.rs2];
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Sub(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Sub(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 - rs2, pc += 4
     TRACE("SUB %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     cpu->xreg[ins->rd_rs1_rs2.rd] = cpu->xreg[ins->rd_rs1_rs2.rs1] - cpu->xreg[ins->rd_rs1_rs2.rs2];
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Mul(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Mul(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     TRACE("MUL %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     cpu->xreg[ins->rd_rs1_rs2.rd] = cpu->xreg[ins->rd_rs1_rs2.rs1] * cpu->xreg[ins->rd_rs1_rs2.rs2];
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Sll(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Sll(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 << (rs2 % XLEN), pc += 4
     TRACE("SLL %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     cpu->xreg[ins->rd_rs1_rs2.rd] = cpu->xreg[ins->rd_rs1_rs2.rs1] << (cpu->xreg[ins->rd_rs1_rs2.rs2] % 32);
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Mulh(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Mulh(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     TRACE("MULH %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     int64_t t = (int64_t)(int32_t)cpu->xreg[ins->rd_rs1_rs2.rs1] * (int64_t)(int32_t)cpu->xreg[ins->rd_rs1_rs2.rs2];
     cpu->xreg[ins->rd_rs1_rs2.rd] = t >> 32;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Slt(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Slt(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- (rs1 < rs2) ? 1 : 0, pc += 4
     TRACE("SLT %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     cpu->xreg[ins->rd_rs1_rs2.rd] = ((int32_t)cpu->xreg[ins->rd_rs1_rs2.rs1] < (int32_t)cpu->xreg[ins->rd_rs1_rs2.rs2]) ? 1 : 0;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Mulhsu(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Mulhsu(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     TRACE("MULHSU %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     int64_t t = (int64_t)(int32_t)cpu->xreg[ins->rd_rs1_rs2.rs1] * (uint64_t)cpu->xreg[ins->rd_rs1_rs2.rs2];
     cpu->xreg[ins->rd_rs1_rs2.rd] = t >> 32;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Sltu(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Sltu(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- (rs1 < rs2) ? 1 : 0, pc += 4
     TRACE("SLTU %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
@@ -443,30 +418,27 @@ static ArvissResult Exec_Sltu(ArvissCpu* cpu, const DecodedInstruction* ins)
     cpu->pc += 4;
     cpu->xreg[0] = 0;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Mulhu(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Mulhu(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     TRACE("MULHU %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     uint64_t t = (uint64_t)cpu->xreg[ins->rd_rs1_rs2.rs1] * (uint64_t)cpu->xreg[ins->rd_rs1_rs2.rs2];
     cpu->xreg[ins->rd_rs1_rs2.rd] = t >> 32;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Xor(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Xor(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 ^ rs2, pc += 4
     TRACE("XOR %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     cpu->xreg[ins->rd_rs1_rs2.rd] = cpu->xreg[ins->rd_rs1_rs2.rs1] ^ cpu->xreg[ins->rd_rs1_rs2.rs2];
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Div(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Div(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     TRACE("DIV %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     const int32_t dividend = (int32_t)cpu->xreg[ins->rd_rs1_rs2.rs1];
@@ -485,50 +457,45 @@ static ArvissResult Exec_Div(ArvissCpu* cpu, const DecodedInstruction* ins)
     }
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Srl(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Srl(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 >> (rs2 % XLEN), pc += 4
     TRACE("SRL %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     cpu->xreg[ins->rd_rs1_rs2.rd] = cpu->xreg[ins->rd_rs1_rs2.rs1] >> (cpu->xreg[ins->rd_rs1_rs2.rs2] % 32);
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Sra(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Sra(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 >> (rs2 % XLEN), pc += 4
     TRACE("SRA %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     cpu->xreg[ins->rd_rs1_rs2.rd] = (int32_t)cpu->xreg[ins->rd_rs1_rs2.rs1] >> (cpu->xreg[ins->rd_rs1_rs2.rs2] % 32);
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Divu(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Divu(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     TRACE("DIVU %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     uint32_t divisor = cpu->xreg[ins->rd_rs1_rs2.rs2];
     cpu->xreg[ins->rd_rs1_rs2.rd] = divisor != 0 ? cpu->xreg[ins->rd_rs1_rs2.rs1] / divisor : 0xffffffff;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Or(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Or(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 | rs2, pc += 4
     TRACE("OR %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     cpu->xreg[ins->rd_rs1_rs2.rd] = cpu->xreg[ins->rd_rs1_rs2.rs1] | cpu->xreg[ins->rd_rs1_rs2.rs2];
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Rem(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Rem(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     TRACE("REM %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     const int32_t dividend = (int32_t)cpu->xreg[ins->rd_rs1_rs2.rs1];
@@ -547,20 +514,18 @@ static ArvissResult Exec_Rem(ArvissCpu* cpu, const DecodedInstruction* ins)
     }
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_And(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_And(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 & rs2, pc += 4
     TRACE("AND %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     cpu->xreg[ins->rd_rs1_rs2.rd] = cpu->xreg[ins->rd_rs1_rs2.rs1] & cpu->xreg[ins->rd_rs1_rs2.rs2];
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Remu(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Remu(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     TRACE("REMU %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], abiNames[ins->rd_rs1_rs2.rs1], abiNames[ins->rd_rs1_rs2.rs2]);
     const uint32_t dividend = cpu->xreg[ins->rd_rs1_rs2.rs1];
@@ -568,81 +533,79 @@ static ArvissResult Exec_Remu(ArvissCpu* cpu, const DecodedInstruction* ins)
     cpu->xreg[ins->rd_rs1_rs2.rd] = divisor != 0 ? cpu->xreg[ins->rd_rs1_rs2.rs1] % divisor : dividend;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fence(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fence(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     TRACE("FENCE\n");
-    return CreateTrap(cpu, trNOT_IMPLEMENTED_YET, 0);
+    cpu->result = CreateTrap(cpu, trNOT_IMPLEMENTED_YET, 0);
 }
 
-static ArvissResult Exec_Ecall(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Ecall(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     TRACE("ECALL\n");
-    return CreateTrap(cpu, trENVIRONMENT_CALL_FROM_M_MODE, 0);
+    cpu->result = CreateTrap(cpu, trENVIRONMENT_CALL_FROM_M_MODE, 0);
 }
 
-static ArvissResult Exec_Ebreak(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Ebreak(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     TRACE("EBREAK\n");
-    return CreateTrap(cpu, trBREAKPOINT, 0); // TODO: what should value be here?
+    cpu->result = CreateTrap(cpu, trBREAKPOINT, 0); // TODO: what should value be here?
 }
 
-static ArvissResult Exec_Uret(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Uret(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     TRACE("URET\n");
     // TODO: Only provide this if user mode traps are supported, otherwise raise an illegal instruction exception.
-    return CreateTrap(cpu, trNOT_IMPLEMENTED_YET, 0);
+    cpu->result = CreateTrap(cpu, trNOT_IMPLEMENTED_YET, 0);
 }
 
-static ArvissResult Exec_Sret(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Sret(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     TRACE("SRET\n");
     // TODO: Only provide this if supervisor mode is supported, otherwise raise an illegal instruction exception.
-    return CreateTrap(cpu, trNOT_IMPLEMENTED_YET, 0);
+    cpu->result = CreateTrap(cpu, trNOT_IMPLEMENTED_YET, 0);
 }
 
-static ArvissResult Exec_Mret(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Mret(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // pc <- mepc, pc += 4
     TRACE("MRET\n");
     cpu->pc = cpu->mepc; // Restore the program counter from the machine exception program counter.
     cpu->pc += 4;        // ...and increment it as normal.
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Flw(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Flw(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- f32(rs1 + imm_i)
-    TRACE("FLW %s, %d(%s)\n", fabiNames[ins->rd_rs1_imm.rd], imm, abiNames[ins->rd_rs1_imm.rs1]);
+    TRACE("FLW %s, %d(%s)\n", fabiNames[ins->rd_rs1_imm.rd], ins->rd_rs1_imm.imm, abiNames[ins->rd_rs1_imm.rs1]);
     ArvissResult wordResult = ArvissReadWord(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm);
     if (!ArvissResultIsWord(wordResult))
     {
-        return TakeTrap(cpu, wordResult);
+        cpu->result = TakeTrap(cpu, wordResult);
+        return;
     }
     const uint32_t resultAsWord = ArvissResultAsWord(wordResult);
     const float resultAsFloat = U32AsFloat(resultAsWord);
     cpu->freg[ins->rd_rs1_imm.rd] = resultAsFloat;
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fsw(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fsw(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // f32(rs1 + imm_s) = rs2
-    TRACE("FSW %s, %d(%s)\n", fabiNames[ins->rs1_rs2_imm.rs2], imm, abiNames[ins->rs1_rs2_imm.rs1]);
+    TRACE("FSW %s, %d(%s)\n", fabiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm, abiNames[ins->rs1_rs2_imm.rs1]);
     uint32_t t = FloatAsU32(cpu->freg[ins->rs1_rs2_imm.rs2]);
     ArvissResult wordResult = ArvissWriteWord(cpu->memory, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm, t);
     if (ArvissResultIsTrap(wordResult))
     {
-        return TakeTrap(cpu, wordResult);
+        cpu->result = TakeTrap(cpu, wordResult);
+        return;
     }
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fmadd_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fmadd_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- (rs1 * rs2) + rs3
     TRACE("FMADD.S %s, %s, %s, %s, %s\n", fabiNames[ins->rd_rs1_rs2_rs3_rm.rd], fabiNames[ins->rd_rs1_rs2_rs3_rm.rs1],
@@ -651,10 +614,9 @@ static ArvissResult Exec_Fmadd_s(ArvissCpu* cpu, const DecodedInstruction* ins)
             (cpu->freg[ins->rd_rs1_rs2_rs3_rm.rs1] * cpu->freg[ins->rd_rs1_rs2_rs3_rm.rs2]) + cpu->freg[ins->rd_rs1_rs2_rs3_rm.rs3];
     cpu->pc += 4;
     // TODO: rounding.
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fmsub_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fmsub_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- (rs1 x rs2) - rs3
     TRACE("FMSUB.S %s, %s, %s, %s, %s\n", fabiNames[ins->rd_rs1_rs2_rs3_rm.rd], fabiNames[ins->rd_rs1_rs2_rs3_rm.rs1],
@@ -663,10 +625,9 @@ static ArvissResult Exec_Fmsub_s(ArvissCpu* cpu, const DecodedInstruction* ins)
             (cpu->freg[ins->rd_rs1_rs2_rs3_rm.rs1] * cpu->freg[ins->rd_rs1_rs2_rs3_rm.rs2]) - cpu->freg[ins->rd_rs1_rs2_rs3_rm.rs3];
     cpu->pc += 4;
     // TODO: rounding.
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fnmsub_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fnmsub_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- -(rs1 x rs2) + rs3
     TRACE("FNMSUB.S %s, %s, %s, %s, %s\n", fabiNames[ins->rd_rs1_rs2_rs3_rm.rd], fabiNames[ins->rd_rs1_rs2_rs3_rm.rs1],
@@ -675,10 +636,9 @@ static ArvissResult Exec_Fnmsub_s(ArvissCpu* cpu, const DecodedInstruction* ins)
             + cpu->freg[ins->rd_rs1_rs2_rs3_rm.rs3];
     cpu->pc += 4;
     // TODO: rounding.
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fnmadd_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fnmadd_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- -(rs1 x rs2) - rs3
     TRACE("FNMADD.S %s, %s, %s, %s, %s\n", fabiNames[ins->rd_rs1_rs2_rs3_rm.rd], fabiNames[ins->rd_rs1_rs2_rs3_rm.rs1],
@@ -687,10 +647,9 @@ static ArvissResult Exec_Fnmadd_s(ArvissCpu* cpu, const DecodedInstruction* ins)
             - cpu->freg[ins->rd_rs1_rs2_rs3_rm.rs3];
     cpu->pc += 4;
     // TODO: rounding.
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fadd_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fadd_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 + rs2
     TRACE("FADD.S %s, %s, %s, %s\n", fabiNames[ins->rd_rs1_rs2_rm.rd], fabiNames[ins->rd_rs1_rs2_rm.rs1],
@@ -698,10 +657,9 @@ static ArvissResult Exec_Fadd_s(ArvissCpu* cpu, const DecodedInstruction* ins)
     cpu->freg[ins->rd_rs1_rs2_rm.rd] = cpu->freg[ins->rd_rs1_rs2_rm.rs1] + cpu->freg[ins->rd_rs1_rs2_rm.rs2];
     cpu->pc += 4;
     // TODO: rounding.
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fsub_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fsub_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 - rs2
     TRACE("FSUB.S %s, %s, %s, %s\n", fabiNames[ins->rd_rs1_rs2_rm.rd], fabiNames[ins->rd_rs1_rs2_rm.rs1],
@@ -709,10 +667,9 @@ static ArvissResult Exec_Fsub_s(ArvissCpu* cpu, const DecodedInstruction* ins)
     cpu->freg[ins->rd_rs1_rs2_rm.rd] = cpu->freg[ins->rd_rs1_rs2_rm.rs1] - cpu->freg[ins->rd_rs1_rs2_rm.rs2];
     cpu->pc += 4;
     // TODO: rounding.
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fmul_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fmul_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 * rs2
     TRACE("FMUL.S %s, %s, %s, %s\n", fabiNames[ins->rd_rs1_rs2_rm.rd], fabiNames[ins->rd_rs1_rs2_rm.rs1],
@@ -720,10 +677,9 @@ static ArvissResult Exec_Fmul_s(ArvissCpu* cpu, const DecodedInstruction* ins)
     cpu->freg[ins->rd_rs1_rs2_rm.rd] = cpu->freg[ins->rd_rs1_rs2_rm.rs1] * cpu->freg[ins->rd_rs1_rs2_rm.rs2];
     cpu->pc += 4;
     // TODO: rounding.
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fdiv_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fdiv_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- rs1 / rs2
     TRACE("FDIV.S %s, %s, %s, %s\n", fabiNames[ins->rd_rs1_rs2_rm.rd], fabiNames[ins->rd_rs1_rs2_rm.rs1],
@@ -731,38 +687,34 @@ static ArvissResult Exec_Fdiv_s(ArvissCpu* cpu, const DecodedInstruction* ins)
     cpu->freg[ins->rd_rs1_rs2_rm.rd] = cpu->freg[ins->rd_rs1_rs2_rm.rs1] / cpu->freg[ins->rd_rs1_rs2_rm.rs2];
     cpu->pc += 4;
     // TODO: rounding.
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fsqrt_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fsqrt_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- sqrt(rs1)
     TRACE("FSQRT.S %s, %s, %s\n", fabiNames[ins->rd_rs1_rm.rd], fabiNames[ins->rd_rs1_rm.rs1], roundingModes[ins->rd_rs1_rm.rm]);
     cpu->freg[ins->rd_rs1_rm.rd] = sqrtf(cpu->freg[ins->rd_rs1_rm.rs1]);
     cpu->pc += 4;
     // TODO: rounding.
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fsgnj_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fsgnj_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- abs(rs1) * sgn(rs2)
     TRACE("FSGNJ.S %s, %s, %s\n", fabiNames[ins->rd_rs1_rs2.rd], fabiNames[ins->rd_rs1_rs2.rs1], fabiNames[ins->rd_rs1_rs2.rs2]);
     cpu->freg[ins->rd_rs1_rs2.rd] = fabsf(cpu->freg[ins->rd_rs1_rs2.rs1]) * (cpu->freg[ins->rd_rs1_rs2.rs2] < 0.0f ? -1.0f : 1.0f);
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fsgnjn_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fsgnjn_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- abs(rs1) * -sgn(rs2)
     TRACE("FSGNJN.S %s, %s, %s\n", fabiNames[ins->rd_rs1_rs2.rd], fabiNames[ins->rd_rs1_rs2.rs1], fabiNames[ins->rd_rs1_rs2.rs2]);
     cpu->freg[ins->rd_rs1_rs2.rd] = fabsf(cpu->freg[ins->rd_rs1_rs2.rs1]) * (cpu->freg[ins->rd_rs1_rs2.rs2] < 0.0f ? 1.0f : -1.0f);
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fsgnjx_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fsgnjx_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     float m; // The sign bit is the XOR of the sign bits of rs1 and rs2.
     if ((cpu->freg[ins->rd_rs1_rs2.rs1] < 0.0f && cpu->freg[ins->rd_rs1_rs2.rs2] >= 0.0f)
@@ -778,57 +730,51 @@ static ArvissResult Exec_Fsgnjx_s(ArvissCpu* cpu, const DecodedInstruction* ins)
     TRACE("FSGNJX.S %s, %s, %s\n", fabiNames[ins->rd_rs1_rs2.rd], fabiNames[ins->rd_rs1_rs2.rs1], fabiNames[ins->rd_rs1_rs2.rs2]);
     cpu->freg[ins->rd_rs1_rs2.rd] = fabsf(cpu->freg[ins->rd_rs1_rs2.rs1]) * m;
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fmin_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fmin_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- min(rs1, rs2)
     TRACE("FMIN.S %s, %s, %s\n", fabiNames[ins->rd_rs1_rs2.rd], fabiNames[ins->rd_rs1_rs2.rs1], fabiNames[ins->rd_rs1_rs2.rs2]);
     cpu->freg[ins->rd_rs1_rs2.rd] = fminf(cpu->freg[ins->rd_rs1_rs2.rs1], cpu->freg[ins->rd_rs1_rs2.rs2]);
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fmax_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fmax_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- max(rs1, rs2)
     TRACE("FMAX.S %s, %s, %s\n", fabiNames[ins->rd_rs1_rs2.rd], fabiNames[ins->rd_rs1_rs2.rs1], fabiNames[ins->rd_rs1_rs2.rs2]);
     cpu->freg[ins->rd_rs1_rs2.rd] = fmaxf(cpu->freg[ins->rd_rs1_rs2.rs1], cpu->freg[ins->rd_rs1_rs2.rs2]);
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fcvt_w_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fcvt_w_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- int32_t(rs1)
     TRACE("FCVT.W.S %s, %s, %s\n", abiNames[ins->rd_rs1_rm.rd], fabiNames[ins->rd_rs1_rm.rs1], roundingModes[ins->rd_rs1_rm.rm]);
     cpu->xreg[ins->rd_rs1_rm.rd] = (int32_t)cpu->freg[ins->rd_rs1_rm.rs1];
     cpu->pc += 4;
     // TODO: rounding.
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fcvt_wu_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fcvt_wu_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- uint32_t(rs1)
     TRACE("FCVT.WU.S %s, %s, %s\n", abiNames[ins->rd_rs1_rm.rd], fabiNames[ins->rd_rs1_rm.rs1], roundingModes[ins->rd_rs1_rm.rm]);
     cpu->xreg[ins->rd_rs1_rm.rd] = (uint32_t)(int32_t)cpu->freg[ins->rd_rs1_rm.rs1];
     cpu->pc += 4;
     // TODO: rounding.
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fmv_x_w(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fmv_x_w(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // bits(rd) <- bits(rs1)
     TRACE("FMV.X.W %s, %s\n", abiNames[ins->rd_rs1.rd], fabiNames[ins->rd_rs1.rs1]);
     cpu->xreg[ins->rd_rs1.rd] = FloatAsU32(cpu->freg[ins->rd_rs1.rs1]);
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fclass_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fclass_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     TRACE("FCLASS.S %s, %s\n", abiNames[ins->rd_rs1.rd], fabiNames[ins->rd_rs1.rs1]);
     const float v = cpu->freg[ins->rd_rs1.rs1];
@@ -882,63 +828,56 @@ static ArvissResult Exec_Fclass_s(ArvissCpu* cpu, const DecodedInstruction* ins)
     }
     cpu->xreg[ins->rd_rs1.rd] = result;
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Feq_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Feq_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- (rs1 == rs2) ? 1 : 0;
     TRACE("FEQ.S %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], fabiNames[ins->rd_rs1_rs2.rs1], fabiNames[ins->rd_rs1_rs2.rs2]);
     cpu->xreg[ins->rd_rs1_rs2.rd] = cpu->freg[ins->rd_rs1_rs2.rs1] == cpu->freg[ins->rd_rs1_rs2.rs2] ? 1 : 0;
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Flt_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Flt_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- (rs1 < rs2) ? 1 : 0;
     TRACE("FLT.S %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], fabiNames[ins->rd_rs1_rs2.rs1], fabiNames[ins->rd_rs1_rs2.rs2]);
     cpu->xreg[ins->rd_rs1_rs2.rd] = cpu->freg[ins->rd_rs1_rs2.rs1] < cpu->freg[ins->rd_rs1_rs2.rs2] ? 1 : 0;
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fle_s(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fle_s(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- (rs1 <= rs2) ? 1 : 0;
     TRACE("FLE.S %s, %s, %s\n", abiNames[ins->rd_rs1_rs2.rd], fabiNames[ins->rd_rs1_rs2.rs1], fabiNames[ins->rd_rs1_rs2.rs2]);
     cpu->xreg[ins->rd_rs1_rs2.rd] = cpu->freg[ins->rd_rs1_rs2.rs1] <= cpu->freg[ins->rd_rs1_rs2.rs2] ? 1 : 0;
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fcvt_s_w(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fcvt_s_w(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- float(int32_t((rs1))
     TRACE("FCVT.S.W %s, %s, %s\n", fabiNames[ins->rd_rs1_rm.rd], abiNames[ins->rd_rs1_rm.rs1], roundingModes[ins->rd_rs1_rm.rm]);
     cpu->freg[ins->rd_rs1_rm.rd] = (float)(int32_t)cpu->xreg[ins->rd_rs1_rm.rs1];
     cpu->pc += 4;
     // TODO: rounding.
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fcvt_s_wu(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fcvt_s_wu(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- float(rs1)
     TRACE("FVCT.S.WU %s, %s, %s\n", fabiNames[ins->rd_rs1_rm.rd], abiNames[ins->rd_rs1_rm.rs1], roundingModes[ins->rd_rs1_rm.rm]);
     cpu->freg[ins->rd_rs1_rm.rd] = (float)cpu->xreg[ins->rd_rs1_rm.rs1];
     cpu->pc += 4;
     // TODO: rounding.
-    return ArvissMakeOk();
 }
 
-static ArvissResult Exec_Fmv_w_x(ArvissCpu* cpu, const DecodedInstruction* ins)
+static void Exec_Fmv_w_x(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // bits(rd) <- bits(rs1)
     TRACE("FMV.W.X %s, %s\n", fabiNames[ins->rd_rs1.rd], abiNames[ins->rd_rs1.rs1]);
     cpu->freg[ins->rd_rs1.rd] = U32AsFloat(cpu->xreg[ins->rd_rs1.rs1]);
     cpu->pc += 4;
-    return ArvissMakeOk();
 }
 
 static inline DecodedInstruction MkNoArg(ExecFn opcode)
@@ -1095,6 +1034,7 @@ static inline ArvissResult CreateTrap(ArvissCpu* cpu, ArvissTrapType trap, uint3
 
 void ArvissReset(ArvissCpu* cpu, uint32_t sp)
 {
+    cpu->result = ArvissMakeOk();
     cpu->pc = 0;
     for (int i = 0; i < 32; i++)
     {
@@ -1580,7 +1520,8 @@ DecodedInstruction ArvissDecode(uint32_t instruction)
 ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
 {
     DecodedInstruction decoded = ArvissDecode(instruction);
-    return decoded.opcode(cpu, &decoded);
+    decoded.opcode(cpu, &decoded);
+    return cpu->result;
 }
 
 static inline DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
@@ -1607,17 +1548,17 @@ static inline DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
 
 ArvissResult ArvissRun(ArvissCpu* cpu, int count)
 {
-    ArvissResult result = ArvissMakeOk();
+    cpu->result = ArvissMakeOk();
     for (int i = 0; i < count; i++)
     {
         DecodedInstruction* decoded = FetchFromCache(cpu);
-        result = (*decoded).opcode(cpu, decoded);
+        (*decoded).opcode(cpu, decoded);
 
-        if (ArvissResultIsTrap(result))
+        if (ArvissResultIsTrap(cpu->result))
         {
             // Stop, as we can no longer proceeed.
             break;
         }
     }
-    return result;
+    return cpu->result;
 }
