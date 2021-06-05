@@ -1551,7 +1551,6 @@ static inline DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
 ArvissResult ArvissRun(ArvissCpu* cpu, int count)
 {
     cpu->result = ArvissMakeOk();
-    cpu->mc = mcOK;
     for (int i = 0; i < count; i++)
     {
         DecodedInstruction* decoded = FetchFromCache(cpu);
@@ -1560,6 +1559,7 @@ ArvissResult ArvissRun(ArvissCpu* cpu, int count)
         if (ArvissResultIsTrap(cpu->result))
         {
             // Stop, as we can no longer proceeed.
+            cpu->mc = mcOK;
             break;
         }
     }
