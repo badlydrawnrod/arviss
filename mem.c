@@ -43,7 +43,7 @@ static uint8_t ReadByte(const ArvissMemory* memory, uint32_t addr, MemoryCode* m
         return 0xff; // TODO: return a real status.
     }
 
-    *mc = mcLOAD_ACCESS_FAULT, addr;
+    *mc = mcLOAD_ACCESS_FAULT;
     return 0;
 }
 
@@ -56,7 +56,7 @@ static uint16_t ReadHalfword(const ArvissMemory* memory, uint32_t addr, MemoryCo
         return *base;
     }
 
-    *mc = mcLOAD_ACCESS_FAULT, addr;
+    *mc = mcLOAD_ACCESS_FAULT;
     return 0;
 }
 
