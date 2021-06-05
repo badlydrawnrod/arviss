@@ -44,30 +44,33 @@ static uint8_t ReadByte(const ArvissMemory* memory, uint32_t addr, MemoryCode* m
     }
 
     *mc = mcLOAD_ACCESS_FAULT, addr;
-    return -1;
+    return 0;
 }
 
 static uint16_t ReadHalfword(const ArvissMemory* memory, uint32_t addr, MemoryCode* mc)
 {
     if (addr >= membase && addr < membase + memsize - 1)
     {
-        return memory->mem[addr - membase] | (memory->mem[addr + 1 - membase] << 8);
+        // TODO: implement for big-endian ISAs.
+        const uint16_t* base = (uint16_t*)&memory->mem[addr - membase];
+        return *base;
     }
 
     *mc = mcLOAD_ACCESS_FAULT, addr;
-    return -1;
+    return 0;
 }
 
 static uint32_t ReadWord(const ArvissMemory* memory, uint32_t addr, MemoryCode* mc)
 {
     if (addr >= membase && addr < membase + memsize - 3)
     {
-        const uint8_t* base = &memory->mem[addr - membase];
-        return base[0] | (base[1] << 8) | (base[2] << 16) | (base[3] << 24);
+        // TODO: implement for big-endian ISAs.
+        const uint32_t* base = (uint32_t*)&memory->mem[addr - membase];
+        return *base;
     }
 
     *mc = mcLOAD_ACCESS_FAULT;
-    return -1;
+    return 0;
 }
 
 static void WriteByte(ArvissMemory* memory, uint32_t addr, uint8_t byte, MemoryCode* mc)
@@ -91,8 +94,9 @@ static void WriteHalfword(ArvissMemory* memory, uint32_t addr, uint16_t halfword
 {
     if (addr >= rambase && addr < rambase + ramsize - 1)
     {
-        memory->mem[addr - membase] = halfword & 0xff;
-        memory->mem[addr + 1 - membase] = (halfword >> 8) & 0xff;
+        // TODO: implement for big-endian ISAs.
+        uint16_t* base = (uint16_t*)&memory->mem[addr - membase];
+        *base = halfword;
         return;
     }
 
@@ -103,10 +107,9 @@ static void WriteWord(ArvissMemory* memory, uint32_t addr, uint32_t word, Memory
 {
     if (addr >= rambase && addr < rambase + ramsize - 2)
     {
-        memory->mem[addr - membase] = word & 0xff;
-        memory->mem[addr + 1 - membase] = (word >> 8) & 0xff;
-        memory->mem[addr + 2 - membase] = (word >> 16) & 0xff;
-        memory->mem[addr + 3 - membase] = (word >> 24) & 0xff;
+        // TODO: implement for big-endian ISAs.
+        uint32_t* base = (uint32_t*)&memory->mem[addr - membase];
+        *base = word;
         return;
     }
 

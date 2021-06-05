@@ -32,7 +32,7 @@ static uint8_t ReadByte(const ArvissMemory* memory, uint32_t addr, MemoryCode* m
     }
 
     *mc = mcLOAD_ACCESS_FAULT, addr;
-    return -1;
+    return 0;
 }
 
 static uint16_t ReadHalfword(const ArvissMemory* memory, uint32_t addr, MemoryCode* mc)
@@ -43,7 +43,7 @@ static uint16_t ReadHalfword(const ArvissMemory* memory, uint32_t addr, MemoryCo
     }
 
     *mc = mcLOAD_ACCESS_FAULT, addr;
-    return -1;
+    return 0;
 }
 
 static uint32_t ReadWord(const ArvissMemory* memory, uint32_t addr, MemoryCode* mc)
@@ -55,7 +55,7 @@ static uint32_t ReadWord(const ArvissMemory* memory, uint32_t addr, MemoryCode* 
     }
 
     *mc = mcLOAD_ACCESS_FAULT;
-    return -1;
+    return 0;
 }
 
 static void WriteByte(ArvissMemory* memory, uint32_t addr, uint8_t byte, MemoryCode* mc)
