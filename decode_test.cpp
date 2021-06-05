@@ -403,7 +403,7 @@ TEST_F(TestDecoder, Load_Lb)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 7 is zero.
-    ArvissWriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 123);
+    ArvissWriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 123, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m8(rs1 + imm_i))
@@ -414,7 +414,7 @@ TEST_F(TestDecoder, Load_Lb)
 
     // Sign extend when bit 7 is one.
     pc = cpu.pc;
-    ArvissWriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 0xff);
+    ArvissWriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 0xff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m8(rs1 + imm_i))
@@ -434,7 +434,7 @@ TEST_F(TestDecoder, Load_Lh)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 15 is zero.
-    ArvissWriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fff);
+    ArvissWriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m16(rs1 + imm_i))
@@ -445,7 +445,7 @@ TEST_F(TestDecoder, Load_Lh)
 
     // Sign extend when bit 15 is one.
     pc = cpu.pc;
-    ArvissWriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffff);
+    ArvissWriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m16(rs1 + imm_i))
@@ -465,7 +465,7 @@ TEST_F(TestDecoder, Load_Lw)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 31 is zero.
-    ArvissWriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fffffff);
+    ArvissWriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fffffff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m32(rs1 + imm_i))
@@ -476,7 +476,7 @@ TEST_F(TestDecoder, Load_Lw)
 
     // Sign extend when bit 31 is one.
     pc = cpu.pc;
-    ArvissWriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffffffff);
+    ArvissWriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffffffff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m32(rs1 + imm_i))
@@ -496,7 +496,7 @@ TEST_F(TestDecoder, Load_Lbu)
     cpu.xreg[rs1] = rambase + ramsize / 2;
 
     // Zero extend when bit 7 is zero.
-    ArvissWriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 123);
+    ArvissWriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 123, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m8(rs1 + imm_i))
@@ -507,7 +507,7 @@ TEST_F(TestDecoder, Load_Lbu)
 
     // Zero extend when bit 7 is zero.
     pc = cpu.pc;
-    ArvissWriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 0xff);
+    ArvissWriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 0xff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m8(rs1 + imm_i))
@@ -527,7 +527,7 @@ TEST_F(TestDecoder, Load_Lhu)
     cpu.xreg[rs1] = rambase + ramsize / 2;
 
     // Zero extend when bit 15 is zero.
-    ArvissWriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fff);
+    ArvissWriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m16(rs1 + imm_i))
@@ -538,7 +538,7 @@ TEST_F(TestDecoder, Load_Lhu)
 
     // Zero extend when bit 15 is one.
     pc = cpu.pc;
-    ArvissWriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffff);
+    ArvissWriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m16(rs1 + imm_i))
@@ -550,12 +550,12 @@ TEST_F(TestDecoder, Load_Lhu)
 
 TEST_F(TestDecoder, Load_x0_Is_Zero)
 {
-    ArvissWriteWord(cpu.memory, rambase, 0x12345678);
+    ArvissWriteWord(cpu.memory, rambase, 0x12345678, &cpu.mc);
 
     // LB
     uint32_t rs1 = 13;
     cpu.xreg[rs1] = rambase;
-    ArvissWriteByte(cpu.memory, rambase, 0xff);
+    ArvissWriteByte(cpu.memory, rambase, 0xff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(0) | OP_LOAD);
 
     // x0 <- 0
@@ -598,9 +598,9 @@ TEST_F(TestDecoder, Store_Sb)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | OP_STORE);
 
     // m8(rs1 + imm_s) <- rs2[7:0]
-    ArvissResult byteResult = ::ArvissReadByte(cpu.memory, cpu.xreg[rs1] + imm_s);
-    ASSERT_TRUE(ArvissResultIsByte(byteResult));
-    ASSERT_EQ(ArvissResultAsByte(byteResult), cpu.xreg[rs2] & 0xff);
+    uint8_t byteResult = ::ArvissReadByte(cpu.memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
+    ASSERT_EQ(mcOK, cpu.mc);
+    ASSERT_EQ(byteResult, cpu.xreg[rs2] & 0xff);
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
@@ -618,9 +618,9 @@ TEST_F(TestDecoder, Store_Sh)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | OP_STORE);
 
     // m16(rs1 + imm_s) <- rs2[15:0]
-    ArvissResult halfwordResult = ::ArvissReadHalfword(cpu.memory, cpu.xreg[rs1] + imm_s);
-    ASSERT_TRUE(ArvissResultIsHalfword(halfwordResult));
-    ASSERT_EQ(ArvissResultAsHalfword(halfwordResult), cpu.xreg[rs2] & 0xffff);
+    uint16_t halfwordResult = ::ArvissReadHalfword(cpu.memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
+    ASSERT_EQ(mcOK, cpu.mc);
+    ASSERT_EQ(halfwordResult, cpu.xreg[rs2] & 0xffff);
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
@@ -638,9 +638,9 @@ TEST_F(TestDecoder, Store_Sw)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | OP_STORE);
 
     // m32(rs1 + imm_s) <- rs2[31:0]
-    ArvissResult wordResult = ::ArvissReadWord(cpu.memory, cpu.xreg[rs1] + imm_s);
-    ASSERT_TRUE(ArvissResultIsWord(wordResult));
-    ASSERT_EQ(ArvissResultAsWord(wordResult), cpu.xreg[rs2] & 0xffff);
+    uint32_t wordResult = ::ArvissReadWord(cpu.memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
+    ASSERT_EQ(mcOK, cpu.mc);
+    ASSERT_EQ(wordResult, cpu.xreg[rs2] & 0xffff);
 
     // pc <- pc + 4
     ASSERT_EQ(pc + 4, cpu.pc);
@@ -1532,7 +1532,7 @@ TEST_F(TestDecoder, LoadFp_Flw)
     // Write a float.
     float expected = -1234e-6f;
     uint32_t expectedAsU32 = FloatAsU32(expected);
-    ArvissWriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, expectedAsU32);
+    ArvissWriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, expectedAsU32, &cpu.mc);
 
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOADFP);
 
@@ -1557,11 +1557,10 @@ TEST_F(TestDecoder, StoreFp_Fsw)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | OP_STOREFP);
 
     // m32(rs1 + imm_s) <- rs2
-    ArvissResult wordResult = ArvissReadWord(cpu.memory, cpu.xreg[rs1] + imm_s);
-    ASSERT_TRUE(ArvissResultIsWord(wordResult));
+    uint32_t wordResult = ArvissReadWord(cpu.memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
+    ASSERT_EQ(mcOK, cpu.mc);
 
-    uint32_t resultAsWord = ArvissResultAsWord(wordResult);
-    float resultAsFloat = U32AsFloat(resultAsWord);
+    float resultAsFloat = U32AsFloat(wordResult);
     ASSERT_EQ(expected, resultAsFloat);
 
     // pc <- pc + 4

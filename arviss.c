@@ -577,6 +577,10 @@ static void Exec_Flw(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- f32(rs1 + imm_i)
     TRACE("FLW %s, %d(%s)\n", fabiNames[ins->rd_rs1_imm.rd], ins->rd_rs1_imm.imm, abiNames[ins->rd_rs1_imm.rs1]);
+    if (cpu->mc != mcOK)
+    {
+        return;
+    }
     uint32_t word = ArvissReadWord(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
     if (cpu->mc != mcOK)
     {
@@ -1032,6 +1036,7 @@ static inline ArvissResult CreateTrap(ArvissCpu* cpu, ArvissTrapType trap, uint3
 void ArvissReset(ArvissCpu* cpu, uint32_t sp)
 {
     cpu->result = ArvissMakeOk();
+    cpu->mc = mcOK;
     cpu->pc = 0;
     for (int i = 0; i < 32; i++)
     {
