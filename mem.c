@@ -83,7 +83,7 @@ static void WriteByte(ArvissMemory* memory, uint32_t addr, uint8_t byte, MemoryC
 
     if (addr == TTY_DATA) // TODO: only write when the status says that we can.
     {
-        //        putchar(byte);
+        putchar(byte);
         return;
     }
 

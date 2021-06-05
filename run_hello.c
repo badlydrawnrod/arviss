@@ -21,15 +21,12 @@ int main(void)
     printf("Read %zd bytes\n", count);
     fclose(fp);
 
-    for (int i = 0; i < 1000000; i++)
+    // Run the program, n instructions at a time.
+    ArvissReset(&cpu, 0);
+    ArvissResult result = ArvissMakeOk();
+    while (!ArvissResultIsTrap(result))
     {
-        // Run the program, n instructions at a time.
-        ArvissReset(&cpu, 0);
-        ArvissResult result = ArvissMakeOk();
-        while (!ArvissResultIsTrap(result))
-        {
-            result = ArvissRun(&cpu, 100000);
-        }
+        result = ArvissRun(&cpu, 100000);
     }
 
     // The exit code (assuming that it exited) is in x10.
