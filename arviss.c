@@ -54,12 +54,11 @@ static void Exec_FetchDecodeReplace(ArvissCpu* cpu, const DecodedInstruction* in
     const uint32_t addr = owner * 4 * CACHE_LINE_LENGTH + index * 4;
 
     // Fetch a word from memory at the address.
-    ArvissResult result = ArvissReadWord(cpu->memory, addr);
+    uint32_t instruction = ArvissReadWord(cpu->memory, addr, &cpu->mc);
 
     // Decode it, save the result in the cache, then execute it.
-    if (ArvissResultIsWord(result))
+    if (cpu->mc == mcOK)
     {
-        uint32_t instruction = ArvissResultAsWord(result);
         DecodedInstruction decoded = ArvissDecode(instruction);
         line->instructions[index] = decoded;
 
@@ -68,7 +67,7 @@ static void Exec_FetchDecodeReplace(ArvissCpu* cpu, const DecodedInstruction* in
     }
     else
     {
-        cpu->result = result;
+        cpu->result = ArvissMakeTrap(trINSTRUCTION_ACCESS_FAULT, addr);
     }
 }
 
@@ -155,13 +154,13 @@ static void Exec_Lb(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- sx(m8(rs1 + imm_i)), pc += 4
     TRACE("LB %s, %d(%s)\n", abiNames[ins->rd_rs1_imm.rd], ins->rd_rs1_imm.imm, abiNames[ins->rd_rs1_imm.rs1]);
-    ArvissResult byteResult = ArvissReadByte(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm);
-    if (!ArvissResultIsByte(byteResult))
+    uint8_t byte = ArvissReadByte(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
+    if (cpu->mc != mcOK)
     {
-        cpu->result = TakeTrap(cpu, byteResult);
+        cpu->result = TakeTrap(cpu, ArvissMakeTrap(trLOAD_ACCESS_FAULT, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm));
         return;
     }
-    cpu->xreg[ins->rd_rs1_imm.rd] = (int32_t)(int16_t)(int8_t)ArvissResultAsByte(byteResult);
+    cpu->xreg[ins->rd_rs1_imm.rd] = (int32_t)(int16_t)(int8_t)byte;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
 }
@@ -170,13 +169,13 @@ static void Exec_Lh(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- sx(m16(rs1 + imm_i)), pc += 4
     TRACE("LH %s, %d(%s)\n", abiNames[ins->rd_rs1_imm.rd], ins->rd_rs1_imm.imm, abiNames[ins->rd_rs1_imm.rs1]);
-    ArvissResult halfwordResult = ArvissReadHalfword(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm);
-    if (!ArvissResultIsHalfword(halfwordResult))
+    uint16_t halfword = ArvissReadHalfword(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
+    if (cpu->mc != mcOK)
     {
-        cpu->result = TakeTrap(cpu, halfwordResult);
+        cpu->result = TakeTrap(cpu, ArvissMakeTrap(trLOAD_ACCESS_FAULT, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm));
         return;
     }
-    cpu->xreg[ins->rd_rs1_imm.rd] = (int32_t)(int16_t)ArvissResultAsHalfword(halfwordResult);
+    cpu->xreg[ins->rd_rs1_imm.rd] = (int32_t)(int16_t)halfword;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
 }
@@ -185,13 +184,13 @@ static void Exec_Lw(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- sx(m32(rs1 + imm_i)), pc += 4
     TRACE("LW %s, %d(%s)\n", abiNames[ins->rd_rs1_imm.rd], ins->rd_rs1_imm.imm, abiNames[ins->rd_rs1_imm.rs1]);
-    ArvissResult wordResult = ArvissReadWord(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm);
-    if (!ArvissResultIsWord(wordResult))
+    uint32_t word = ArvissReadWord(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
+    if (cpu->mc != mcOK)
     {
-        cpu->result = TakeTrap(cpu, wordResult);
+        cpu->result = TakeTrap(cpu, ArvissMakeTrap(trLOAD_ACCESS_FAULT, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm));
         return;
     }
-    cpu->xreg[ins->rd_rs1_imm.rd] = (int32_t)ArvissResultAsWord(wordResult);
+    cpu->xreg[ins->rd_rs1_imm.rd] = (int32_t)word;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
 }
@@ -200,13 +199,13 @@ static void Exec_Lbu(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- zx(m8(rs1 + imm_i)), pc += 4
     TRACE("LBU x%d, %d(x%d)\n", ins->rd_rs1_imm.rd, ins->rd_rs1_imm.imm, ins->rd_rs1_imm.rs1);
-    ArvissResult byteResult = ArvissReadByte(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm);
-    if (!ArvissResultIsByte(byteResult))
+    uint8_t byte = ArvissReadByte(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
+    if (cpu->mc != mcOK)
     {
-        cpu->result = TakeTrap(cpu, byteResult);
+        cpu->result = TakeTrap(cpu, ArvissMakeTrap(trLOAD_ACCESS_FAULT, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm));
         return;
     }
-    cpu->xreg[ins->rd_rs1_imm.rd] = ArvissResultAsByte(byteResult);
+    cpu->xreg[ins->rd_rs1_imm.rd] = byte;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
 }
@@ -215,13 +214,13 @@ static void Exec_Lhu(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- zx(m16(rs1 + imm_i)), pc += 4
     TRACE("LHU %s, %d(%s)\n", abiNames[ins->rd_rs1_imm.rd], ins->rd_rs1_imm.imm, abiNames[ins->rd_rs1_imm.rs1]);
-    ArvissResult halfwordResult = ArvissReadHalfword(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm);
-    if (!ArvissResultIsHalfword(halfwordResult))
+    uint16_t halfword = ArvissReadHalfword(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
+    if (cpu->mc != mcOK)
     {
-        cpu->result = TakeTrap(cpu, halfwordResult);
+        cpu->result = TakeTrap(cpu, ArvissMakeTrap(trLOAD_ACCESS_FAULT, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm));
         return;
     }
-    cpu->xreg[ins->rd_rs1_imm.rd] = ArvissResultAsHalfword(halfwordResult);
+    cpu->xreg[ins->rd_rs1_imm.rd] = halfword;
     cpu->pc += 4;
     cpu->xreg[0] = 0;
 }
@@ -230,11 +229,11 @@ static void Exec_Sb(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // m8(rs1 + imm_s) <- rs2[7:0], pc += 4
     TRACE("SB %s, %d(%s)\n", abiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm, abiNames[ins->rs1_rs2_imm.rs1]);
-    ArvissResult byteResult = ArvissWriteByte(cpu->memory, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm,
-                                              cpu->xreg[ins->rs1_rs2_imm.rs2] & 0xff);
-    if (ArvissResultIsTrap(byteResult))
+    ArvissWriteByte(cpu->memory, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm, cpu->xreg[ins->rs1_rs2_imm.rs2] & 0xff,
+                    &cpu->mc);
+    if (cpu->mc != mcOK)
     {
-        cpu->result = TakeTrap(cpu, byteResult);
+        cpu->result = TakeTrap(cpu, ArvissMakeTrap(trSTORE_ACCESS_FAULT, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm));
         return;
     }
     cpu->pc += 4;
@@ -244,11 +243,11 @@ static void Exec_Sh(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // m16(rs1 + imm_s) <- rs2[15:0], pc += 4
     TRACE("SH %s, %d(%s)\n", abiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm, abiNames[ins->rs1_rs2_imm.rs1]);
-    ArvissResult halfwordResult = ArvissWriteHalfword(cpu->memory, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm,
-                                                      cpu->xreg[ins->rs1_rs2_imm.rs2] & 0xffff);
-    if (ArvissResultIsTrap(halfwordResult))
+    ArvissWriteHalfword(cpu->memory, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm,
+                        cpu->xreg[ins->rs1_rs2_imm.rs2] & 0xffff, &cpu->mc);
+    if (cpu->mc != mcOK)
     {
-        cpu->result = TakeTrap(cpu, halfwordResult);
+        cpu->result = TakeTrap(cpu, ArvissMakeTrap(trSTORE_ACCESS_FAULT, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm));
         return;
     }
     cpu->pc += 4;
@@ -258,11 +257,10 @@ static void Exec_Sw(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // m32(rs1 + imm_s) <- rs2[31:0], pc += 4
     TRACE("SW %s, %d(%s)\n", abiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm, abiNames[ins->rs1_rs2_imm.rs1]);
-    ArvissResult wordResult =
-            ArvissWriteWord(cpu->memory, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm, cpu->xreg[ins->rs1_rs2_imm.rs2]);
-    if (ArvissResultIsTrap(wordResult))
+    ArvissWriteWord(cpu->memory, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm, cpu->xreg[ins->rs1_rs2_imm.rs2], &cpu->mc);
+    if (cpu->mc != mcOK)
     {
-        cpu->result = TakeTrap(cpu, wordResult);
+        cpu->result = TakeTrap(cpu, ArvissMakeTrap(trSTORE_ACCESS_FAULT, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm));
         return;
     }
     cpu->pc += 4;
@@ -579,14 +577,13 @@ static void Exec_Flw(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- f32(rs1 + imm_i)
     TRACE("FLW %s, %d(%s)\n", fabiNames[ins->rd_rs1_imm.rd], ins->rd_rs1_imm.imm, abiNames[ins->rd_rs1_imm.rs1]);
-    ArvissResult wordResult = ArvissReadWord(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm);
-    if (!ArvissResultIsWord(wordResult))
+    uint32_t word = ArvissReadWord(cpu->memory, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
+    if (cpu->mc != mcOK)
     {
-        cpu->result = TakeTrap(cpu, wordResult);
+        cpu->result = TakeTrap(cpu, ArvissMakeTrap(trLOAD_ACCESS_FAULT, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm));
         return;
     }
-    const uint32_t resultAsWord = ArvissResultAsWord(wordResult);
-    const float resultAsFloat = U32AsFloat(resultAsWord);
+    const float resultAsFloat = U32AsFloat(word);
     cpu->freg[ins->rd_rs1_imm.rd] = resultAsFloat;
     cpu->pc += 4;
 }
@@ -596,10 +593,10 @@ static void Exec_Fsw(ArvissCpu* cpu, const DecodedInstruction* ins)
     // f32(rs1 + imm_s) = rs2
     TRACE("FSW %s, %d(%s)\n", fabiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm, abiNames[ins->rs1_rs2_imm.rs1]);
     uint32_t t = FloatAsU32(cpu->freg[ins->rs1_rs2_imm.rs2]);
-    ArvissResult wordResult = ArvissWriteWord(cpu->memory, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm, t);
-    if (ArvissResultIsTrap(wordResult))
+    ArvissWriteWord(cpu->memory, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm, t, &cpu->mc);
+    if (cpu->mc != mcOK)
     {
-        cpu->result = TakeTrap(cpu, wordResult);
+        cpu->result = TakeTrap(cpu, ArvissMakeTrap(trSTORE_ACCESS_FAULT, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm));
         return;
     }
     cpu->pc += 4;
