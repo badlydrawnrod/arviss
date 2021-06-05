@@ -44,22 +44,12 @@ typedef struct ArvissTrap
 typedef enum ArvissResultType
 {
     rtOK,
-    rtTRAP,
-    rtBYTE,
-    rtHALFWORD,
-    rtWORD,
+    rtTRAP
 } ArvissResultType;
 
 typedef struct ArvissResult
 {
-    union
-    {
-        uint32_t ok;
-        ArvissTrap trap;
-        uint8_t byte;
-        uint16_t halfword;
-        uint32_t word;
-    };
+    ArvissTrap trap;
     ArvissResultType type;
 } ArvissResult;
 
@@ -87,30 +77,6 @@ static inline ArvissResult ArvissMakeTrap(ArvissTrapType trap, uint32_t value)
     return r;
 }
 
-static inline ArvissResult ArvissMakeByte(uint8_t byte)
-{
-    ArvissResult r;
-    r.type = rtBYTE;
-    r.byte = byte;
-    return r;
-}
-
-static inline ArvissResult ArvissMakeHalfword(uint16_t halfword)
-{
-    ArvissResult r;
-    r.type = rtHALFWORD;
-    r.halfword = halfword;
-    return r;
-}
-
-static inline ArvissResult ArvissMakeWord(uint32_t word)
-{
-    ArvissResult r;
-    r.type = rtWORD;
-    r.word = word;
-    return r;
-}
-
 static inline bool ArvissResultIsTrap(ArvissResult result)
 {
     return result.type == rtTRAP;
@@ -119,36 +85,6 @@ static inline bool ArvissResultIsTrap(ArvissResult result)
 static inline ArvissTrap ArvissResultAsTrap(ArvissResult result)
 {
     return result.trap;
-}
-
-static inline bool ArvissResultIsByte(ArvissResult result)
-{
-    return result.type == rtBYTE;
-}
-
-static inline uint8_t ArvissResultAsByte(ArvissResult result)
-{
-    return result.byte;
-}
-
-static inline bool ArvissResultIsHalfword(ArvissResult result)
-{
-    return result.type == rtHALFWORD;
-}
-
-static inline uint16_t ArvissResultAsHalfword(ArvissResult result)
-{
-    return result.halfword;
-}
-
-static inline bool ArvissResultIsWord(ArvissResult result)
-{
-    return result.type == rtWORD;
-}
-
-static inline uint32_t ArvissResultAsWord(ArvissResult result)
-{
-    return result.word;
 }
 
 #ifdef __cplusplus
