@@ -1551,6 +1551,7 @@ static inline DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
 ArvissResult ArvissRun(ArvissCpu* cpu, int count)
 {
     cpu->result = ArvissMakeOk();
+    cpu->mc = mcOK;
     for (int i = 0; i < count; i++)
     {
         DecodedInstruction* decoded = FetchFromCache(cpu);
