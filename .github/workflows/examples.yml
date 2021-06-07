@@ -41,5 +41,5 @@ jobs:
       - name: Build
         # Build your program with the given configuration
         shell: cmd
-        working-directory: hello_world
+        working-directory: examples/hello_world/arviss
         run: cmake --build build --config ${{env.BUILD_TYPE}}
