@@ -34,7 +34,7 @@ jobs:
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         shell: cmd
-        working-directory: hello_world
+        working-directory: examples/hello_world/arviss
         run: |
           cmake -G Ninja -B build "-DCMAKE_C_COMPILER=clang" "-DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}" -DCMAKE_OBJCOPY=%USERPROFILE%\scoop\shims\llvm-objcopy
 
