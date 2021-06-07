@@ -12,7 +12,7 @@ int main(void)
     ArvissReset(&cpu, 0);
 
     printf("--- Loading program and running it\n");
-    FILE* fp = fopen("../hello_world/bin/hello.bin", "rb");
+    FILE* fp = fopen("../../../../examples/hello_world/arviss/bin/hello.bin", "rb");
     if (fp == NULL)
     {
         return -1;

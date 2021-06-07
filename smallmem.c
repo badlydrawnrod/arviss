@@ -31,7 +31,7 @@ static uint8_t ReadByte(const ArvissMemory* memory, uint32_t addr, MemoryCode* m
         return memory->ram[addr - rambase];
     }
 
-    *mc = mcLOAD_ACCESS_FAULT, addr;
+    *mc = mcLOAD_ACCESS_FAULT;
     return 0;
 }
 
@@ -42,7 +42,7 @@ static uint16_t ReadHalfword(const ArvissMemory* memory, uint32_t addr, MemoryCo
         return memory->ram[addr - rambase] | (memory->ram[addr + 1 - rambase] << 8);
     }
 
-    *mc = mcLOAD_ACCESS_FAULT, addr;
+    *mc = mcLOAD_ACCESS_FAULT;
     return 0;
 }
 

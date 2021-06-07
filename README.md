@@ -79,4 +79,4 @@ ctest --test-dir build --verbose
 
 ## Building the examples
 
-See the [this readme](hello_world/README.md) to learn how to build the examples.
+See the [this readme](examples/hello_world/arviss/README.md) to learn how to build the examples.
