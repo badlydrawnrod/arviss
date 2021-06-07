@@ -1388,7 +1388,7 @@ DecodedInstruction ArvissDecode(uint32_t instruction)
         }
     }
 
-    case OP_NMADD: {                           // Floating point negated fused multiple-add (RV32F)
+    case OP_NMADD: {                           // Floating point negated fused multiply-add (RV32F)
         if (((instruction >> 25) & 0b11) == 0) // FNMADD.S
         {
             const uint32_t rm = Rm(instruction);
