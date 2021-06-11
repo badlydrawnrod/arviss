@@ -1,11 +1,15 @@
 #include "raylib.h"
 #include "raymath.h"
 
+#include <float.h>
+#include <math.h>
 #include <stdbool.h>
 
 #define TURTLE_SCALE 12.0f
 #define NUM_TURTLES 10
 #define MAX_LINES 12
+#define MAX_TURN (5.0f * DEG2RAD)
+#define MAX_SPEED 1.0f
 
 typedef struct Turtle
 {
@@ -15,6 +19,8 @@ typedef struct Turtle
     bool isVisible;
     bool isPenDown;
     Color penColour;
+    float aheadRemaining;
+    float turnRemaining;
 } Turtle;
 
 // Types of draw command.
@@ -40,23 +46,62 @@ static void InitTurtle(Turtle* turtle)
 {
     turtle->lastPosition = Vector2Zero();
     turtle->position = Vector2Zero();
-    float angle = 0.0f;
+    turtle->angle = 0.0f;
     turtle->isVisible = true;
     turtle->isPenDown = true;
     turtle->penColour = RAYWHITE;
+    turtle->aheadRemaining = 0.0f;
+    turtle->turnRemaining = 0.0f;
 }
 
-static void Forward(Turtle* turtle, float distance)
+static void SetAhead(Turtle* turtle, float distance)
 {
-    // Angle weirdness because we're using the points of the compass where North is zero degrees, East is 90 degrees, and so on.
-    float angle = turtle->angle;
-    Vector2 heading = (Vector2){sinf(angle), cosf(angle)};
-    turtle->position = Vector2Add(turtle->position, Vector2Scale(heading, distance));
+    turtle->aheadRemaining = distance;
+    turtle->turnRemaining = 0.0f;
 }
 
-static void Right(Turtle* turtle, float angle)
+static void SetTurn(Turtle* turtle, float angle)
 {
-    turtle->angle += DEG2RAD * angle;
+    turtle->turnRemaining = angle * DEG2RAD;
+    turtle->aheadRemaining = 0.0f;
+}
+
+static float NormalizeAngle(float angle)
+{
+    // Obviously there's a nicer way of doing this.
+    while (angle < -PI)
+    {
+        angle += 2 * PI;
+    }
+    while (angle >= PI)
+    {
+        angle -= 2 * PI;
+    }
+    return angle;
+}
+
+static void Update(Turtle* turtle)
+{
+    turtle->lastPosition = turtle->position;
+
+    if (fabsf(turtle->aheadRemaining) >= FLT_EPSILON)
+    {
+        float magDistance = fminf(MAX_SPEED, fabsf(turtle->aheadRemaining));
+        float distance = copysignf(magDistance, turtle->aheadRemaining);
+
+        float angle = turtle->angle;
+        Vector2 heading = (Vector2){sinf(angle), cosf(angle)};
+        turtle->position = Vector2Add(turtle->position, Vector2Scale(heading, distance));
+        turtle->aheadRemaining -= distance;
+    }
+    else if (fabsf(turtle->turnRemaining) >= FLT_EPSILON)
+    {
+        float magTurn = fminf(MAX_TURN, fabsf(turtle->turnRemaining));
+        float turn = copysignf(magTurn, turtle->turnRemaining);
+        turtle->angle += turn;
+        turtle->angle = NormalizeAngle(turtle->angle);
+        turtle->turnRemaining -= turn;
+    }
 }
 
 static void Goto(Turtle* turtle, float x, float y)
@@ -136,18 +181,34 @@ int main(void)
 
     float distance = 0.0f;
 
+    bool moving = true;
+    for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
+    {
+        SetAhead(&turtles[i], 250.0f);
+    }
+
     while (!WindowShouldClose())
     {
         for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
         {
-            turtles[i].lastPosition = turtles[i].position;
+            Update(&turtles[i]);
         }
-        for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
+        if (moving && turtles[0].aheadRemaining == 0.0f)
         {
-            Forward(&turtles[i], distance);
-            Right(&turtles[i], 27.5f);
+            moving = false;
+            for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
+            {
+                SetTurn(&turtles[i], 90.0f);
+            }
         }
-        distance += 2.0f;
+        else if (!moving && turtles[0].turnRemaining == 0.0f)
+        {
+            moving = true;
+            for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
+            {
+                SetAhead(&turtles[i], 250.0f);
+            }
+        }
         BeginDrawing();
         ClearBackground(DARKBLUE);
 
