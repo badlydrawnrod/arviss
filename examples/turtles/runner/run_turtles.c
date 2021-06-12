@@ -22,9 +22,9 @@ typedef struct Turtle
 {
     ArvissCpu cpu;
     ArvissMemory memory;
+    bool isBlocked;
 
     bool isActive;
-
     Vector2 lastPosition;
     Vector2 position;
     float angle;
@@ -72,8 +72,9 @@ static void InitTurtle(Turtle* turtle)
 {
     turtle->cpu = (ArvissCpu){.memory = MemInit(&turtle->memory)};
     ArvissReset(&turtle->cpu, 0);
+    turtle->isBlocked = false;
 
-    const char* filename = "turtle.bin"; // TODO: not a placeholder.
+    const char* filename = "../../../../examples/turtles/arviss/bin/turtle.bin";
     LoadCode(&turtle->memory, filename);
 
     turtle->isActive = true;
@@ -92,12 +93,14 @@ static void SetAhead(Turtle* turtle, float distance)
 {
     turtle->aheadRemaining = distance;
     turtle->turnRemaining = 0.0f;
+    turtle->isBlocked = true;
 }
 
 static void SetTurn(Turtle* turtle, float angle)
 {
     turtle->turnRemaining = angle * DEG2RAD;
     turtle->aheadRemaining = 0.0f;
+    turtle->isBlocked = true;
 }
 
 static float NormalizeAngle(float angle)
@@ -127,6 +130,7 @@ static void Update(Turtle* turtle)
         Vector2 heading = (Vector2){sinf(angle), cosf(angle)};
         turtle->position = Vector2Add(turtle->position, Vector2Scale(heading, distance));
         turtle->aheadRemaining -= distance;
+        turtle->isBlocked = fabsf(turtle->aheadRemaining) >= FLT_EPSILON;
     }
     else if (fabsf(turtle->turnRemaining) >= FLT_EPSILON)
     {
@@ -135,6 +139,7 @@ static void Update(Turtle* turtle)
         turtle->angle += turn;
         turtle->angle = NormalizeAngle(turtle->angle);
         turtle->turnRemaining -= turn;
+        turtle->isBlocked = fabsf(turtle->turnRemaining) >= FLT_EPSILON;
     }
 }
 
@@ -146,6 +151,11 @@ static void Goto(Turtle* turtle, float x, float y)
 
 static void RunTurtle(Turtle* turtle)
 {
+    if (turtle->isBlocked)
+    {
+        return;
+    }
+
     ArvissResult result = ArvissRun(&turtle->cpu, QUANTUM);
     bool isOk = !ArvissResultIsTrap(result);
 
@@ -165,6 +175,18 @@ static void RunTurtle(Turtle* turtle)
             case SYSCALL_EXIT:
                 // The exit code is in a0 (x10).
                 turtle->isActive = false;
+                isOk = true;
+                break;
+            case SYSCALL_AHEAD:
+                // The distance is in a0 (x10).
+                float distance = *(float*)&turtle->cpu.xreg[10];
+                SetAhead(turtle, distance);
+                isOk = true;
+                break;
+            case SYSCALL_TURN:
+                // The angle is in a0 (x10).
+                float angle = *(float*)&turtle->cpu.xreg[10];
+                SetTurn(turtle, angle);
                 isOk = true;
                 break;
             default:
@@ -256,10 +278,13 @@ int main(void)
 
     while (!WindowShouldClose())
     {
+        // Do the CPU updates.
         for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
         {
             RunTurtle(&turtles[i]);
         }
+
+        // Do the physics updates.
         for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
         {
             Update(&turtles[i]);
