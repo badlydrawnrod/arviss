@@ -1,9 +1,16 @@
+#include "arviss.h"
+#include "mem.h"
 #include "raylib.h"
 #include "raymath.h"
+#include "syscalls.h"
 
 #include <float.h>
 #include <math.h>
 #include <stdbool.h>
+#include <stdio.h>
+
+// Do 1024 instructions per update.
+#define QUANTUM 1024
 
 #define TURTLE_SCALE 12.0f
 #define NUM_TURTLES 10
@@ -13,6 +20,11 @@
 
 typedef struct Turtle
 {
+    ArvissCpu cpu;
+    ArvissMemory memory;
+
+    bool isActive;
+
     Vector2 lastPosition;
     Vector2 position;
     float angle;
@@ -42,8 +54,30 @@ typedef struct
 static const DrawCommand turtleShape[MAX_LINES] = {{MOVE, {-1, 1}},   {LINE, {0, -1}}, {LINE, {1, 1}},
                                                    {LINE, {0, 0.5f}}, {LINE, {-1, 1}}, {END, {0, 0}}};
 
+static void LoadCode(ArvissMemory* memory, const char* filename)
+{
+    printf("--- Loading %s\n", filename);
+    FILE* fp = fopen(filename, "rb");
+    if (fp == NULL)
+    {
+        printf("--- Failed to load %s\n", filename);
+        return;
+    }
+    size_t count = fread(memory->mem, 1, sizeof(memory->mem), fp);
+    printf("Read %zd bytes\n", count);
+    fclose(fp);
+}
+
 static void InitTurtle(Turtle* turtle)
 {
+    turtle->cpu = (ArvissCpu){.memory = MemInit(&turtle->memory)};
+    ArvissReset(&turtle->cpu, 0);
+
+    const char* filename = "turtle.bin"; // TODO: not a placeholder.
+    LoadCode(&turtle->memory, filename);
+
+    turtle->isActive = true;
+
     turtle->lastPosition = Vector2Zero();
     turtle->position = Vector2Zero();
     turtle->angle = 0.0f;
@@ -108,6 +142,47 @@ static void Goto(Turtle* turtle, float x, float y)
 {
     turtle->position.x = x;
     turtle->position.y = y;
+}
+
+static void RunTurtle(Turtle* turtle)
+{
+    ArvissResult result = ArvissRun(&turtle->cpu, QUANTUM);
+    bool isOk = !ArvissResultIsTrap(result);
+
+    if (!isOk)
+    {
+        ArvissTrap trap = ArvissResultAsTrap(result);
+
+        // Check for a syscall.
+        if (trap.mcause == trENVIRONMENT_CALL_FROM_M_MODE)
+        {
+            // The syscall number is in a7 (x17).
+            uint32_t syscall = turtle->cpu.xreg[17];
+
+            // Service the syscall.
+            switch (syscall)
+            {
+            case SYSCALL_EXIT:
+                // The exit code is in a0 (x10).
+                turtle->isActive = false;
+                isOk = true;
+                break;
+            default:
+                break;
+            }
+
+            if (isOk)
+            {
+                // Do this so that we can return from the trap.
+                turtle->cpu.pc = turtle->cpu.mepc; // Restore the program counter from the machine exception program counter.
+                turtle->cpu.pc += 4;               // ...and increment it as normal.
+            }
+        }
+    }
+
+    if (isOk)
+    {
+    }
 }
 
 static void DrawTurtle(Vector2 pos, float heading, Color colour)
@@ -179,36 +254,17 @@ int main(void)
     camera.offset = origin;
     camera.zoom = 1.0f;
 
-    float distance = 0.0f;
-
-    bool moving = true;
-    for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
-    {
-        SetAhead(&turtles[i], 250.0f);
-    }
-
     while (!WindowShouldClose())
     {
         for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
         {
+            RunTurtle(&turtles[i]);
+        }
+        for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
+        {
             Update(&turtles[i]);
         }
-        if (moving && turtles[0].aheadRemaining == 0.0f)
-        {
-            moving = false;
-            for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
-            {
-                SetTurn(&turtles[i], 90.0f);
-            }
-        }
-        else if (!moving && turtles[0].turnRemaining == 0.0f)
-        {
-            moving = true;
-            for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
-            {
-                SetAhead(&turtles[i], 250.0f);
-            }
-        }
+
         BeginDrawing();
         ClearBackground(DARKBLUE);
 

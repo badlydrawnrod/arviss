@@ -4,15 +4,9 @@ include(FetchContent)
 find_package(raylib 3.7 QUIET)
 if (NOT raylib_FOUND)
 
-    # Option 1 - get raylib from the latest master build.
-    #
     FetchContent_Declare(
             raylib
             URL https://github.com/raysan5/raylib/archive/master.tar.gz
-            #            URL https://github.com/raysan5/raylib/archive/refs/heads/master.zip
-            #            If master is broken for some reason then uncomment this.
-            #            GIT_REPOSITORY ${CMAKE_SOURCE_DIR}/../3rdparty/raylib
-            #            GIT_TAG rod2
     )
 
     FetchContent_GetProperties(raylib)
@@ -32,5 +26,11 @@ endif ()
 
 
 # Run the turtles on via Arviss.
-add_executable(run_turtles run_turtles.c)
+add_executable(run_turtles run_turtles.c mem.c mem.h syscalls.h)
 target_link_libraries(run_turtles PRIVATE arviss raylib)
+
+# Set _CRT_SECURE_NO_WARNINGS on MSVC or Clang on Windows so that we can use fopen(). Ideally we'd use fopen_s() as it's
+# supposedly C11, but oddly the Linux compilers object to this.
+target_compile_definitions(run_turtles PRIVATE
+        $<$<OR:$<C_COMPILER_ID:MSVC>,$<AND:$<PLATFORM_ID:Windows>,$<C_COMPILER_ID:Clang>>>:_CRT_SECURE_NO_WARNINGS>
+        )
