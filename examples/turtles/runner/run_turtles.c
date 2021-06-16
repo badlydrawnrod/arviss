@@ -103,26 +103,26 @@ static void SetTurn(Turtle* turtle, float angle)
     turtle->isBlocked = true;
 }
 
-static float NormalizeAngle(float angle)
+static inline float NormalizeAngle(float angle)
 {
-    // Obviously there's a nicer way of doing this.
-    while (angle < -PI)
-    {
-        angle += 2 * PI;
-    }
-    while (angle >= PI)
-    {
-        angle -= 2 * PI;
-    }
+    // Get the positive modulus so that 0 <= angle < 2 * PI.
+    angle = fmodf(angle, 2 * PI);
+    angle = fmodf(angle + 2 * PI, 2 * PI);
     return angle;
+}
+
+static inline bool IsFZero(float a)
+{
+    return fabsf(a) < FLT_EPSILON;
 }
 
 static void Update(Turtle* turtle)
 {
     turtle->lastPosition = turtle->position;
 
-    if (fabsf(turtle->aheadRemaining) >= FLT_EPSILON)
+    if (!IsFZero(turtle->aheadRemaining))
     {
+        // Move ahead (or back if negative).
         float magDistance = fminf(MAX_SPEED, fabsf(turtle->aheadRemaining));
         float distance = copysignf(magDistance, turtle->aheadRemaining);
 
@@ -130,16 +130,17 @@ static void Update(Turtle* turtle)
         Vector2 heading = (Vector2){sinf(angle), cosf(angle)};
         turtle->position = Vector2Add(turtle->position, Vector2Scale(heading, distance));
         turtle->aheadRemaining -= distance;
-        turtle->isBlocked = fabsf(turtle->aheadRemaining) >= FLT_EPSILON;
+        turtle->isBlocked = !IsFZero(turtle->aheadRemaining);
     }
-    else if (fabsf(turtle->turnRemaining) >= FLT_EPSILON)
+    else if (!IsFZero(turtle->turnRemaining))
     {
+        // Turn right (or left if negative).
         float magTurn = fminf(MAX_TURN, fabsf(turtle->turnRemaining));
         float turn = copysignf(magTurn, turtle->turnRemaining);
         turtle->angle += turn;
         turtle->angle = NormalizeAngle(turtle->angle);
         turtle->turnRemaining -= turn;
-        turtle->isBlocked = fabsf(turtle->turnRemaining) >= FLT_EPSILON;
+        turtle->isBlocked = !IsFZero(turtle->turnRemaining);
     }
 }
 
@@ -204,6 +205,7 @@ static void RunTurtle(Turtle* turtle)
 
     if (isOk)
     {
+        // TODO: do what?
     }
 }
 
@@ -260,14 +262,11 @@ int main(void)
     ClearBackground(BLACK);
     EndTextureMode();
 
-    int x = 0;
-    int y = 0;
-
     Turtle turtles[NUM_TURTLES];
     for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
     {
         InitTurtle(&turtles[i]);
-        turtles[i].angle = i * DEG2RAD * 360.0f / (sizeof(turtles) / sizeof(turtles[0]));
+        turtles[i].angle = (float)i * DEG2RAD * 360.0f / (sizeof(turtles) / sizeof(turtles[0]));
     }
 
     // Create a camera whose origin is at the centre of the canvas.
