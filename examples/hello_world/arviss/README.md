@@ -25,7 +25,7 @@ C:> scoop install llvm
 ### Build the examples with batch files (quick and easy)
 
 ```
-C:> cd demos\hello_world\arviss
+C:> cd examples\hello_world\arviss
 C:> build.bat
 ```
 
@@ -33,7 +33,7 @@ C:> build.bat
 
 Built samples are output to `hello_world/bin` in a format that can be loaded into ARVISS.
 ```
-C:> cd demos\hello_world\arviss
+C:> cd examples\hello_world\arviss
 C:> cmake -G Ninja -B build -DCMAKE_C_COMPILER=clang -DCMAKE_OBJCOPY=%USERPROFILE%\scoop\shims\llvm-objcopy .
 C:> cmake --build build
 ```
@@ -56,7 +56,7 @@ $ sudo apt install clang-11 lld-11
 Built samples are output to `hello_world/bin` in a format that can be loaded into ARVISS.
 
 ```shell
-$ cd demos/hello_world/arviss
+$ cd examples/hello_world/arviss
 $ cmake -G Ninja -B build -DCMAKE_C_COMPILER=clang-11 -DCMAKE_OBJCOPY=/usr/bin/llvm-objcopy
 $ cmake --build build
 ```
@@ -73,6 +73,6 @@ TODO: but works with clang-12 and lld-12.
 e.g.,
 
 ```
-C:> cd build\demos\hello_world\runner
+C:> cd build\examples\hello_world\runner
 C:> run_hello
 ```
