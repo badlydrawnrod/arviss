@@ -18,11 +18,16 @@
 #define MAX_TURN (5.0f * DEG2RAD)
 #define MAX_SPEED 1.0f
 
-typedef struct Turtle
+typedef struct VM
 {
     ArvissCpu cpu;
     ArvissMemory memory;
     bool isBlocked;
+} VM;
+
+typedef struct Turtle
+{
+    VM vm;
 
     bool isActive;
     Vector2 lastPosition;
@@ -70,12 +75,12 @@ static void LoadCode(ArvissMemory* memory, const char* filename)
 
 static void InitTurtle(Turtle* turtle)
 {
-    turtle->cpu = (ArvissCpu){.memory = MemInit(&turtle->memory)};
-    ArvissReset(&turtle->cpu, 0);
-    turtle->isBlocked = false;
+    turtle->vm.cpu = (ArvissCpu){.memory = MemInit(&turtle->vm.memory)};
+    ArvissReset(&turtle->vm.cpu, 0);
+    turtle->vm.isBlocked = false;
 
     const char* filename = "../../../../examples/turtles/arviss/bin/turtle.bin";
-    LoadCode(&turtle->memory, filename);
+    LoadCode(&turtle->vm.memory, filename);
 
     turtle->isActive = true;
 
@@ -93,14 +98,14 @@ static void SetAhead(Turtle* turtle, float distance)
 {
     turtle->aheadRemaining = distance;
     turtle->turnRemaining = 0.0f;
-    turtle->isBlocked = true;
+    turtle->vm.isBlocked = true;
 }
 
 static void SetTurn(Turtle* turtle, float angle)
 {
     turtle->turnRemaining = angle * DEG2RAD;
     turtle->aheadRemaining = 0.0f;
-    turtle->isBlocked = true;
+    turtle->vm.isBlocked = true;
 }
 
 static inline float NormalizeAngle(float angle)
@@ -130,7 +135,7 @@ static void Update(Turtle* turtle)
         Vector2 heading = (Vector2){sinf(angle), cosf(angle)};
         turtle->position = Vector2Add(turtle->position, Vector2Scale(heading, distance));
         turtle->aheadRemaining -= distance;
-        turtle->isBlocked = !IsFZero(turtle->aheadRemaining);
+        turtle->vm.isBlocked = !IsFZero(turtle->aheadRemaining);
     }
     else if (!IsFZero(turtle->turnRemaining))
     {
@@ -140,7 +145,7 @@ static void Update(Turtle* turtle)
         turtle->angle += turn;
         turtle->angle = NormalizeAngle(turtle->angle);
         turtle->turnRemaining -= turn;
-        turtle->isBlocked = !IsFZero(turtle->turnRemaining);
+        turtle->vm.isBlocked = !IsFZero(turtle->turnRemaining);
     }
 }
 
@@ -152,12 +157,12 @@ static void Goto(Turtle* turtle, float x, float y)
 
 static void RunTurtle(Turtle* turtle)
 {
-    if (turtle->isBlocked)
+    if (turtle->vm.isBlocked)
     {
         return;
     }
 
-    ArvissResult result = ArvissRun(&turtle->cpu, QUANTUM);
+    ArvissResult result = ArvissRun(&turtle->vm.cpu, QUANTUM);
     bool isOk = !ArvissResultIsTrap(result);
 
     if (!isOk)
@@ -168,7 +173,7 @@ static void RunTurtle(Turtle* turtle)
         if (trap.mcause == trENVIRONMENT_CALL_FROM_M_MODE)
         {
             // The syscall number is in a7 (x17).
-            uint32_t syscall = turtle->cpu.xreg[17];
+            uint32_t syscall = turtle->vm.cpu.xreg[17];
 
             // Service the syscall.
             switch (syscall)
@@ -180,13 +185,13 @@ static void RunTurtle(Turtle* turtle)
                 break;
             case SYSCALL_AHEAD:
                 // The distance is in a0 (x10).
-                float distance = *(float*)&turtle->cpu.xreg[10];
+                float distance = *(float*)&turtle->vm.cpu.xreg[10];
                 SetAhead(turtle, distance);
                 isOk = true;
                 break;
             case SYSCALL_TURN:
                 // The angle is in a0 (x10).
-                float angle = *(float*)&turtle->cpu.xreg[10];
+                float angle = *(float*)&turtle->vm.cpu.xreg[10];
                 SetTurn(turtle, angle);
                 isOk = true;
                 break;
@@ -197,8 +202,8 @@ static void RunTurtle(Turtle* turtle)
             if (isOk)
             {
                 // Do this so that we can return from the trap.
-                turtle->cpu.pc = turtle->cpu.mepc; // Restore the program counter from the machine exception program counter.
-                turtle->cpu.pc += 4;               // ...and increment it as normal.
+                turtle->vm.cpu.pc = turtle->vm.cpu.mepc; // Restore the program counter from the machine exception program counter.
+                turtle->vm.cpu.pc += 4;                  // ...and increment it as normal.
             }
         }
     }
