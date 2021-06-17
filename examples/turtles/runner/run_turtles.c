@@ -175,13 +175,13 @@ static void RunTurtle(Turtle* turtle)
 
     if (!isOk)
     {
-        ArvissTrap trap = ArvissResultAsTrap(result);
+        const ArvissTrap trap = ArvissResultAsTrap(result);
 
         // Check for a syscall.
         if (trap.mcause == trENVIRONMENT_CALL_FROM_M_MODE)
         {
             // The syscall number is in a7 (x17).
-            uint32_t syscall = turtle->vm.cpu.xreg[17];
+            const uint32_t syscall = turtle->vm.cpu.xreg[17];
 
             // Service the syscall.
             switch (syscall)
@@ -272,6 +272,42 @@ static void DrawTurtle(Vector2 pos, float heading, Color colour)
     }
 }
 
+void InitTurtles(Turtle* turtles, int numTurtles)
+{
+    for (int i = 0; i < numTurtles; i++)
+    {
+        InitTurtle(&turtles[i]);
+        turtles[i].angle = (float)i * DEG2RAD * 360.0f / numTurtles;
+    }
+}
+
+void UpdateTurtleVMs(Turtle* turtles, int numTurtles)
+{
+    for (int i = 0; i < numTurtles; i++)
+    {
+        RunTurtle(&turtles[i]);
+    }
+}
+
+void MoveTurtles(Turtle* turtles, int numTurtles)
+{
+    for (int i = 0; i < numTurtles; i++)
+    {
+        Update(&turtles[i]);
+    }
+}
+
+void DrawTurtles(Turtle* turtles, int numTurtles)
+{
+    for (int i = 0; i < numTurtles; i++)
+    {
+        if (turtles[i].isVisible)
+        {
+            DrawTurtle(turtles[i].position, turtles[i].angle * RAD2DEG, turtles[i].penColour);
+        }
+    }
+}
+
 int main(void)
 {
     const int screenWidth = 1280;
@@ -286,32 +322,19 @@ int main(void)
     ClearBackground(BLACK);
     EndTextureMode();
 
-    Turtle turtles[NUM_TURTLES];
-    for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
-    {
-        InitTurtle(&turtles[i]);
-        turtles[i].angle = (float)i * DEG2RAD * 360.0f / (sizeof(turtles) / sizeof(turtles[0]));
-    }
-
     // Create a camera whose origin is at the centre of the canvas.
     Vector2 origin = (Vector2){.x = (float)(canvas.texture.width / 2), .y = (float)(canvas.texture.height / 2)};
     Camera2D camera = {0};
     camera.offset = origin;
     camera.zoom = 1.0f;
 
+    Turtle turtles[NUM_TURTLES];
+    InitTurtles(turtles, NUM_TURTLES);
+
     while (!WindowShouldClose())
     {
-        // Do the CPU updates.
-        for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
-        {
-            RunTurtle(&turtles[i]);
-        }
-
-        // Do the physics updates.
-        for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
-        {
-            Update(&turtles[i]);
-        }
+        UpdateTurtleVMs(turtles, NUM_TURTLES);
+        MoveTurtles(turtles, NUM_TURTLES);
 
         BeginDrawing();
         ClearBackground(DARKBLUE);
@@ -319,7 +342,7 @@ int main(void)
         // If any of the turtles have moved then add the last line that they made to the canvas.
         BeginTextureMode(canvas);
         BeginMode2D(camera);
-        for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
+        for (int i = 0; i < NUM_TURTLES; i++)
         {
             if (turtles[i].isPenDown
                 && (turtles[i].position.x != turtles[i].lastPosition.x || turtles[i].position.y != turtles[i].lastPosition.y))
@@ -335,13 +358,7 @@ int main(void)
 
         // Draw the visible turtles above the canvas.
         BeginMode2D(camera);
-        for (int i = 0; i < sizeof(turtles) / sizeof(turtles[0]); i++)
-        {
-            if (turtles[i].isVisible)
-            {
-                DrawTurtle(turtles[i].position, turtles[i].angle * RAD2DEG, turtles[i].penColour);
-            }
-        }
+        DrawTurtles(turtles, NUM_TURTLES);
         EndMode2D();
 
         EndDrawing();
