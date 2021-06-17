@@ -272,7 +272,7 @@ static void DrawTurtle(Vector2 pos, float heading, Color colour)
     }
 }
 
-void InitTurtles(Turtle* turtles, int numTurtles)
+static void InitTurtles(Turtle* turtles, int numTurtles)
 {
     for (int i = 0; i < numTurtles; i++)
     {
@@ -281,7 +281,7 @@ void InitTurtles(Turtle* turtles, int numTurtles)
     }
 }
 
-void UpdateTurtleVMs(Turtle* turtles, int numTurtles)
+static void UpdateTurtleVMs(Turtle* turtles, int numTurtles)
 {
     for (int i = 0; i < numTurtles; i++)
     {
@@ -289,7 +289,7 @@ void UpdateTurtleVMs(Turtle* turtles, int numTurtles)
     }
 }
 
-void MoveTurtles(Turtle* turtles, int numTurtles)
+static void MoveTurtles(Turtle* turtles, int numTurtles)
 {
     for (int i = 0; i < numTurtles; i++)
     {
@@ -297,7 +297,19 @@ void MoveTurtles(Turtle* turtles, int numTurtles)
     }
 }
 
-void DrawTurtles(Turtle* turtles, int numTurtles)
+static void DrawPens(Turtle* turtles, int numTurtles)
+{
+    for (int i = 0; i < numTurtles; i++)
+    {
+        if (turtles[i].isPenDown
+            && (turtles[i].position.x != turtles[i].lastPosition.x || turtles[i].position.y != turtles[i].lastPosition.y))
+        {
+            DrawLineV(turtles[i].lastPosition, turtles[i].position, turtles[i].penColour);
+        }
+    }
+}
+
+static void DrawTurtles(Turtle* turtles, int numTurtles)
 {
     for (int i = 0; i < numTurtles; i++)
     {
@@ -324,9 +336,7 @@ int main(void)
 
     // Create a camera whose origin is at the centre of the canvas.
     Vector2 origin = (Vector2){.x = (float)(canvas.texture.width / 2), .y = (float)(canvas.texture.height / 2)};
-    Camera2D camera = {0};
-    camera.offset = origin;
-    camera.zoom = 1.0f;
+    Camera2D camera = {.offset = origin, .zoom = 1.0f};
 
     Turtle turtles[NUM_TURTLES];
     InitTurtles(turtles, NUM_TURTLES);
@@ -342,14 +352,7 @@ int main(void)
         // If any of the turtles have moved then add the last line that they made to the canvas.
         BeginTextureMode(canvas);
         BeginMode2D(camera);
-        for (int i = 0; i < NUM_TURTLES; i++)
-        {
-            if (turtles[i].isPenDown
-                && (turtles[i].position.x != turtles[i].lastPosition.x || turtles[i].position.y != turtles[i].lastPosition.y))
-            {
-                DrawLineV(turtles[i].lastPosition, turtles[i].position, turtles[i].penColour);
-            }
-        }
+        DrawPens(turtles, NUM_TURTLES);
         EndMode2D();
         EndTextureMode();
 
