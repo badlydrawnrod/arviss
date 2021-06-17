@@ -59,6 +59,8 @@ typedef struct
 static const DrawCommand turtleShape[MAX_LINES] = {{MOVE, {-1, 1}},   {LINE, {0, -1}}, {LINE, {1, 1}},
                                                    {LINE, {0, 0.5f}}, {LINE, {-1, 1}}, {END, {0, 0}}};
 
+static void Home(Turtle* turtle);
+
 static void LoadCode(ArvissMemory* memory, const char* filename)
 {
     printf("--- Loading %s\n", filename);
@@ -84,6 +86,11 @@ static void InitTurtle(Turtle* turtle)
 
     turtle->isActive = true;
 
+    Home(turtle);
+}
+
+static void Home(Turtle* turtle)
+{
     turtle->lastPosition = Vector2Zero();
     turtle->position = Vector2Zero();
     turtle->angle = 0.0f;
@@ -151,6 +158,7 @@ static void Update(Turtle* turtle)
 
 static void Goto(Turtle* turtle, float x, float y)
 {
+    // This effectively teleports to the given position.
     turtle->position.x = x;
     turtle->position.y = y;
 }
@@ -183,6 +191,10 @@ static void RunTurtle(Turtle* turtle)
                 turtle->isActive = false;
                 isOk = true;
                 break;
+            case SYSCALL_HOME:
+                Home(turtle);
+                isOk = true;
+                break;
             case SYSCALL_AHEAD:
                 // The distance is in a0 (x10).
                 float distance = *(float*)&turtle->vm.cpu.xreg[10];
@@ -193,6 +205,13 @@ static void RunTurtle(Turtle* turtle)
                 // The angle is in a0 (x10).
                 float angle = *(float*)&turtle->vm.cpu.xreg[10];
                 SetTurn(turtle, angle);
+                isOk = true;
+                break;
+            case SYSCALL_GOTO:
+                // The coordinates are in a0 and a1 (x10 and x11).
+                float x = *(float*)&turtle->vm.cpu.xreg[10];
+                float y = *(float*)&turtle->vm.cpu.xreg[11];
+                Goto(turtle, x, y);
                 isOk = true;
                 break;
             default:
