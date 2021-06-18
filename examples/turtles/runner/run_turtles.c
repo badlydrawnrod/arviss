@@ -128,8 +128,13 @@ static inline bool IsFZero(float a)
     return fabsf(a) < FLT_EPSILON;
 }
 
-static void Update(Turtle* turtle)
+static void MoveTurtle(Turtle* turtle)
 {
+    if (!turtle->isActive)
+    {
+        return;
+    }
+
     turtle->lastPosition = turtle->position;
 
     if (!IsFZero(turtle->aheadRemaining))
@@ -163,7 +168,7 @@ static void Goto(Turtle* turtle, float x, float y)
     turtle->position.y = y;
 }
 
-static void RunTurtle(Turtle* turtle)
+static void UpdateTurtleVM(Turtle* turtle)
 {
     if (turtle->vm.isBlocked)
     {
@@ -226,14 +231,9 @@ static void RunTurtle(Turtle* turtle)
             }
         }
     }
-
-    if (isOk)
-    {
-        // TODO: do what?
-    }
 }
 
-static void DrawTurtle(Vector2 pos, float heading, Color colour)
+static void DrawShape(const DrawCommand* commands, Vector2 pos, float heading, Color colour)
 {
     Vector2 points[MAX_LINES];
 
@@ -242,7 +242,6 @@ static void DrawTurtle(Vector2 pos, float heading, Color colour)
     Vector2 here = Vector2Add(Vector2Scale(Vector2Rotate((Vector2){0, 0}, heading), TURTLE_SCALE), pos);
 
     int numPoints = 0;
-    const DrawCommand* commands = turtleShape;
     for (int i = 0; commands[i].type != END; i++)
     {
         const Vector2 coord = Vector2Add(Vector2Scale(Vector2Rotate(commands[i].pos, heading), TURTLE_SCALE), pos);
@@ -272,6 +271,14 @@ static void DrawTurtle(Vector2 pos, float heading, Color colour)
     }
 }
 
+static void DrawTurtle(Turtle* turtle)
+{
+    if (turtle->isVisible)
+    {
+        DrawShape(turtleShape, turtle->position, turtle->angle * RAD2DEG, turtle->penColour);
+    }
+}
+
 static void InitTurtles(Turtle* turtles, int numTurtles)
 {
     for (int i = 0; i < numTurtles; i++)
@@ -285,7 +292,10 @@ static void UpdateTurtleVMs(Turtle* turtles, int numTurtles)
 {
     for (int i = 0; i < numTurtles; i++)
     {
-        RunTurtle(&turtles[i]);
+        if (!turtles[i].vm.isBlocked)
+        {
+            UpdateTurtleVM(&turtles[i]);
+        }
     }
 }
 
@@ -293,7 +303,10 @@ static void MoveTurtles(Turtle* turtles, int numTurtles)
 {
     for (int i = 0; i < numTurtles; i++)
     {
-        Update(&turtles[i]);
+        if (turtles[i].isActive)
+        {
+            MoveTurtle(&turtles[i]);
+        }
     }
 }
 
@@ -313,10 +326,7 @@ static void DrawTurtles(Turtle* turtles, int numTurtles)
 {
     for (int i = 0; i < numTurtles; i++)
     {
-        if (turtles[i].isVisible)
-        {
-            DrawTurtle(turtles[i].position, turtles[i].angle * RAD2DEG, turtles[i].penColour);
-        }
+        DrawTurtle(&turtles[i]);
     }
 }
 
