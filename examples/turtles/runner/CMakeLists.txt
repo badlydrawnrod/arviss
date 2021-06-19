@@ -6,7 +6,7 @@ if (NOT raylib_FOUND)
 
     FetchContent_Declare(
             raylib
-            URL https://github.com/raysan5/raylib/archive/master.tar.gz
+            URL https://github.com/raysan5/raylib/archive/refs/tags/3.7.0.zip
     )
 
     FetchContent_GetProperties(raylib)

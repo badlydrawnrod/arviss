@@ -204,66 +204,56 @@ static void UpdateTurtleVM(Turtle* turtle)
             const uint32_t syscall = turtle->vm.cpu.xreg[17];
 
             // Service the syscall.
+            isOk = true;
             switch (syscall)
             {
             case SYSCALL_EXIT:
                 // The exit code is in a0 (x10).
                 turtle->isActive = false;
-                isOk = true;
                 break;
             case SYSCALL_HOME:
                 Home(turtle);
-                isOk = true;
                 break;
             case SYSCALL_AHEAD:
                 // The distance is in a0 (x10).
                 float distance = *(float*)&turtle->vm.cpu.xreg[10];
                 SetAhead(turtle, distance);
-                isOk = true;
                 break;
             case SYSCALL_TURN:
                 // The angle is in a0 (x10).
                 float angle = *(float*)&turtle->vm.cpu.xreg[10];
                 SetTurn(turtle, angle);
-                isOk = true;
                 break;
             case SYSCALL_GOTO:
                 // The coordinates are in a0 and a1 (x10 and x11).
                 float x = *(float*)&turtle->vm.cpu.xreg[10];
                 float y = *(float*)&turtle->vm.cpu.xreg[11];
                 Goto(turtle, x, y);
-                isOk = true;
                 break;
             case SYSCALL_SET_PEN_STATE:
                 // The pen state is in a0 (x10).
                 SetPenState(turtle, turtle->vm.cpu.xreg[10] != 0);
-                isOk = true;
                 break;
             case SYSCALL_GET_PEN_STATE:
                 // Return the pen state in a0 (x10).
                 turtle->vm.cpu.xreg[10] = turtle->isPenDown;
-                isOk = true;
                 break;
             case SYSCALL_SET_VISIBILITY:
                 // The visibility state is in a0 (x10).
                 SetVisibility(turtle, turtle->vm.cpu.xreg[10] != 0);
-                isOk = true;
                 break;
             case SYSCALL_GET_VISIBILITY:
                 // Return the visibility state in a0 (x10).
                 turtle->vm.cpu.xreg[10] = turtle->isVisible;
-                isOk = true;
                 break;
             case SYSCALL_SET_PEN_COLOUR:
                 // The colour's RGBA components are given in a0 (x10).
                 Color colour = GetColor((int)turtle->vm.cpu.xreg[10]);
                 SetPenColour(turtle, colour);
-                isOk = true;
                 break;
             case SYSCALL_GET_PEN_COLOUR:
                 // Return the colour's RGBA components in a0 (x10).
                 turtle->vm.cpu.xreg[10] = (uint32_t)ColorToInt(turtle->penColour);
-                isOk = true;
                 break;
             case SYSCALL_GET_POSITION:
                 // Return the turtle's position via the addresses pointed to by a0 and a1 (x10 and x11). An address of zero means
@@ -281,15 +271,14 @@ static void UpdateTurtleVM(Turtle* turtle)
                 }
                 // Return success / failure in a0 (x10).
                 turtle->vm.cpu.xreg[10] = (mc == mcOK);
-                isOk = true;
                 break;
             case SYSCALL_GET_HEADING:
                 // Return the turtle's heading in a0 (x10).
                 const float heading = turtle->angle * RAD2DEG;
                 turtle->vm.cpu.xreg[10] = *(uint32_t*)&heading;
-                isOk = true;
                 break;
             default:
+                isOk = false;
                 break;
             }
 
