@@ -13,7 +13,7 @@
 #define QUANTUM 1024
 
 #define TURTLE_SCALE 12.0f
-#define NUM_TURTLES 17
+#define NUM_TURTLES 10
 #define MAX_LINES 12
 #define MAX_TURN (5.0f * DEG2RAD)
 #define MAX_SPEED 1.0f
@@ -183,6 +183,102 @@ static void MoveTurtle(Turtle* turtle)
     }
 }
 
+static void HandleTrap(Turtle* turtle, const ArvissTrap trap)
+{
+    // Check for a syscall.
+    if (trap.mcause == trENVIRONMENT_CALL_FROM_M_MODE)
+    {
+        // The syscall number is in a7 (x17).
+        const uint32_t syscall = turtle->vm.cpu.xreg[17];
+
+        // Service the syscall.
+        bool isOk = true;
+        switch (syscall)
+        {
+        case SYSCALL_EXIT:
+            // The exit code is in a0 (x10).
+            turtle->isActive = false;
+            break;
+        case SYSCALL_HOME:
+            Home(turtle);
+            break;
+        case SYSCALL_AHEAD:
+            // The distance is in a0 (x10).
+            float distance = *(float*)&turtle->vm.cpu.xreg[10];
+            SetAhead(turtle, distance);
+            break;
+        case SYSCALL_TURN:
+            // The angle is in a0 (x10).
+            float angle = *(float*)&turtle->vm.cpu.xreg[10];
+            SetTurn(turtle, angle);
+            break;
+        case SYSCALL_GOTO:
+            // The coordinates are in a0 and a1 (x10 and x11).
+            float x = *(float*)&turtle->vm.cpu.xreg[10];
+            float y = *(float*)&turtle->vm.cpu.xreg[11];
+            Goto(turtle, x, y);
+            break;
+        case SYSCALL_SET_PEN_STATE:
+            // The pen state is in a0 (x10).
+            SetPenState(turtle, turtle->vm.cpu.xreg[10] != 0);
+            break;
+        case SYSCALL_GET_PEN_STATE:
+            // Return the pen state in a0 (x10).
+            turtle->vm.cpu.xreg[10] = turtle->isPenDown;
+            break;
+        case SYSCALL_SET_VISIBILITY:
+            // The visibility state is in a0 (x10).
+            SetVisibility(turtle, turtle->vm.cpu.xreg[10] != 0);
+            break;
+        case SYSCALL_GET_VISIBILITY:
+            // Return the visibility state in a0 (x10).
+            turtle->vm.cpu.xreg[10] = turtle->isVisible;
+            break;
+        case SYSCALL_SET_PEN_COLOUR:
+            // The colour's RGBA components are given in a0 (x10).
+            Color colour = GetColor((int)turtle->vm.cpu.xreg[10]);
+            SetPenColour(turtle, colour);
+            break;
+        case SYSCALL_GET_PEN_COLOUR:
+            // Return the colour's RGBA components in a0 (x10).
+            turtle->vm.cpu.xreg[10] = (uint32_t)ColorToInt(turtle->penColour);
+            break;
+        case SYSCALL_GET_POSITION:
+            // Return the turtle's position via the addresses pointed to by a0 and a1 (x10 and x11). An address of zero means
+            // that the given coordinate is not required.
+            MemoryCode mc = mcOK;
+            if (turtle->vm.cpu.xreg[10] != 0)
+            {
+                // Copy the x coordinate into memory at a0 (x10).
+                ArvissWriteWord(turtle->vm.cpu.memory, turtle->vm.cpu.xreg[10], *(uint32_t*)&turtle->position.x, &mc);
+            }
+            if (mc == mcOK && turtle->vm.cpu.xreg[11] != 0)
+            {
+                // Copy the y coordinate into memory at a1 (x11).
+                ArvissWriteWord(turtle->vm.cpu.memory, turtle->vm.cpu.xreg[11], *(uint32_t*)&turtle->position.y, &mc);
+            }
+            // Return success / failure in a0 (x10).
+            turtle->vm.cpu.xreg[10] = (mc == mcOK);
+            break;
+        case SYSCALL_GET_HEADING:
+            // Return the turtle's heading in a0 (x10).
+            const float heading = turtle->angle * RAD2DEG;
+            turtle->vm.cpu.xreg[10] = *(uint32_t*)&heading;
+            break;
+        default:
+            isOk = false;
+            break;
+        }
+
+        if (isOk)
+        {
+            // Do this so that we can return from the trap.
+            turtle->vm.cpu.pc = turtle->vm.cpu.mepc; // Restore the program counter from the machine exception program counter.
+            turtle->vm.cpu.pc += 4;                  // ...and increment it as normal.
+        }
+    }
+}
+
 static void UpdateTurtleVM(Turtle* turtle)
 {
     if (turtle->vm.isBlocked)
@@ -191,104 +287,11 @@ static void UpdateTurtleVM(Turtle* turtle)
     }
 
     ArvissResult result = ArvissRun(&turtle->vm.cpu, QUANTUM);
-    bool isOk = !ArvissResultIsTrap(result);
 
-    if (!isOk)
+    if (ArvissResultIsTrap(result))
     {
         const ArvissTrap trap = ArvissResultAsTrap(result);
-
-        // Check for a syscall.
-        if (trap.mcause == trENVIRONMENT_CALL_FROM_M_MODE)
-        {
-            // The syscall number is in a7 (x17).
-            const uint32_t syscall = turtle->vm.cpu.xreg[17];
-
-            // Service the syscall.
-            isOk = true;
-            switch (syscall)
-            {
-            case SYSCALL_EXIT:
-                // The exit code is in a0 (x10).
-                turtle->isActive = false;
-                break;
-            case SYSCALL_HOME:
-                Home(turtle);
-                break;
-            case SYSCALL_AHEAD:
-                // The distance is in a0 (x10).
-                float distance = *(float*)&turtle->vm.cpu.xreg[10];
-                SetAhead(turtle, distance);
-                break;
-            case SYSCALL_TURN:
-                // The angle is in a0 (x10).
-                float angle = *(float*)&turtle->vm.cpu.xreg[10];
-                SetTurn(turtle, angle);
-                break;
-            case SYSCALL_GOTO:
-                // The coordinates are in a0 and a1 (x10 and x11).
-                float x = *(float*)&turtle->vm.cpu.xreg[10];
-                float y = *(float*)&turtle->vm.cpu.xreg[11];
-                Goto(turtle, x, y);
-                break;
-            case SYSCALL_SET_PEN_STATE:
-                // The pen state is in a0 (x10).
-                SetPenState(turtle, turtle->vm.cpu.xreg[10] != 0);
-                break;
-            case SYSCALL_GET_PEN_STATE:
-                // Return the pen state in a0 (x10).
-                turtle->vm.cpu.xreg[10] = turtle->isPenDown;
-                break;
-            case SYSCALL_SET_VISIBILITY:
-                // The visibility state is in a0 (x10).
-                SetVisibility(turtle, turtle->vm.cpu.xreg[10] != 0);
-                break;
-            case SYSCALL_GET_VISIBILITY:
-                // Return the visibility state in a0 (x10).
-                turtle->vm.cpu.xreg[10] = turtle->isVisible;
-                break;
-            case SYSCALL_SET_PEN_COLOUR:
-                // The colour's RGBA components are given in a0 (x10).
-                Color colour = GetColor((int)turtle->vm.cpu.xreg[10]);
-                SetPenColour(turtle, colour);
-                break;
-            case SYSCALL_GET_PEN_COLOUR:
-                // Return the colour's RGBA components in a0 (x10).
-                turtle->vm.cpu.xreg[10] = (uint32_t)ColorToInt(turtle->penColour);
-                break;
-            case SYSCALL_GET_POSITION:
-                // Return the turtle's position via the addresses pointed to by a0 and a1 (x10 and x11). An address of zero means
-                // that the given coordinate is not required.
-                MemoryCode mc = mcOK;
-                if (turtle->vm.cpu.xreg[10] != 0)
-                {
-                    // Copy the x coordinate into memory at a0 (x10).
-                    ArvissWriteWord(turtle->vm.cpu.memory, turtle->vm.cpu.xreg[10], *(uint32_t*)&turtle->position.x, &mc);
-                }
-                if (mc == mcOK && turtle->vm.cpu.xreg[11] != 0)
-                {
-                    // Copy the y coordinate into memory at a1 (x11).
-                    ArvissWriteWord(turtle->vm.cpu.memory, turtle->vm.cpu.xreg[11], *(uint32_t*)&turtle->position.y, &mc);
-                }
-                // Return success / failure in a0 (x10).
-                turtle->vm.cpu.xreg[10] = (mc == mcOK);
-                break;
-            case SYSCALL_GET_HEADING:
-                // Return the turtle's heading in a0 (x10).
-                const float heading = turtle->angle * RAD2DEG;
-                turtle->vm.cpu.xreg[10] = *(uint32_t*)&heading;
-                break;
-            default:
-                isOk = false;
-                break;
-            }
-
-            if (isOk)
-            {
-                // Do this so that we can return from the trap.
-                turtle->vm.cpu.pc = turtle->vm.cpu.mepc; // Restore the program counter from the machine exception program counter.
-                turtle->vm.cpu.pc += 4;                  // ...and increment it as normal.
-            }
-        }
+        HandleTrap(turtle, trap);
     }
 }
 
@@ -389,6 +392,8 @@ static void DrawTurtles(Turtle* turtles, int numTurtles)
     }
 }
 
+static Turtle g_turtles[NUM_TURTLES];
+
 int main(void)
 {
     const int screenWidth = 1280;
@@ -407,13 +412,12 @@ int main(void)
     Vector2 origin = (Vector2){.x = (float)(canvas.texture.width / 2), .y = (float)(canvas.texture.height / 2)};
     Camera2D camera = {.offset = origin, .zoom = 1.0f};
 
-    Turtle turtles[NUM_TURTLES];
-    InitTurtles(turtles, NUM_TURTLES);
+    InitTurtles(g_turtles, NUM_TURTLES);
 
     while (!WindowShouldClose())
     {
-        UpdateTurtleVMs(turtles, NUM_TURTLES);
-        MoveTurtles(turtles, NUM_TURTLES);
+        UpdateTurtleVMs(g_turtles, NUM_TURTLES);
+        MoveTurtles(g_turtles, NUM_TURTLES);
 
         BeginDrawing();
         ClearBackground(DARKBLUE);
@@ -421,7 +425,7 @@ int main(void)
         // If any of the turtles have moved then add the last line that they made to the canvas.
         BeginTextureMode(canvas);
         BeginMode2D(camera);
-        DrawPens(turtles, NUM_TURTLES);
+        DrawPens(g_turtles, NUM_TURTLES);
         EndMode2D();
         EndTextureMode();
 
@@ -430,7 +434,7 @@ int main(void)
 
         // Draw the visible turtles above the canvas.
         BeginMode2D(camera);
-        DrawTurtles(turtles, NUM_TURTLES);
+        DrawTurtles(g_turtles, NUM_TURTLES);
         EndMode2D();
 
         EndDrawing();
