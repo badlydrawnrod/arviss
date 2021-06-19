@@ -43,7 +43,7 @@ target_link_libraries(decode_test PRIVATE arviss gtest_main)
 add_test(decode_test decode_test)
 
 # Examples.
-add_subdirectory("examples/hello_world/runner")
+add_subdirectory("examples")
 
 # Installation.
 # TODO: fix it so that it doesn't install gtest.
