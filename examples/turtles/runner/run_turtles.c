@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-// Do 1024 instructions per update.
+// Perform up to 1024 instructions per update.
 #define QUANTUM 1024
 
 #define TURTLE_SCALE 12.0f
@@ -32,7 +32,7 @@ typedef struct Turtle
     bool isActive;
     Vector2 lastPosition;
     Vector2 position;
-    float angle;
+    float heading;
     bool isVisible;
     bool isPenDown;
     Color penColour;
@@ -60,6 +60,8 @@ static const DrawCommand turtleShape[MAX_LINES] = {{MOVE, {-1, 1}},   {LINE, {0,
                                                    {LINE, {0, 0.5f}}, {LINE, {-1, 1}}, {END, {0, 0}}};
 
 static void Home(Turtle* turtle);
+
+// --- Initialization --------------------------------------------------------------------------------------------------------------
 
 static void LoadCode(ArvissMemory* memory, const char* filename)
 {
@@ -89,11 +91,22 @@ static void InitTurtle(Turtle* turtle)
     Home(turtle);
 }
 
+static void InitTurtles(Turtle* turtles, int numTurtles)
+{
+    for (int i = 0; i < numTurtles; i++)
+    {
+        InitTurtle(&turtles[i]);
+        turtles[i].heading = (float)i * DEG2RAD * 360.0f / numTurtles;
+    }
+}
+
+// --- Turtle commmands ------------------------------------------------------------------------------------------------------------
+
 static void Home(Turtle* turtle)
 {
     turtle->lastPosition = Vector2Zero();
     turtle->position = Vector2Zero();
-    turtle->angle = 0.0f;
+    turtle->heading = 0.0f;
     turtle->isVisible = true;
     turtle->isPenDown = true;
     turtle->penColour = RAYWHITE;
@@ -137,6 +150,8 @@ static void SetPenColour(Turtle* turtle, Color penColour)
     turtle->penColour = penColour;
 }
 
+// --- Movement and turning --------------------------------------------------------------------------------------------------------
+
 static inline float NormalizeAngle(float angle)
 {
     // Get the positive modulus so that 0 <= angle < 2 * PI.
@@ -165,7 +180,7 @@ static void MoveTurtle(Turtle* turtle)
         float magDistance = fminf(MAX_SPEED, fabsf(turtle->aheadRemaining));
         float distance = copysignf(magDistance, turtle->aheadRemaining);
 
-        float angle = turtle->angle;
+        float angle = turtle->heading;
         Vector2 heading = (Vector2){sinf(angle), cosf(angle)};
         turtle->position = Vector2Add(turtle->position, Vector2Scale(heading, distance));
         turtle->aheadRemaining -= distance;
@@ -176,23 +191,36 @@ static void MoveTurtle(Turtle* turtle)
         // Turn right (or left if negative).
         float magTurn = fminf(MAX_TURN, fabsf(turtle->turnRemaining));
         float turn = copysignf(magTurn, turtle->turnRemaining);
-        turtle->angle += turn;
-        turtle->angle = NormalizeAngle(turtle->angle);
+        turtle->heading += turn;
+        turtle->heading = NormalizeAngle(turtle->heading);
         turtle->turnRemaining -= turn;
         turtle->vm.isBlocked = !IsFZero(turtle->turnRemaining);
     }
 }
 
-static void HandleTrap(Turtle* turtle, const ArvissTrap trap)
+static void MoveTurtles(Turtle* turtles, int numTurtles)
+{
+    for (int i = 0; i < numTurtles; i++)
+    {
+        if (turtles[i].isActive)
+        {
+            MoveTurtle(&turtles[i]);
+        }
+    }
+}
+
+// --- Turtle VM -------------------------------------------------------------------------------------------------------------------
+
+static void HandleTrap(Turtle* turtle, const ArvissTrap* trap)
 {
     // Check for a syscall.
-    if (trap.mcause == trENVIRONMENT_CALL_FROM_M_MODE)
+    if (trap->mcause == trENVIRONMENT_CALL_FROM_M_MODE)
     {
         // The syscall number is in a7 (x17).
         const uint32_t syscall = turtle->vm.cpu.xreg[17];
 
         // Service the syscall.
-        bool isOk = true;
+        bool syscallHandled = true;
         switch (syscall)
         {
         case SYSCALL_EXIT:
@@ -262,17 +290,19 @@ static void HandleTrap(Turtle* turtle, const ArvissTrap trap)
             break;
         case SYSCALL_GET_HEADING:
             // Return the turtle's heading in a0 (x10).
-            const float heading = turtle->angle * RAD2DEG;
+            const float heading = turtle->heading * RAD2DEG;
             turtle->vm.cpu.xreg[10] = *(uint32_t*)&heading;
             break;
         default:
-            isOk = false;
+            // Unknown syscall.
+            syscallHandled = false;
             break;
         }
 
-        if (isOk)
+        // If we handled the syscall then perform an MRET so that we can return from the trap.
+        if (syscallHandled)
         {
-            // Do this so that we can return from the trap.
+            // TODO: could we not just execute an MRET?
             turtle->vm.cpu.pc = turtle->vm.cpu.mepc; // Restore the program counter from the machine exception program counter.
             turtle->vm.cpu.pc += 4;                  // ...and increment it as normal.
         }
@@ -291,7 +321,32 @@ static void UpdateTurtleVM(Turtle* turtle)
     if (ArvissResultIsTrap(result))
     {
         const ArvissTrap trap = ArvissResultAsTrap(result);
-        HandleTrap(turtle, trap);
+        HandleTrap(turtle, &trap);
+    }
+}
+
+static void UpdateTurtleVMs(Turtle* turtles, int numTurtles)
+{
+    for (int i = 0; i < numTurtles; i++)
+    {
+        if (!turtles[i].vm.isBlocked)
+        {
+            UpdateTurtleVM(&turtles[i]);
+        }
+    }
+}
+
+// --- Drawing ---------------------------------------------------------------------------------------------------------------------
+
+static void DrawPens(Turtle* turtles, int numTurtles)
+{
+    for (int i = 0; i < numTurtles; i++)
+    {
+        if (turtles[i].isPenDown
+            && (turtles[i].position.x != turtles[i].lastPosition.x || turtles[i].position.y != turtles[i].lastPosition.y))
+        {
+            DrawLineV(turtles[i].lastPosition, turtles[i].position, turtles[i].penColour);
+        }
     }
 }
 
@@ -337,50 +392,7 @@ static void DrawTurtle(Turtle* turtle)
 {
     if (turtle->isVisible)
     {
-        DrawShape(turtleShape, turtle->position, turtle->angle * RAD2DEG, turtle->penColour);
-    }
-}
-
-static void InitTurtles(Turtle* turtles, int numTurtles)
-{
-    for (int i = 0; i < numTurtles; i++)
-    {
-        InitTurtle(&turtles[i]);
-        turtles[i].angle = (float)i * DEG2RAD * 360.0f / numTurtles;
-    }
-}
-
-static void UpdateTurtleVMs(Turtle* turtles, int numTurtles)
-{
-    for (int i = 0; i < numTurtles; i++)
-    {
-        if (!turtles[i].vm.isBlocked)
-        {
-            UpdateTurtleVM(&turtles[i]);
-        }
-    }
-}
-
-static void MoveTurtles(Turtle* turtles, int numTurtles)
-{
-    for (int i = 0; i < numTurtles; i++)
-    {
-        if (turtles[i].isActive)
-        {
-            MoveTurtle(&turtles[i]);
-        }
-    }
-}
-
-static void DrawPens(Turtle* turtles, int numTurtles)
-{
-    for (int i = 0; i < numTurtles; i++)
-    {
-        if (turtles[i].isPenDown
-            && (turtles[i].position.x != turtles[i].lastPosition.x || turtles[i].position.y != turtles[i].lastPosition.y))
-        {
-            DrawLineV(turtles[i].lastPosition, turtles[i].position, turtles[i].penColour);
-        }
+        DrawShape(turtleShape, turtle->position, turtle->heading * RAD2DEG, turtle->penColour);
     }
 }
 
@@ -391,8 +403,6 @@ static void DrawTurtles(Turtle* turtles, int numTurtles)
         DrawTurtle(&turtles[i]);
     }
 }
-
-static Turtle g_turtles[NUM_TURTLES];
 
 int main(void)
 {
@@ -412,20 +422,21 @@ int main(void)
     Vector2 origin = (Vector2){.x = (float)(canvas.texture.width / 2), .y = (float)(canvas.texture.height / 2)};
     Camera2D camera = {.offset = origin, .zoom = 1.0f};
 
-    InitTurtles(g_turtles, NUM_TURTLES);
+    static Turtle turtles[NUM_TURTLES]; // This is static to keep it off the stack.
+    InitTurtles(turtles, NUM_TURTLES);
 
     while (!WindowShouldClose())
     {
-        UpdateTurtleVMs(g_turtles, NUM_TURTLES);
-        MoveTurtles(g_turtles, NUM_TURTLES);
+        UpdateTurtleVMs(turtles, NUM_TURTLES);
+        MoveTurtles(turtles, NUM_TURTLES);
 
         BeginDrawing();
-        ClearBackground(DARKBLUE);
+        ClearBackground(DARKGRAY);
 
         // If any of the turtles have moved then add the last line that they made to the canvas.
         BeginTextureMode(canvas);
         BeginMode2D(camera);
-        DrawPens(g_turtles, NUM_TURTLES);
+        DrawPens(turtles, NUM_TURTLES);
         EndMode2D();
         EndTextureMode();
 
@@ -434,7 +445,7 @@ int main(void)
 
         // Draw the visible turtles above the canvas.
         BeginMode2D(camera);
-        DrawTurtles(g_turtles, NUM_TURTLES);
+        DrawTurtles(turtles, NUM_TURTLES);
         EndMode2D();
 
         EndDrawing();
