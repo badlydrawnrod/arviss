@@ -25,17 +25,17 @@ C:> scoop install llvm
 ### Build the examples with batch files (quick and easy)
 
 ```
-C:> cd demos\hello_world\arviss
+C:> cd examples\turtles\arviss
 C:> build.bat
 ```
 
 ### Build the examples with CMake (preferred)
 
-Built samples are output to `hello_world/bin` in a format that can be loaded into ARVISS.
+Built samples are output to `turtles/arviss/bin` in a format that can be loaded into ARVISS.
 
 ```
-C:> cd demos\hello_world\arviss
-C:> cmake -G Ninja -B build -DCMAKE_C_COMPILER=clang -DCMAKE_OBJCOPY=%USERPROFILE%\scoop\shims\llvm-objcopy .
+C:> cd examples\turtles\arviss
+C:> cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_OBJCOPY=%USERPROFILE%\scoop\shims\llvm-objcopy .
 C:> cmake --build build
 ```
 
@@ -54,11 +54,11 @@ $ sudo apt install clang-11 lld-11
 
 ### Build the examples with CMake
 
-Built samples are output to `hello_world/bin` in a format that can be loaded into ARVISS.
+Built samples are output to `turtles/arviss/bin` in a format that can be loaded into ARVISS.
 
 ```shell
-$ cd demos/hello_world/arviss
-$ cmake -G Ninja -B build -DCMAKE_C_COMPILER=clang-11 -DCMAKE_OBJCOPY=/usr/bin/llvm-objcopy
+$ cd examples/turtles/arviss
+$ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-11 -DCMAKE_OBJCOPY=/usr/bin/llvm-objcopy
 $ cmake --build build
 ```
 
@@ -69,11 +69,11 @@ TODO: but works with clang-12 and lld-12.
 # Running
 
 - Build Arviss (and the demo runner) using a native toolchain as described in the parent `README.md`.
-- Run `run_hello`.
+- Run `run_turtles`.
 
 e.g.,
 
 ```
-C:> cd build\demos\hello_world\runner
-C:> run_hello
+C:> cd build\examples\turtles\runner
+C:> run_turtles
 ```

@@ -71,7 +71,7 @@ static void LoadCode(ArvissMemory* memory, const char* filename)
         return;
     }
     size_t count = fread(memory->mem, 1, sizeof(memory->mem), fp);
-    printf("Read %zd bytes\n", count);
+    printf("--- Read %zd bytes\n", count);
     fclose(fp);
 }
 
