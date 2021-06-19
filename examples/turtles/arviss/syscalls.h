@@ -117,9 +117,9 @@ static inline uint32_t sys_get_pen_colour(void)
     return syscall0(SYSCALL_GET_PEN_COLOUR);
 }
 
-static inline void sys_get_position(float* x, float* y)
+static inline bool sys_get_position(float* x, float* y)
 {
-    syscall2(SYSCALL_GET_POSITION, (uint32_t)x, (uint32_t)y);
+    return syscall2(SYSCALL_GET_POSITION, (uint32_t)x, (uint32_t)y);
 }
 
 static inline float sys_get_heading(void)

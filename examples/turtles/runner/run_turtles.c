@@ -13,7 +13,7 @@
 #define QUANTUM 1024
 
 #define TURTLE_SCALE 12.0f
-#define NUM_TURTLES 10
+#define NUM_TURTLES 17
 #define MAX_LINES 12
 #define MAX_TURN (5.0f * DEG2RAD)
 #define MAX_SPEED 1.0f
@@ -266,16 +266,22 @@ static void UpdateTurtleVM(Turtle* turtle)
                 isOk = true;
                 break;
             case SYSCALL_GET_POSITION:
-                // Return the turtle's position via the addresses pointed to by a0 and a1 (x10 and x11).
+                // Return the turtle's position via the addresses pointed to by a0 and a1 (x10 and x11). An address of zero means
+                // that the given coordinate is not required.
                 MemoryCode mc = mcOK;
-                ArvissWriteWord(turtle->vm.cpu.memory, turtle->vm.cpu.xreg[10], *(uint32_t*)&turtle->position.x, &mc);
-                isOk = (mc == mcOK);
-                if (isOk)
+                if (turtle->vm.cpu.xreg[10] != 0)
                 {
-                    ArvissWriteWord(turtle->vm.cpu.memory, turtle->vm.cpu.xreg[11], *(uint32_t*)&turtle->position.y, &mc);
-                    isOk = (mc == mcOK);
+                    // Copy the x coordinate into memory at a0 (x10).
+                    ArvissWriteWord(turtle->vm.cpu.memory, turtle->vm.cpu.xreg[10], *(uint32_t*)&turtle->position.x, &mc);
                 }
-                // TODO: trap if memory access failed.
+                if (mc == mcOK && turtle->vm.cpu.xreg[11] != 0)
+                {
+                    // Copy the y coordinate into memory at a1 (x11).
+                    ArvissWriteWord(turtle->vm.cpu.memory, turtle->vm.cpu.xreg[11], *(uint32_t*)&turtle->position.y, &mc);
+                }
+                // Return success / failure in a0 (x10).
+                turtle->vm.cpu.xreg[10] = (mc == mcOK);
+                isOk = true;
                 break;
             case SYSCALL_GET_HEADING:
                 // Return the turtle's heading in a0 (x10).

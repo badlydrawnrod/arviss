@@ -1,6 +1,7 @@
 #include "syscalls.h"
 
 #include <stdbool.h>
+#include <stddef.h>
 
 int main(void)
 {
@@ -12,15 +13,15 @@ int main(void)
 
     // Drive across.
     float x;
-    float y;
-    sys_get_position(&x, &y);
+    sys_get_position(&x, NULL);
     sys_ahead(100.0f - x);
 
     // Rotate to face down.
     sys_turn(180 - sys_get_heading());
 
     // Drive down.
-    sys_get_position(&x, &y);
+    float y;
+    sys_get_position(NULL, &y);
     sys_ahead(y + 50.0f);
 
     // Rotate to face the original heading.
