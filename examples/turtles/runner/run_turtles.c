@@ -223,55 +223,66 @@ static void HandleTrap(Turtle* turtle, const ArvissTrap* trap)
         bool syscallHandled = true;
         switch (syscall)
         {
-        case SYSCALL_EXIT:
+        case SYSCALL_EXIT: {
             // The exit code is in a0 (x10).
             turtle->isActive = false;
-            break;
-        case SYSCALL_HOME:
+        }
+        break;
+        case SYSCALL_HOME: {
             Home(turtle);
-            break;
-        case SYSCALL_AHEAD:
+        }
+        break;
+        case SYSCALL_AHEAD: {
             // The distance is in a0 (x10).
             float distance = *(float*)&turtle->vm.cpu.xreg[10];
             SetAhead(turtle, distance);
-            break;
-        case SYSCALL_TURN:
+        }
+        break;
+        case SYSCALL_TURN: {
             // The angle is in a0 (x10).
             float angle = *(float*)&turtle->vm.cpu.xreg[10];
             SetTurn(turtle, angle);
-            break;
-        case SYSCALL_GOTO:
+        }
+        break;
+        case SYSCALL_GOTO: {
             // The coordinates are in a0 and a1 (x10 and x11).
             float x = *(float*)&turtle->vm.cpu.xreg[10];
             float y = *(float*)&turtle->vm.cpu.xreg[11];
             Goto(turtle, x, y);
-            break;
-        case SYSCALL_SET_PEN_STATE:
+        }
+        break;
+        case SYSCALL_SET_PEN_STATE: {
             // The pen state is in a0 (x10).
             SetPenState(turtle, turtle->vm.cpu.xreg[10] != 0);
-            break;
-        case SYSCALL_GET_PEN_STATE:
+        }
+        break;
+        case SYSCALL_GET_PEN_STATE: {
             // Return the pen state in a0 (x10).
             turtle->vm.cpu.xreg[10] = turtle->isPenDown;
-            break;
-        case SYSCALL_SET_VISIBILITY:
+        }
+        break;
+        case SYSCALL_SET_VISIBILITY: {
             // The visibility state is in a0 (x10).
             SetVisibility(turtle, turtle->vm.cpu.xreg[10] != 0);
-            break;
-        case SYSCALL_GET_VISIBILITY:
+        }
+        break;
+        case SYSCALL_GET_VISIBILITY: {
             // Return the visibility state in a0 (x10).
             turtle->vm.cpu.xreg[10] = turtle->isVisible;
-            break;
-        case SYSCALL_SET_PEN_COLOUR:
+        }
+        break;
+        case SYSCALL_SET_PEN_COLOUR: {
             // The colour's RGBA components are given in a0 (x10).
             Color colour = GetColor((int)turtle->vm.cpu.xreg[10]);
             SetPenColour(turtle, colour);
-            break;
-        case SYSCALL_GET_PEN_COLOUR:
+        }
+        break;
+        case SYSCALL_GET_PEN_COLOUR: {
             // Return the colour's RGBA components in a0 (x10).
             turtle->vm.cpu.xreg[10] = (uint32_t)ColorToInt(turtle->penColour);
-            break;
-        case SYSCALL_GET_POSITION:
+        }
+        break;
+        case SYSCALL_GET_POSITION: {
             // Return the turtle's position via the addresses pointed to by a0 and a1 (x10 and x11). An address of zero means
             // that the given coordinate is not required.
             MemoryCode mc = mcOK;
@@ -287,12 +298,14 @@ static void HandleTrap(Turtle* turtle, const ArvissTrap* trap)
             }
             // Return success / failure in a0 (x10).
             turtle->vm.cpu.xreg[10] = (mc == mcOK);
-            break;
-        case SYSCALL_GET_HEADING:
+        }
+        break;
+        case SYSCALL_GET_HEADING: {
             // Return the turtle's heading in a0 (x10).
             const float heading = turtle->heading * RAD2DEG;
             turtle->vm.cpu.xreg[10] = *(uint32_t*)&heading;
-            break;
+        }
+        break;
         default:
             // Unknown syscall.
             syscallHandled = false;
