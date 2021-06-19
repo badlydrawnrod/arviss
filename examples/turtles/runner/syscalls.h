@@ -12,5 +12,7 @@ typedef enum Syscalls
     SYSCALL_SET_VISIBILITY, // Sets the turtle's visibility to hidden (0) or visible (!0).
     SYSCALL_GET_VISIBILITY, // Gets the turtle's visibility.
     SYSCALL_SET_PEN_COLOUR, // Sets the pen colour.
-    SYSCALL_GET_PEN_COLOUR  // Gets the pen colour.
+    SYSCALL_GET_PEN_COLOUR, // Gets the pen colour.
+    SYSCALL_GET_POSITION,   // Gets the turtle's position.
+    SYSCALL_GET_HEADING     // Gets the turtle's heading.
 } Syscalls;

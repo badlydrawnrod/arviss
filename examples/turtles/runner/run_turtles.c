@@ -265,6 +265,24 @@ static void UpdateTurtleVM(Turtle* turtle)
                 turtle->vm.cpu.xreg[10] = (uint32_t)ColorToInt(turtle->penColour);
                 isOk = true;
                 break;
+            case SYSCALL_GET_POSITION:
+                // Return the turtle's position via the addresses pointed to by a0 and a1 (x10 and x11).
+                MemoryCode mc = mcOK;
+                ArvissWriteWord(turtle->vm.cpu.memory, turtle->vm.cpu.xreg[10], *(uint32_t*)&turtle->position.x, &mc);
+                isOk = (mc == mcOK);
+                if (isOk)
+                {
+                    ArvissWriteWord(turtle->vm.cpu.memory, turtle->vm.cpu.xreg[11], *(uint32_t*)&turtle->position.y, &mc);
+                    isOk = (mc == mcOK);
+                }
+                // TODO: trap if memory access failed.
+                break;
+            case SYSCALL_GET_HEADING:
+                // Return the turtle's heading in a0 (x10).
+                const float heading = turtle->angle * RAD2DEG;
+                turtle->vm.cpu.xreg[10] = *(uint32_t*)&heading;
+                isOk = true;
+                break;
             default:
                 break;
             }

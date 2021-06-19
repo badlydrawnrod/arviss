@@ -15,7 +15,9 @@ typedef enum Syscalls
     SYSCALL_SET_VISIBILITY, // Sets the turtle's visibility to hidden (0) or visible (!0).
     SYSCALL_GET_VISIBILITY, // Gets the turtle's visibility.
     SYSCALL_SET_PEN_COLOUR, // Sets the pen colour.
-    SYSCALL_GET_PEN_COLOUR  // Gets the pen colour.
+    SYSCALL_GET_PEN_COLOUR, // Gets the pen colour.
+    SYSCALL_GET_POSITION,   // Gets the turtle's position.
+    SYSCALL_GET_HEADING     // Gets the turtle's heading.
 } Syscalls;
 
 // Credit to: https://github.com/lluixhi/musl-riscv/blob/master/arch/riscv32/syscall_arch.h
@@ -113,4 +115,15 @@ static inline void sys_set_pen_colour(uint32_t rgba)
 static inline uint32_t sys_get_pen_colour(void)
 {
     return syscall0(SYSCALL_GET_PEN_COLOUR);
+}
+
+static inline void sys_get_position(float* x, float* y)
+{
+    syscall2(SYSCALL_GET_POSITION, (uint32_t)x, (uint32_t)y);
+}
+
+static inline float sys_get_heading(void)
+{
+    const uint32_t result = syscall0(SYSCALL_GET_HEADING);
+    return *(float*)&result;
 }
