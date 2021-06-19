@@ -11,8 +11,11 @@ typedef enum Syscalls
     SYSCALL_TURN,           // Tells the turtle to turn right (or left if negative) by the given amount.
     SYSCALL_GOTO,           // Tells the turtle to teleport to the given location.
     SYSCALL_SET_PEN_STATE,  // Sets the pen state to up (0) or down (!0).
+    SYSCALL_GET_PEN_STATE,  // Gets the pen state.
     SYSCALL_SET_VISIBILITY, // Sets the turtle's visibility to hidden (0) or visible (!0).
-    SYSCALL_SET_PEN_COLOUR  // Sets the pen colour.
+    SYSCALL_GET_VISIBILITY, // Gets the turtle's visibility.
+    SYSCALL_SET_PEN_COLOUR, // Sets the pen colour.
+    SYSCALL_GET_PEN_COLOUR  // Gets the pen colour.
 } Syscalls;
 
 // Credit to: https://github.com/lluixhi/musl-riscv/blob/master/arch/riscv32/syscall_arch.h
@@ -87,12 +90,27 @@ static inline void sys_set_pen_state(bool isDown)
     syscall1(SYSCALL_SET_PEN_STATE, (uint32_t)isDown);
 }
 
+static inline bool sys_get_pen_state(void)
+{
+    return syscall0(SYSCALL_GET_PEN_STATE);
+}
+
 static inline void sys_set_visibility(bool isVisible)
 {
     syscall1(SYSCALL_SET_VISIBILITY, (uint32_t)isVisible);
 }
 
+static inline bool sys_get_visibility(void)
+{
+    return syscall0(SYSCALL_GET_VISIBILITY);
+}
+
 static inline void sys_set_pen_colour(uint32_t rgba)
 {
     syscall1(SYSCALL_SET_PEN_COLOUR, rgba);
+}
+
+static inline uint32_t sys_get_pen_colour(void)
+{
+    return syscall0(SYSCALL_GET_PEN_COLOUR);
 }

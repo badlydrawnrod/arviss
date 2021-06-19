@@ -239,15 +239,30 @@ static void UpdateTurtleVM(Turtle* turtle)
                 SetPenState(turtle, turtle->vm.cpu.xreg[10] != 0);
                 isOk = true;
                 break;
+            case SYSCALL_GET_PEN_STATE:
+                // Return the pen state in a0 (x10).
+                turtle->vm.cpu.xreg[10] = turtle->isPenDown;
+                isOk = true;
+                break;
             case SYSCALL_SET_VISIBILITY:
                 // The visibility state is in a0 (x10).
                 SetVisibility(turtle, turtle->vm.cpu.xreg[10] != 0);
+                isOk = true;
+                break;
+            case SYSCALL_GET_VISIBILITY:
+                // Return the visibility state in a0 (x10).
+                turtle->vm.cpu.xreg[10] = turtle->isVisible;
                 isOk = true;
                 break;
             case SYSCALL_SET_PEN_COLOUR:
                 // The colour's RGBA components are given in a0 (x10).
                 Color colour = GetColor((int)turtle->vm.cpu.xreg[10]);
                 SetPenColour(turtle, colour);
+                isOk = true;
+                break;
+            case SYSCALL_GET_PEN_COLOUR:
+                // Return the colour's RGBA components in a0 (x10).
+                turtle->vm.cpu.xreg[10] = (uint32_t)ColorToInt(turtle->penColour);
                 isOk = true;
                 break;
             default:
