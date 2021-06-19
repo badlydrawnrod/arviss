@@ -115,6 +115,28 @@ static void SetTurn(Turtle* turtle, float angle)
     turtle->vm.isBlocked = true;
 }
 
+static void Goto(Turtle* turtle, float x, float y)
+{
+    // This effectively teleports to the given position.
+    turtle->position.x = x;
+    turtle->position.y = y;
+}
+
+static void SetPenState(Turtle* turtle, bool isDown)
+{
+    turtle->isPenDown = isDown;
+}
+
+static void SetVisibility(Turtle* turtle, bool isVisible)
+{
+    turtle->isVisible = isVisible;
+}
+
+static void SetPenColour(Turtle* turtle, Color penColour)
+{
+    turtle->penColour = penColour;
+}
+
 static inline float NormalizeAngle(float angle)
 {
     // Get the positive modulus so that 0 <= angle < 2 * PI.
@@ -159,13 +181,6 @@ static void MoveTurtle(Turtle* turtle)
         turtle->turnRemaining -= turn;
         turtle->vm.isBlocked = !IsFZero(turtle->turnRemaining);
     }
-}
-
-static void Goto(Turtle* turtle, float x, float y)
-{
-    // This effectively teleports to the given position.
-    turtle->position.x = x;
-    turtle->position.y = y;
 }
 
 static void UpdateTurtleVM(Turtle* turtle)
@@ -217,6 +232,22 @@ static void UpdateTurtleVM(Turtle* turtle)
                 float x = *(float*)&turtle->vm.cpu.xreg[10];
                 float y = *(float*)&turtle->vm.cpu.xreg[11];
                 Goto(turtle, x, y);
+                isOk = true;
+                break;
+            case SYSCALL_SET_PEN_STATE:
+                // The pen state is in a0 (x10).
+                SetPenState(turtle, turtle->vm.cpu.xreg[10] != 0);
+                isOk = true;
+                break;
+            case SYSCALL_SET_VISIBILITY:
+                // The visibility state is in a0 (x10).
+                SetVisibility(turtle, turtle->vm.cpu.xreg[10] != 0);
+                isOk = true;
+                break;
+            case SYSCALL_SET_PEN_COLOUR:
+                // The colour's RGBA components are given in a0 (x10).
+                Color colour = GetColor((int)turtle->vm.cpu.xreg[10]);
+                SetPenColour(turtle, colour);
                 isOk = true;
                 break;
             default:
