@@ -1594,3 +1594,8 @@ uint32_t ArvissReadXReg(ArvissCpu* cpu, int reg)
 {
     return cpu->xreg[reg];
 }
+
+void ArvissWriteXReg(ArvissCpu* cpu, int reg, uint32_t value)
+{
+    cpu->xreg[reg] = value;
+}

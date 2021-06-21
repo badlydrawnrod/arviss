@@ -23,6 +23,7 @@ void ArvissReset(ArvissCpu* cpu, uint32_t sp);
 ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction);
 ArvissResult ArvissRun(ArvissCpu* cpu, int count);
 uint32_t ArvissReadXReg(ArvissCpu* cpu, int reg);
+void ArvissWriteXReg(ArvissCpu* cpu, int reg, uint32_t value);
 
 #ifdef __cplusplus
 }
