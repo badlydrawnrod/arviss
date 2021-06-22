@@ -100,6 +100,20 @@ static void InitTurtles(Turtle* turtles, int numTurtles)
     }
 }
 
+static void DestroyTurtle(Turtle* turtle)
+{
+    ArvissDispose(turtle->vm.cpu);
+    turtle->vm.cpu = NULL;
+}
+
+static void DestroyTurtles(Turtle* turtles, int numTurtles)
+{
+    for (int i = 0; i < numTurtles; i++)
+    {
+        DestroyTurtle(&turtles[i]);
+    }
+}
+
 // --- Turtle commmands ------------------------------------------------------------------------------------------------------------
 
 static void Home(Turtle* turtle)
@@ -471,6 +485,7 @@ int main(void)
         EndDrawing();
     }
     CloseWindow();
+    DestroyTurtles(turtles, NUM_TURTLES);
 
     return 0;
 }
