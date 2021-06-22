@@ -1578,7 +1578,7 @@ ArvissResult ArvissRun(ArvissCpu* cpu, int count)
     for (int i = 0; i < count; i++)
     {
         DecodedInstruction* decoded = FetchFromCache(cpu);
-        (*decoded).opcode(cpu, decoded);
+        decoded->opcode(cpu, decoded);
 
         if (ArvissResultIsTrap(cpu->result))
         {
