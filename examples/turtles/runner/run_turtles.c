@@ -297,15 +297,13 @@ static void HandleTrap(Turtle* turtle, const ArvissTrap* trap)
             if (a0 != 0)
             {
                 // Copy the x coordinate into memory at a0 (x10).
-                // TODO: does this go through Arviss, or through the memory / bus?
-                ArvissWriteWord(turtle->vm.cpu.memory, a0, *(uint32_t*)&turtle->position.x, &mc);
+                ArvissWriteWord(ArvissGetMemory(turtle->vm.cpu), a0, *(uint32_t*)&turtle->position.x, &mc);
             }
             uint32_t a1 = ArvissReadXReg(turtle->vm.cpu, 11);
             if (mc == mcOK && a1 != 0)
             {
                 // Copy the y coordinate into memory at a1 (x11).
-                // TODO: does this go through Arviss, or through the memory / bus?
-                ArvissWriteWord(turtle->vm.cpu.memory, a1, *(uint32_t*)&turtle->position.y, &mc);
+                ArvissWriteWord(ArvissGetMemory(turtle->vm.cpu), a1, *(uint32_t*)&turtle->position.y, &mc);
             }
             // Return success / failure in a0 (x10).
             ArvissWriteXReg(turtle->vm.cpu, 10, (mc == mcOK));
@@ -326,9 +324,7 @@ static void HandleTrap(Turtle* turtle, const ArvissTrap* trap)
         // If we handled the syscall then perform an MRET so that we can return from the trap.
         if (syscallHandled)
         {
-            // TODO: could we not just execute an MRET?
-            turtle->vm.cpu.pc = turtle->vm.cpu.mepc; // Restore the program counter from the machine exception program counter.
-            turtle->vm.cpu.pc += 4;                  // ...and increment it as normal.
+            ArvissMret(turtle->vm.cpu);
         }
     }
 }

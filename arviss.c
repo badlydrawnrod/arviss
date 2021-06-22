@@ -1599,3 +1599,13 @@ void ArvissWriteXReg(ArvissCpu* cpu, int reg, uint32_t value)
 {
     cpu->xreg[reg] = value;
 }
+
+ArvissMemoryTrait ArvissGetMemory(ArvissCpu* cpu)
+{
+    return cpu->memory;
+}
+
+void ArvissMret(ArvissCpu* cpu)
+{
+    Exec_Mret(cpu, NULL);
+}
