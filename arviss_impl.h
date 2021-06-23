@@ -118,10 +118,6 @@ struct ArvissCpu
 extern "C" {
 #endif
 
-void ArvissReset(ArvissCpu* cpu, uint32_t sp);
-ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction);
-ArvissResult ArvissRun(ArvissCpu* cpu, int count);
-
 #ifdef __cplusplus
 }
 #endif

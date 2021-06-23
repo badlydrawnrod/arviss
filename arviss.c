@@ -1057,7 +1057,7 @@ void ArvissDispose(ArvissCpu* cpu)
     ArvissFree(cpu);
 }
 
-void ArvissReset(ArvissCpu* cpu, uint32_t sp)
+void ArvissReset(ArvissCpu* cpu)
 {
     cpu->result = ArvissMakeOk();
     cpu->mc = mcOK;
@@ -1070,10 +1070,11 @@ void ArvissReset(ArvissCpu* cpu, uint32_t sp)
     {
         cpu->freg[i] = 0;
     }
-    cpu->xreg[2] = sp;
     cpu->mepc = 0;
     cpu->mcause = 0;
     cpu->mtval = 0;
+
+    // Invalidate the decoded instruction cache.
     for (int i = 0; i < CACHE_LINES; i++)
     {
         cpu->cache.line[i].isValid = false;
