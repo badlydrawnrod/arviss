@@ -1,11 +1,13 @@
 #include "arviss.h"
 
+#include "arviss_impl.h"
 #include "conversions.h"
 #include "opcodes.h"
 
+#include <malloc.h>
 #include <math.h>
-#include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #if defined(ARVISS_TRACE_ENABLED)
 #include <stdio.h>
@@ -1033,6 +1035,28 @@ static inline ArvissResult CreateTrap(ArvissCpu* cpu, ArvissTrapType trap, uint3
     return TakeTrap(cpu, result);
 }
 
+static inline void* ArvissCalloc(size_t count, size_t size)
+{
+    return calloc(count, size);
+}
+
+static inline void ArvissFree(void* mem)
+{
+    free(mem);
+}
+
+ArvissCpu* ArvissCreate(const ArvissDesc* desc)
+{
+    ArvissCpu* cpu = ArvissCalloc(1, sizeof(ArvissCpu));
+    cpu->memory = desc->memory;
+    return cpu;
+}
+
+void ArvissDispose(ArvissCpu* cpu)
+{
+    ArvissFree(cpu);
+}
+
 void ArvissReset(ArvissCpu* cpu, uint32_t sp)
 {
     cpu->result = ArvissMakeOk();
@@ -1554,7 +1578,7 @@ ArvissResult ArvissRun(ArvissCpu* cpu, int count)
     for (int i = 0; i < count; i++)
     {
         DecodedInstruction* decoded = FetchFromCache(cpu);
-        (*decoded).opcode(cpu, decoded);
+        decoded->opcode(cpu, decoded);
 
         if (ArvissResultIsTrap(cpu->result))
         {
@@ -1564,4 +1588,24 @@ ArvissResult ArvissRun(ArvissCpu* cpu, int count)
         }
     }
     return cpu->result;
+}
+
+uint32_t ArvissReadXReg(ArvissCpu* cpu, int reg)
+{
+    return cpu->xreg[reg];
+}
+
+void ArvissWriteXReg(ArvissCpu* cpu, int reg, uint32_t value)
+{
+    cpu->xreg[reg] = value;
+}
+
+ArvissMemoryTrait ArvissGetMemory(ArvissCpu* cpu)
+{
+    return cpu->memory;
+}
+
+void ArvissMret(ArvissCpu* cpu)
+{
+    Exec_Mret(cpu, NULL);
 }

@@ -1,15 +1,15 @@
 #include "arviss.h"
 #include "mem.h"
 
-#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 
 int main(void)
 {
     ArvissMemory memory;
-    ArvissCpu cpu = {.memory = MemInit(&memory)};
-    ArvissReset(&cpu, 0);
+
+    ArvissCpu* cpu = ArvissCreate(&(ArvissDesc){.memory = MemInit(&memory)});
+    ArvissReset(cpu, 0);
 
     printf("--- Loading program and running it\n");
     FILE* fp = fopen("../../../../examples/hello_world/arviss/bin/hello.bin", "rb");
@@ -22,15 +22,17 @@ int main(void)
     fclose(fp);
 
     // Run the program, n instructions at a time.
-    ArvissReset(&cpu, 0);
+    ArvissReset(cpu, 0);
     ArvissResult result = ArvissMakeOk();
     while (!ArvissResultIsTrap(result))
     {
-        result = ArvissRun(&cpu, 100000);
+        result = ArvissRun(cpu, 100000);
     }
 
     // The exit code (assuming that it exited) is in x10.
-    printf("--- Program finished with exit code %d\n", cpu.xreg[10]);
+    printf("--- Program finished with exit code %d\n", ArvissReadXReg(cpu, 10));
+
+    ArvissDispose(cpu);
 
     return 0;
 }

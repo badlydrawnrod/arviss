@@ -25,7 +25,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 # Arviss - the library.
-add_library(arviss STATIC arviss.c rounding_modes.h opcodes.h)
+add_library(arviss STATIC arviss.c rounding_modes.h opcodes.h arviss_impl.h)
 target_include_directories(arviss
         PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
@@ -38,7 +38,7 @@ target_compile_options(arviss PRIVATE
         /WX>)
 
 # Arviss tests.
-add_executable(decode_test decode_test.cpp smallmem.c smallmem.h)
+add_executable(decode_test decode_test.cpp smallmem.c smallmem.h arviss_impl.h)
 target_link_libraries(decode_test PRIVATE arviss gtest_main)
 add_test(decode_test decode_test)
 
