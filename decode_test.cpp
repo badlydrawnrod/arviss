@@ -40,7 +40,8 @@ void TestDecoder::SetUp()
     }
 
     // Reset the CPU.
-    ArvissReset(&cpu, rambase + ramsize);
+    ArvissReset(&cpu);
+    cpu.xreg[2] = rambase + ramsize; // Set the stack pointer.
     cpu.memory = SmallMemInit(&memory);
     cpu.pc = rambase;
 }

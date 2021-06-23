@@ -9,7 +9,7 @@ int main(void)
     ArvissMemory memory;
 
     ArvissCpu* cpu = ArvissCreate(&(ArvissDesc){.memory = MemInit(&memory)});
-    ArvissReset(cpu, 0);
+    ArvissReset(cpu);
 
     printf("--- Loading program and running it\n");
     FILE* fp = fopen("../../../../examples/hello_world/arviss/bin/hello.bin", "rb");
@@ -22,7 +22,7 @@ int main(void)
     fclose(fp);
 
     // Run the program, n instructions at a time.
-    ArvissReset(cpu, 0);
+    ArvissReset(cpu);
     ArvissResult result = ArvissMakeOk();
     while (!ArvissResultIsTrap(result))
     {
