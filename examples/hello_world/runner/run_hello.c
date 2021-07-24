@@ -22,11 +22,14 @@ int main(void)
     fclose(fp);
 
     // Run the program, n instructions at a time.
-    ArvissReset(cpu);
-    ArvissResult result = ArvissMakeOk();
-    while (!ArvissResultIsTrap(result))
+    for (int i = 0; i < 1000000; i++)
     {
-        result = ArvissRun(cpu, 100000);
+        ArvissReset(cpu);
+        ArvissResult result = ArvissMakeOk();
+        while (!ArvissResultIsTrap(result))
+        {
+            result = ArvissRun(cpu, 100000);
+        }
     }
 
     // The exit code (assuming that it exited) is in x10.
