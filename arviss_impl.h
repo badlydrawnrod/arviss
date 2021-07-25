@@ -111,7 +111,7 @@ struct ArvissCpu
     float freg[32];      // Floating point registers, f0-f31.
     uint32_t fcsr;       // Floating point control and status register.
     DecodedCache cache;  // The decoded instruction cache.
-    ArvissMemoryTrait memory;
+    ArvissMemory* memory;// The CPU's memory.
 };
 
 #ifdef __cplusplus

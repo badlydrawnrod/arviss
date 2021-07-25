@@ -22,7 +22,7 @@ extern "C" {
  */
 typedef struct ArvissDesc
 {
-    ArvissMemoryTrait memory; // The CPU's memory.
+    ArvissMemory* memory; // The CPU's memory.
 } ArvissDesc;
 
 /**
@@ -81,7 +81,7 @@ void ArvissWriteXReg(ArvissCpu* cpu, int reg, uint32_t value);
  * @param cpu the CPU.
  * @return the memory attached to the CPU.
  */
-ArvissMemoryTrait ArvissGetMemory(ArvissCpu* cpu);
+ArvissMemory* ArvissGetMemory(ArvissCpu* cpu);
 
 /**
  * Performs an MRET instruction on the CPU. Use this when returning from a machine-mode trap.

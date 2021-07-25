@@ -1601,7 +1601,7 @@ void ArvissWriteXReg(ArvissCpu* cpu, int reg, uint32_t value)
     cpu->xreg[reg] = value;
 }
 
-ArvissMemoryTrait ArvissGetMemory(ArvissCpu* cpu)
+ArvissMemory* ArvissGetMemory(ArvissCpu* cpu)
 {
     return cpu->memory;
 }
