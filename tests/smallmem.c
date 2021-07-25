@@ -5,26 +5,7 @@
 static const uint32_t rambase = RAMBASE;
 static const uint32_t ramsize = RAMSIZE;
 
-static uint8_t ReadByte(const ArvissMemory* memory, uint32_t addr, MemoryCode* mc);
-static uint16_t ReadHalfword(const ArvissMemory* memory, uint32_t addr, MemoryCode* mc);
-static uint32_t ReadWord(const ArvissMemory* memory, uint32_t addr, MemoryCode* mc);
-static void WriteByte(ArvissMemory* memory, uint32_t addr, uint8_t byte, MemoryCode* mc);
-static void WriteHalfword(ArvissMemory* memory, uint32_t addr, uint16_t halfword, MemoryCode* mc);
-static void WriteWord(ArvissMemory* memory, uint32_t addr, uint32_t word, MemoryCode* mc);
-
-static ArvissMemoryVtbl vtbl = {.ReadByte = ReadByte,
-                                .ReadHalfword = ReadHalfword,
-                                .ReadWord = ReadWord,
-                                .WriteByte = WriteByte,
-                                .WriteHalfword = WriteHalfword,
-                                .WriteWord = WriteWord};
-
-ArvissMemoryTrait SmallMemInit(ArvissMemory* memory)
-{
-    return (ArvissMemoryTrait){.mem = memory, .vtbl = &vtbl};
-}
-
-static uint8_t ReadByte(const ArvissMemory* memory, uint32_t addr, MemoryCode* mc)
+uint8_t ArvissReadByte(const ArvissMemory* memory, uint32_t addr, MemoryCode* mc)
 {
     if (addr >= rambase && addr < rambase + ramsize)
     {
@@ -35,7 +16,7 @@ static uint8_t ReadByte(const ArvissMemory* memory, uint32_t addr, MemoryCode* m
     return 0;
 }
 
-static uint16_t ReadHalfword(const ArvissMemory* memory, uint32_t addr, MemoryCode* mc)
+uint16_t ArvissReadHalfword(const ArvissMemory* memory, uint32_t addr, MemoryCode* mc)
 {
     if (addr >= rambase && addr < rambase + ramsize - 1)
     {
@@ -46,7 +27,7 @@ static uint16_t ReadHalfword(const ArvissMemory* memory, uint32_t addr, MemoryCo
     return 0;
 }
 
-static uint32_t ReadWord(const ArvissMemory* memory, uint32_t addr, MemoryCode* mc)
+uint32_t ArvissReadWord(const ArvissMemory* memory, uint32_t addr, MemoryCode* mc)
 {
     if (addr >= rambase && addr < rambase + ramsize - 3)
     {
@@ -58,7 +39,7 @@ static uint32_t ReadWord(const ArvissMemory* memory, uint32_t addr, MemoryCode* 
     return 0;
 }
 
-static void WriteByte(ArvissMemory* memory, uint32_t addr, uint8_t byte, MemoryCode* mc)
+void ArvissWriteByte(ArvissMemory* memory, uint32_t addr, uint8_t byte, MemoryCode* mc)
 {
     if (addr >= rambase && addr < rambase + ramsize)
     {
@@ -69,7 +50,7 @@ static void WriteByte(ArvissMemory* memory, uint32_t addr, uint8_t byte, MemoryC
     *mc = mcSTORE_ACCESS_FAULT;
 }
 
-static void WriteHalfword(ArvissMemory* memory, uint32_t addr, uint16_t halfword, MemoryCode* mc)
+void ArvissWriteHalfword(ArvissMemory* memory, uint32_t addr, uint16_t halfword, MemoryCode* mc)
 {
     if (addr >= rambase && addr < rambase + ramsize - 1)
     {
@@ -81,7 +62,7 @@ static void WriteHalfword(ArvissMemory* memory, uint32_t addr, uint16_t halfword
     *mc = mcSTORE_ACCESS_FAULT;
 }
 
-static void WriteWord(ArvissMemory* memory, uint32_t addr, uint32_t word, MemoryCode* mc)
+void ArvissWriteWord(ArvissMemory* memory, uint32_t addr, uint32_t word, MemoryCode* mc)
 {
     if (addr >= rambase && addr < rambase + ramsize - 3)
     {
