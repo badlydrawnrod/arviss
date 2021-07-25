@@ -7,8 +7,7 @@
 int main(void)
 {
     ArvissMemory memory;
-
-    ArvissCpu* cpu = ArvissCreate(&(ArvissDesc){.memory = MemInit(&memory)});
+    ArvissCpu* cpu = ArvissCreate(&(ArvissDesc){.memory = &memory});
     ArvissReset(cpu);
 
     printf("--- Loading program and running it\n");

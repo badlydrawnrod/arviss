@@ -16,13 +16,3 @@ struct ArvissMemory
 {
     uint8_t mem[MEMSIZE];
 };
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-ArvissMemoryTrait MemInit(ArvissMemory* memory);
-
-#ifdef __cplusplus
-}
-#endif

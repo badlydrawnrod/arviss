@@ -79,7 +79,7 @@ static void LoadCode(ArvissMemory* memory, const char* filename)
 
 static void InitTurtle(Turtle* turtle)
 {
-    turtle->vm.cpu = ArvissCreate(&(ArvissDesc){.memory = MemInit(&turtle->vm.memory)});
+    turtle->vm.cpu = ArvissCreate(&(ArvissDesc){.memory = &turtle->vm.memory});
     ArvissReset(turtle->vm.cpu);
     turtle->vm.isBlocked = false;
 
