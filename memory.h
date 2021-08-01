@@ -9,6 +9,7 @@ typedef enum MemoryCode
     mcSTORE_ACCESS_FAULT
 } MemoryCode;
 
+// Client code must implement struct ArvissMemory.
 typedef struct ArvissMemory ArvissMemory;
 
 #ifdef __cplusplus

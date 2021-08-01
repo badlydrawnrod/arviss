@@ -36,10 +36,30 @@ static char* fabiNames[] = {"ft0", "ft1", "ft2", "ft3", "ft4",  "ft5",  "ft6", "
 static char* roundingModes[] = {"rne", "rtz", "rdn", "rup", "rmm", "reserved5", "reserved6", "dyn"};
 #endif
 
-DecodedInstruction ArvissDecode(uint32_t instruction);
+static DecodedInstruction ArvissDecode(uint32_t instruction);
 
-static inline ArvissResult TakeTrap(ArvissCpu* cpu, ArvissResult result);
-static inline ArvissResult CreateTrap(ArvissCpu* cpu, ArvissTrapType trap, uint32_t value);
+// --- Execution -------------------------------------------------------------------------------------------------------------------
+//
+// Functions in this section execute decoded instructions. Instruction execution is separate from decoding, as this allows an
+// instruction to be fetched and decoded once, then placed in the decoded instruction cache where it can be executed several times.
+// This mitigates the cost of decoding, as decoded instructions are already in a form that is easy to execute.
+
+static inline ArvissResult TakeTrap(ArvissCpu* cpu, ArvissResult result)
+{
+    ArvissTrap trap = ArvissResultAsTrap(result);
+
+    cpu->mepc = cpu->pc;       // Save the program counter in the machine exception program counter.
+    cpu->mcause = trap.mcause; // mcause <- reason for trap.
+    cpu->mtval = trap.mtval;   // mtval <- exception specific information.
+
+    return result;
+}
+
+static inline ArvissResult CreateTrap(ArvissCpu* cpu, ArvissTrapType trap, uint32_t value)
+{
+    ArvissResult result = ArvissMakeTrap(trap, value);
+    return TakeTrap(cpu, result);
+}
 
 static void Exec_IllegalInstruction(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
@@ -61,6 +81,8 @@ static void Exec_FetchDecodeReplace(ArvissCpu* cpu, const DecodedInstruction* in
     // Decode it, save the result in the cache, then execute it.
     if (cpu->mc == mcOK)
     {
+        // Decode the instruction and save it in the cache. All instructions are decodable into something executable, because
+        // all illegal instructions become Exec_IllegalInstruction, which is itself executable.
         DecodedInstruction decoded = ArvissDecode(instruction);
         line->instructions[index] = decoded;
 
@@ -883,6 +905,10 @@ static void Exec_Fmv_w_x(ArvissCpu* cpu, const DecodedInstruction* ins)
     cpu->pc += 4;
 }
 
+// --- Decoding --------------------------------------------------------------------------------------------------------------------
+//
+// Functions in this section decode instructions into their executable form.
+
 static inline DecodedInstruction MkNoArg(ExecFn opcode)
 {
     return (DecodedInstruction){.opcode = opcode};
@@ -1018,72 +1044,9 @@ static inline uint32_t Rm(uint32_t instruction)
     return (instruction >> 12) & 7;
 }
 
-static inline ArvissResult TakeTrap(ArvissCpu* cpu, ArvissResult result)
-{
-    ArvissTrap trap = ArvissResultAsTrap(result);
-
-    cpu->mepc = cpu->pc;       // Save the program counter in the machine exception program counter.
-    cpu->mcause = trap.mcause; // mcause <- reason for trap.
-    cpu->mtval = trap.mtval;   // mtval <- exception specific information.
-
-    return result;
-}
-
-static inline ArvissResult CreateTrap(ArvissCpu* cpu, ArvissTrapType trap, uint32_t value)
-{
-    ArvissResult result = ArvissMakeTrap(trap, value);
-    return TakeTrap(cpu, result);
-}
-
-static inline void* ArvissCalloc(size_t count, size_t size)
-{
-    return calloc(count, size);
-}
-
-static inline void ArvissFree(void* mem)
-{
-    free(mem);
-}
-
-ArvissCpu* ArvissCreate(const ArvissDesc* desc)
-{
-    ArvissCpu* cpu = ArvissCalloc(1, sizeof(ArvissCpu));
-    cpu->memory = desc->memory;
-    return cpu;
-}
-
-void ArvissDispose(ArvissCpu* cpu)
-{
-    ArvissFree(cpu);
-}
-
-void ArvissReset(ArvissCpu* cpu)
-{
-    cpu->result = ArvissMakeOk();
-    cpu->mc = mcOK;
-    cpu->pc = 0;
-    for (int i = 0; i < 32; i++)
-    {
-        cpu->xreg[i] = 0;
-    }
-    for (int i = 0; i < 32; i++)
-    {
-        cpu->freg[i] = 0;
-    }
-    cpu->mepc = 0;
-    cpu->mcause = 0;
-    cpu->mtval = 0;
-
-    // Invalidate the decoded instruction cache.
-    for (int i = 0; i < CACHE_LINES; i++)
-    {
-        cpu->cache.line[i].isValid = false;
-    }
-}
-
 // See: http://www.five-embeddev.com/riscv-isa-manual/latest/gmaps.html#rv3264g-instruction-set-listings
 // or riscv-spec-209191213.pdf.
-DecodedInstruction ArvissDecode(uint32_t instruction)
+static DecodedInstruction ArvissDecode(uint32_t instruction)
 {
     const uint32_t opcode = Opcode(instruction);
     const uint32_t rd = Rd(instruction);
@@ -1544,23 +1507,19 @@ DecodedInstruction ArvissDecode(uint32_t instruction)
     }
 }
 
-ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
-{
-    DecodedInstruction decoded = ArvissDecode(instruction);
-    decoded.opcode(cpu, &decoded);
-    return cpu->result;
-}
-
 static inline DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
 {
+    // Use the PC to figure out which cache line we need and where we are in it (the line index).
     const uint32_t addr = cpu->pc;
     const uint32_t owner = ((addr / 4) / CACHE_LINE_LENGTH);
     const uint32_t cacheLine = owner % CACHE_LINES;
     const uint32_t lineIndex = (addr / 4) % CACHE_LINE_LENGTH;
     struct CacheLine* line = &cpu->cache.line[cacheLine];
+
+    // If we don't own the cache line, or it's invalid, then populate it.
     if (owner != line->owner || !line->isValid)
     {
-        // Initialise this cache line with fetch/decode/replace operations which, when called, replace themselves with a decoded
+        // Populate this cache line with fetch/decode/replace operations which, when called, replace themselves with a decoded
         // version of the instruction at the corresponding address. This way we don't incur an overhead for decoding instructions
         // that are never run.
         for (uint32_t i = 0u; i < CACHE_LINE_LENGTH; i++)
@@ -1570,24 +1529,34 @@ static inline DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
         line->isValid = true;
         line->owner = owner;
     }
+
     return &line->instructions[lineIndex];
 }
+
+// --- The Arviss API --------------------------------------------------------------------------------------------------------------
 
 ArvissResult ArvissRun(ArvissCpu* cpu, int count)
 {
     cpu->result = ArvissMakeOk();
     for (int i = 0; i < count; i++)
     {
-        DecodedInstruction* decoded = FetchFromCache(cpu);
-        decoded->opcode(cpu, decoded);
+        DecodedInstruction* decoded = FetchFromCache(cpu); // Fetch a decoded instruction from the decoded instruction cache.
+        decoded->opcode(cpu, decoded);                     // Execute the decoded instruction.
 
         if (ArvissResultIsTrap(cpu->result))
         {
             // Stop, as we can no longer proceeed.
-            cpu->mc = mcOK;
+            cpu->mc = mcOK; // Reset any memory fault.
             break;
         }
     }
+    return cpu->result;
+}
+
+ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
+{
+    DecodedInstruction decoded = ArvissDecode(instruction);
+    decoded.opcode(cpu, &decoded);
     return cpu->result;
 }
 
@@ -1609,4 +1578,50 @@ ArvissMemory* ArvissGetMemory(ArvissCpu* cpu)
 void ArvissMret(ArvissCpu* cpu)
 {
     Exec_Mret(cpu, NULL);
+}
+
+static inline void* ArvissCalloc(size_t count, size_t size)
+{
+    return calloc(count, size);
+}
+
+static inline void ArvissFree(void* mem)
+{
+    free(mem);
+}
+
+ArvissCpu* ArvissCreate(const ArvissDesc* desc)
+{
+    ArvissCpu* cpu = ArvissCalloc(1, sizeof(ArvissCpu));
+    cpu->memory = desc->memory;
+    return cpu;
+}
+
+void ArvissDispose(ArvissCpu* cpu)
+{
+    ArvissFree(cpu);
+}
+
+void ArvissReset(ArvissCpu* cpu)
+{
+    cpu->result = ArvissMakeOk();
+    cpu->mc = mcOK;
+    cpu->pc = 0;
+    for (int i = 0; i < 32; i++)
+    {
+        cpu->xreg[i] = 0;
+    }
+    for (int i = 0; i < 32; i++)
+    {
+        cpu->freg[i] = 0;
+    }
+    cpu->mepc = 0;
+    cpu->mcause = 0;
+    cpu->mtval = 0;
+
+    // Invalidate the decoded instruction cache.
+    for (int i = 0; i < CACHE_LINES; i++)
+    {
+        cpu->cache.line[i].isValid = false;
+    }
 }
