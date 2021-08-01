@@ -49,8 +49,8 @@ typedef enum ArvissResultType
 
 typedef struct ArvissResult
 {
-    ArvissTrap trap;
     ArvissResultType type;
+    ArvissTrap trap;
 } ArvissResult;
 
 #ifdef __cplusplus
