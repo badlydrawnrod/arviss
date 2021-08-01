@@ -1,11 +1,22 @@
 #include "mem.h"
 
 #include <stdint.h>
+#include <stdlib.h>
 
 static const uint32_t membase = MEMBASE;
 static const uint32_t memsize = MEMSIZE;
 static const uint32_t rambase = RAMBASE;
 static const uint32_t ramsize = RAMSIZE;
+
+ArvissMemory* ArvissCreateMem(void)
+{
+    return calloc(1, sizeof(ArvissMemory));
+}
+
+void ArvissFreeMem(ArvissMemory* memory)
+{
+    free(memory);
+}
 
 uint8_t ArvissReadByte(const ArvissMemory* memory, uint32_t addr, MemoryCode* mc)
 {

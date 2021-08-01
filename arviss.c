@@ -1590,15 +1590,16 @@ static inline void ArvissFree(void* mem)
     free(mem);
 }
 
-ArvissCpu* ArvissCreate(const ArvissDesc* desc)
+ArvissCpu* ArvissCreate(void)
 {
     ArvissCpu* cpu = ArvissCalloc(1, sizeof(ArvissCpu));
-    cpu->memory = desc->memory;
+    cpu->memory = ArvissCreateMem();
     return cpu;
 }
 
 void ArvissDispose(ArvissCpu* cpu)
 {
+    ArvissFreeMem(cpu->memory);
     ArvissFree(cpu);
 }
 

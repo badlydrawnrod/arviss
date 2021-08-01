@@ -18,19 +18,10 @@ extern "C" {
 #endif
 
 /**
- * Describes how an Arviss CPU should be created.
- */
-typedef struct ArvissDesc
-{
-    ArvissMemory* memory; // The CPU's memory.
-} ArvissDesc;
-
-/**
- * Creates an Arviss CPU from the given descriptor.
- * @param desc a descriptor that is used to configure the CPU.
+ * Creates an Arviss CPU.
  * @return a CPU if successful, otherwise NULL.
  */
-ArvissCpu* ArvissCreate(const ArvissDesc* desc);
+ArvissCpu* ArvissCreate(void);
 
 /**
  * Disposes of the given Arviss CPU and frees its resources.

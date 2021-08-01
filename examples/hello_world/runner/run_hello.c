@@ -6,8 +6,7 @@
 
 int main(void)
 {
-    ArvissMemory memory;
-    ArvissCpu* cpu = ArvissCreate(&(ArvissDesc){.memory = &memory});
+    ArvissCpu* cpu = ArvissCreate();
     ArvissReset(cpu);
 
     printf("--- Loading program and running it\n");
@@ -16,7 +15,8 @@ int main(void)
     {
         return -1;
     }
-    size_t count = fread(memory.mem, 1, sizeof(memory.mem), fp);
+    ArvissMemory* memory = ArvissGetMemory(cpu);
+    size_t count = fread(memory->mem, 1, sizeof(memory->mem), fp);
     printf("Read %zd bytes\n", count);
     fclose(fp);
 
