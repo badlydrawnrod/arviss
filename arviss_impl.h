@@ -85,7 +85,7 @@ struct DecodedInstruction
 #define CACHE_LINES 64
 #define CACHE_LINE_LENGTH 32
 
-typedef struct DecodedCache
+typedef struct DecodedInstructionCache
 {
     struct CacheLine
     {
@@ -93,21 +93,21 @@ typedef struct DecodedCache
         DecodedInstruction instructions[CACHE_LINE_LENGTH]; // The cache line itself.
         bool isValid;                                       // True if the cache line is valid.
     } line[CACHE_LINES];
-} DecodedCache;
+} DecodedInstructionCache;
 
 struct ArvissCpu
 {
-    ArvissResult result;  // The result of the last operation.
-    MemoryCode mc;        // The result of the last memory operation.
-    uint32_t pc;          // The program counter.
-    uint32_t xreg[32];    // Regular registers, x0-x31.
-    uint32_t mepc;        // The machine exception program counter.
-    uint32_t mcause;      // The machine cause register.
-    uint32_t mtval;       // The machine trap value register.
-    float freg[32];       // Floating point registers, f0-f31.
-    uint32_t fcsr;        // Floating point control and status register.
-    DecodedCache cache;   // The decoded instruction cache.
-    ArvissMemory* memory; // The CPU's memory.
+    ArvissResult result;           // The result of the last operation.
+    MemoryCode mc;                 // The result of the last memory operation.
+    uint32_t pc;                   // The program counter.
+    uint32_t xreg[32];             // Regular registers, x0-x31.
+    uint32_t mepc;                 // The machine exception program counter.
+    uint32_t mcause;               // The machine cause register.
+    uint32_t mtval;                // The machine trap value register.
+    float freg[32];                // Floating point registers, f0-f31.
+    uint32_t fcsr;                 // Floating point control and status register.
+    DecodedInstructionCache cache; // The decoded instruction cache.
+    ArvissMemory* memory;          // The CPU's memory.
 };
 
 #ifdef __cplusplus
