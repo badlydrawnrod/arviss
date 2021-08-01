@@ -3,6 +3,13 @@
 ![Builds](https://github.com/badlydrawnrod/arviss/actions/workflows/cmake.yml/badge.svg)
 ![Builds](https://github.com/badlydrawnrod/arviss/actions/workflows/examples.yml/badge.svg)
 
+## Introduction
+
+Arviss is an [instruction set simulator](https://en.wikipedia.org/wiki/Instruction_set_simulator)
+for [RISC-V](https://en.wikipedia.org/wiki/RISC-V). At the time of writing it supports **RV32IMF**, which comprises the
+32-bit base integer instruction set (**RV32I**), the integer multiplication extension (**M**), and the 32-bit floating
+point extension (**F**).
+
 ## Building Arviss
 
 All of the following instructions assume that **CMake** is installed and is on the path.
@@ -79,4 +86,4 @@ ctest --test-dir build --verbose
 
 ## Building the examples
 
-See [this readme](examples/README.md) to learn how to build the examples.
+See [this readme](examples/README.md) to learn how to build and run the examples.

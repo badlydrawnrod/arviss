@@ -68,6 +68,22 @@ uint32_t ArvissReadXReg(ArvissCpu* cpu, int reg);
 void ArvissWriteXReg(ArvissCpu* cpu, int reg, uint32_t value);
 
 /**
+ * Reads the given F register.
+ * @param cpu the CPU.
+ * @param reg which F register to read (0 - 31).
+ * @return the content of the F register.
+ */
+float ArvissReadFReg(ArvissCpu* cpu, int reg);
+
+/**
+ * Writes to the given F register.
+ * @param cpu the CPU.
+ * @param reg which F register to write to (0 - 31).
+ * @param value the value to write.
+ */
+void ArvissWriteFReg(ArvissCpu* cpu, int reg, float value);
+
+/**
  * Returns the CPU's memory.
  * @param cpu the CPU.
  * @return the memory attached to the CPU.

@@ -1570,6 +1570,16 @@ void ArvissWriteXReg(ArvissCpu* cpu, int reg, uint32_t value)
     cpu->xreg[reg] = value;
 }
 
+float ArvissReadFReg(ArvissCpu* cpu, int reg)
+{
+    return cpu->freg[reg];
+}
+
+void ArvissWriteFReg(ArvissCpu* cpu, int reg, float value)
+{
+    cpu->freg[reg] = value;
+}
+
 ArvissMemory* ArvissGetMemory(ArvissCpu* cpu)
 {
     return cpu->memory;
@@ -1580,19 +1590,9 @@ void ArvissMret(ArvissCpu* cpu)
     Exec_Mret(cpu, NULL);
 }
 
-static inline void* ArvissCalloc(size_t count, size_t size)
-{
-    return calloc(count, size);
-}
-
-static inline void ArvissFree(void* mem)
-{
-    free(mem);
-}
-
 ArvissCpu* ArvissCreate(void)
 {
-    ArvissCpu* cpu = ArvissCalloc(1, sizeof(ArvissCpu));
+    ArvissCpu* cpu = calloc(1, sizeof(ArvissCpu));
     cpu->memory = ArvissCreateMem();
     return cpu;
 }
@@ -1600,7 +1600,7 @@ ArvissCpu* ArvissCreate(void)
 void ArvissDispose(ArvissCpu* cpu)
 {
     ArvissFreeMem(cpu->memory);
-    ArvissFree(cpu);
+    free(cpu);
 }
 
 void ArvissReset(ArvissCpu* cpu)
