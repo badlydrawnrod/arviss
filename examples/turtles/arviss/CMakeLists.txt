@@ -26,7 +26,7 @@ else ()
     set(THE_LINKER lld)
 endif ()
 
-set(CMAKE_C_LINK_FLAGS "-Wl,--gc-sections -Wl,-T,,${CMAKE_SOURCE_DIR}/minimal.ld -fuse-ld=${THE_LINKER} -nostartfiles")
+set(CMAKE_C_LINK_FLAGS "-Wl,--gc-sections -Wl,-T,,${CMAKE_SOURCE_DIR}/minimal.ld -Wl,--nmagic -fuse-ld=${THE_LINKER} -nostartfiles")
 
 project(turtle
         LANGUAGES C ASM)
