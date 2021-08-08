@@ -1,4 +1,5 @@
 #include "arviss.h"
+#include "loadelf.h"
 #include "mem.h"
 #include "raylib.h"
 #include "raymath.h"
@@ -65,15 +66,10 @@ static void Home(Turtle* turtle);
 static void LoadCode(ArvissMemory* memory, const char* filename)
 {
     printf("--- Loading %s\n", filename);
-    FILE* fp = fopen(filename, "rb");
-    if (fp == NULL)
-    {
-        printf("--- Failed to load %s\n", filename);
-        return;
-    }
-    size_t count = fread(memory->mem, 1, sizeof(memory->mem), fp);
-    printf("--- Read %zd bytes\n", count);
-    fclose(fp);
+    MemoryDescriptor memoryDesc[] = {{.start = ROM_START, .size = ROMSIZE, .data = memory->mem + ROM_START},
+                                     {.start = RAMBASE, .size = RAMSIZE, .data = memory->mem + RAMBASE}};
+    // TODO: we need to know if it worked or not.
+    LoadElf(filename, memoryDesc, sizeof(memoryDesc) / sizeof(memoryDesc[0]));
 }
 
 static void InitTurtle(Turtle* turtle)
@@ -82,7 +78,7 @@ static void InitTurtle(Turtle* turtle)
     ArvissReset(turtle->vm.cpu);
     turtle->vm.isBlocked = false;
 
-    const char* filename = "../../../../examples/turtles/arviss/bin/turtle.bin";
+    const char* filename = "../../../../examples/turtles/arviss/build/turtle";
     ArvissMemory* memory = ArvissGetMemory(turtle->vm.cpu);
     LoadCode(memory, filename);
 

@@ -26,7 +26,7 @@ endif ()
 
 
 # Run the turtles on via Arviss.
-add_executable(run_turtles run_turtles.c mem.c mem.h syscalls.h)
+add_executable(run_turtles run_turtles.c mem.c mem.h syscalls.h loadelf.c loadelf.h)
 target_link_libraries(run_turtles PRIVATE arviss raylib)
 
 # Set _CRT_SECURE_NO_WARNINGS on MSVC or Clang on Windows so that we can use fopen(). Ideally we'd use fopen_s() as it's

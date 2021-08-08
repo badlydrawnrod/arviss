@@ -288,6 +288,7 @@ finish:
     }
 }
 
+#ifdef TEST_TEST
 int main(void)
 {
     char rom[0x4000];
@@ -298,3 +299,4 @@ int main(void)
 
     return 0;
 }
+#endif
