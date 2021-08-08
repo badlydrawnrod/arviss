@@ -34,3 +34,9 @@ target_link_libraries(run_turtles PRIVATE arviss raylib)
 target_compile_definitions(run_turtles PRIVATE
         $<$<OR:$<C_COMPILER_ID:MSVC>,$<AND:$<PLATFORM_ID:Windows>,$<C_COMPILER_ID:Clang>>>:_CRT_SECURE_NO_WARNINGS>
         )
+
+# Try out the ELF loader.
+add_executable(loadelf loadelf.c loadelf.h)
+target_compile_definitions(loadelf PRIVATE
+        $<$<OR:$<C_COMPILER_ID:MSVC>,$<AND:$<PLATFORM_ID:Windows>,$<C_COMPILER_ID:Clang>>>:_CRT_SECURE_NO_WARNINGS>
+        )
