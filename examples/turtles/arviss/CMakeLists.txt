@@ -37,8 +37,8 @@ file(MAKE_DIRECTORY ${SAMPLES_BIN})
 
 add_executable(turtle crt0.s main.c)
 
+# Copy "turtle" to the bin directory once built.
 add_custom_command(TARGET turtle
         POST_BUILD
-        COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:turtle> ${SAMPLES_BIN}/turtle.bin
-        VERBATIM
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:turtle> ${SAMPLES_BIN}/turtle
         )

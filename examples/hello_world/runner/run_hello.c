@@ -12,7 +12,7 @@ int main(void)
 
     MemoryDescriptor memoryDesc[] = {{.start = ROM_START, .size = ROMSIZE, .data = memory->mem + ROM_START},
                                      {.start = RAMBASE, .size = RAMSIZE, .data = memory->mem + RAMBASE}};
-    const char* filename = "../../../../examples/hello_world/arviss/build/hello";
+    const char* filename = "../../../../examples/hello_world/arviss/bin/hello";
     if (LoadElf(filename, memoryDesc, sizeof(memoryDesc) / sizeof(memoryDesc[0])) != ER_OK)
     {
         printf("--- Failed to load %s\n", filename);

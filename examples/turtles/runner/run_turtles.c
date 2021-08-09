@@ -80,7 +80,7 @@ static void InitTurtle(Turtle* turtle)
     ArvissReset(turtle->vm.cpu);
     turtle->vm.isBlocked = false;
 
-    const char* filename = "../../../../examples/turtles/arviss/build/turtle";
+    const char* filename = "../../../../examples/turtles/arviss/bin/turtle";
     ArvissMemory* memory = ArvissGetMemory(turtle->vm.cpu);
     LoadCode(memory, filename);
 
