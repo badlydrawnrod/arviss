@@ -70,34 +70,41 @@ typedef struct Elf32_Shdr
     uint32_t sh_entsize;
 } Elf32_Shdr;
 
-void LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int numDescriptors)
+ElfResult LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int numDescriptors)
 {
+    ElfResult er = ER_BAD_ELF;
+
     FILE* fp = NULL;
 
     if (memoryDescriptors == NULL)
     {
+        er = ER_INVALID_ARGUMENT;
         goto finish;
     }
 
     if (numDescriptors < 0)
     {
+        er = ER_INVALID_ARGUMENT;
         goto finish;
     }
 
     fp = fopen(filename, "rb");
     if (!fp)
     {
+        er = ER_IO_FAILED;
         goto finish;
     }
 
     // Get the size of the file.
     if (fseek(fp, 0, SEEK_END) != 0)
     {
+        er = ER_IO_FAILED;
         goto finish;
     }
     long here = ftell(fp);
     if (here < 0)
     {
+        er = ER_IO_FAILED;
         goto finish;
     }
     size_t fileSize = here;
@@ -105,12 +112,14 @@ void LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int numD
     //  Bail if the file is too small.
     if (fileSize < sizeof(Elf32_Ehdr))
     {
+        er = ER_BAD_ELF;
         goto finish;
     }
 
     // Return to the beginning of the file.
     if (fseek(fp, 0, SEEK_SET) != 0)
     {
+        er = ER_IO_FAILED;
         goto finish;
     }
 
@@ -119,6 +128,7 @@ void LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int numD
     size_t itemsRead = fread(&header, sizeof(header), 1, fp);
     if (itemsRead != 1)
     {
+        er = ER_IO_FAILED;
         goto finish;
     }
 
@@ -126,24 +136,28 @@ void LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int numD
     if (header.e_ident[EI_MAG0] != '\x7f' || header.e_ident[EI_MAG1] != 'E' || header.e_ident[EI_MAG2] != 'L'
         || header.e_ident[EI_MAG3] != 'F')
     {
+        er = ER_BAD_ELF;
         goto finish;
     }
 
     // Check that it's 32-bit.
     if (header.e_ident[EI_CLASS] != 1)
     {
+        er = ER_NOT_SUPPORTED;
         goto finish;
     }
 
     // Check that it's two's complement, little-endian.
     if (header.e_ident[EI_DATA] != 1)
     {
+        er = ER_NOT_SUPPORTED;
         goto finish;
     }
 
     // Check the ident version.
     if (header.e_ident[EI_VERSION] != 1)
     {
+        er = ER_NOT_SUPPORTED;
         goto finish;
     }
 
@@ -152,42 +166,49 @@ void LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int numD
     // Check that it's an executable.
     if (header.e_type != ET_EXEC)
     {
+        er = ER_NOT_SUPPORTED;
         goto finish;
     }
 
     // Check that it's for RISC-V.
     if (header.e_machine != EM_RISCV)
     {
+        er = ER_NOT_SUPPORTED;
         goto finish;
     }
 
     // Check the version.
     if (header.e_version != 1)
     {
+        er = ER_NOT_SUPPORTED;
         goto finish;
     }
 
     // Check that the size of a program header entry is what we expect.
     if (header.e_phentsize != sizeof(Elf32_Phdr))
     {
+        er = ER_BAD_ELF;
         goto finish;
     }
 
     // Check that the program header table is beyond the ELF header and within the file.
     if (header.e_phoff < sizeof(header) || header.e_phoff + header.e_phentsize * header.e_phnum > fileSize)
     {
+        er = ER_BAD_ELF;
         goto finish;
     }
 
     // Check that the size of a section header entry is what we expect.
     if (header.e_shentsize != sizeof(Elf32_Shdr))
     {
+        er = ER_BAD_ELF;
         goto finish;
     }
 
     // Check that the section header table is beyond the ELF header and within the file.
     if (header.e_shoff < sizeof(header) || header.e_shoff + header.e_shentsize * header.e_shnum > fileSize)
     {
+        er = ER_BAD_ELF;
         goto finish;
     }
 
@@ -200,12 +221,14 @@ void LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int numD
         // Go to this program header's entry in the program header table.
         if (fseek(fp, header.e_phoff + i * header.e_phentsize, SEEK_SET) != 0)
         {
+            er = ER_IO_FAILED;
             goto finish;
         }
 
         Elf32_Phdr phdr;
         if (fread(&phdr, sizeof(phdr), 1, fp) != 1)
         {
+            er = ER_IO_FAILED;
             goto finish;
         }
 
@@ -218,12 +241,14 @@ void LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int numD
         // Check that this segment's file image is beyond the ELF header and within the file.
         if (phdr.p_offset < sizeof(Elf32_Ehdr) || phdr.p_offset + phdr.p_filesz > fileSize)
         {
+            er = ER_BAD_ELF;
             goto finish;
         }
 
         // Check that its size in memory is at least as large as its file image.
         if (phdr.p_memsz < phdr.p_filesz)
         {
+            er = ER_BAD_ELF;
             goto finish;
         }
 
@@ -242,12 +267,14 @@ void LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int numD
                 // Check that the memory actually points somewhere.
                 if (!m->data)
                 {
+                    er = ER_INVALID_ARGUMENT;
                     goto finish;
                 }
 
                 // Go to the segment's file image.
                 if (fseek(fp, phdr.p_offset, SEEK_SET) != 0)
                 {
+                    er = ER_IO_FAILED;
                     goto finish;
                 }
 
@@ -258,6 +285,7 @@ void LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int numD
                 // Load the image.
                 if (fread(target, 1, phdr.p_filesz, fp) != phdr.p_filesz)
                 {
+                    er = ER_IO_FAILED;
                     goto finish;
                 }
 
@@ -267,6 +295,7 @@ void LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int numD
             // Bail if no memory could be found suitable to load this segment.
             if (!targetSegmentFound)
             {
+                er = ER_SEGMENT_NOT_IN_MEMORY;
                 goto finish;
             }
         }
@@ -275,28 +304,22 @@ void LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int numD
     // Bail if the program's entry point isn't valid.
     if (!entryPointValid)
     {
+        er = ER_ENTRY_POINT_INVALID;
         goto finish;
     }
 
-    // If we get here then we have a valid 32-bit RISC-V executable that we can deal with.
-    puts("\nSuccessfully loaded RISC-V executable.");
+    // If we get here without encountering an error then we have a valid 32-bit RISC-V executable that we can deal with.
+    er = ER_OK;
 
 finish:
     if (fp)
     {
-        fclose(fp);
+        if (fclose(fp) != 0)
+        {
+            // Yes, even closing a file can fail.
+            er = ER_IO_FAILED;
+        }
     }
-}
 
-#ifdef TEST_TEST
-int main(void)
-{
-    char rom[0x4000];
-    char ram[0x4000];
-    MemoryDescriptor memory[] = {{.start = 0x0, .size = 0x4000, .data = rom}, {.start = 0x4000, .size = 0x4000, .data = ram}};
-    const char* filename = "examples/turtles/arviss/build/turtle";
-    LoadElf(filename, memory, sizeof(memory) / sizeof(memory[0]));
-
-    return 0;
+    return er;
 }
-#endif

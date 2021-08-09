@@ -68,8 +68,10 @@ static void LoadCode(ArvissMemory* memory, const char* filename)
     printf("--- Loading %s\n", filename);
     MemoryDescriptor memoryDesc[] = {{.start = ROM_START, .size = ROMSIZE, .data = memory->mem + ROM_START},
                                      {.start = RAMBASE, .size = RAMSIZE, .data = memory->mem + RAMBASE}};
-    // TODO: we need to know if it worked or not.
-    LoadElf(filename, memoryDesc, sizeof(memoryDesc) / sizeof(memoryDesc[0]));
+    if (LoadElf(filename, memoryDesc, sizeof(memoryDesc) / sizeof(memoryDesc[0])) != ER_OK)
+    {
+        printf("--- Failed to load %s\n", filename);
+    }
 }
 
 static void InitTurtle(Turtle* turtle)
