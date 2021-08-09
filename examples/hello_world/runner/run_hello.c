@@ -1,24 +1,23 @@
 #include "arviss.h"
+#include "loadelf.h"
 #include "mem.h"
 
-#include <stdint.h>
 #include <stdio.h>
 
 int main(void)
 {
     ArvissCpu* cpu = ArvissCreate();
     ArvissReset(cpu);
+    ArvissMemory* memory = ArvissGetMemory(cpu);
 
-    printf("--- Loading program and running it\n");
-    FILE* fp = fopen("../../../../examples/hello_world/arviss/bin/hello.bin", "rb");
-    if (fp == NULL)
+    MemoryDescriptor memoryDesc[] = {{.start = ROM_START, .size = ROMSIZE, .data = memory->mem + ROM_START},
+                                     {.start = RAMBASE, .size = RAMSIZE, .data = memory->mem + RAMBASE}};
+    const char* filename = "../../../../examples/hello_world/arviss/build/hello";
+    if (LoadElf(filename, memoryDesc, sizeof(memoryDesc) / sizeof(memoryDesc[0])) != ER_OK)
     {
+        printf("--- Failed to load %s\n", filename);
         return -1;
     }
-    ArvissMemory* memory = ArvissGetMemory(cpu);
-    size_t count = fread(memory->mem, 1, sizeof(memory->mem), fp);
-    printf("Read %zd bytes\n", count);
-    fclose(fp);
 
     // Run the program, n instructions at a time.
     ArvissReset(cpu);
