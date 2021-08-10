@@ -25,7 +25,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 # Arviss - the library.
-add_library(arviss STATIC arviss.c rounding_modes.h opcodes.h arviss_impl.h)
+add_library(arviss STATIC arviss.c loadelf.c loadelf.h rounding_modes.h opcodes.h arviss_impl.h)
 target_include_directories(arviss
         PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
@@ -36,6 +36,12 @@ target_compile_options(arviss PRIVATE
         -Wall -Werror>
         $<$<C_COMPILER_ID:MSVC>:
         /WX>)
+
+# Set _CRT_SECURE_NO_WARNINGS on MSVC or Clang on Windows so that we can use fopen(). Ideally we'd use fopen_s() as it's
+# supposedly C11, but oddly the Linux compilers object to this.
+target_compile_definitions(arviss PRIVATE
+        $<$<OR:$<C_COMPILER_ID:MSVC>,$<AND:$<PLATFORM_ID:Windows>,$<C_COMPILER_ID:Clang>>>:_CRT_SECURE_NO_WARNINGS>
+        )
 
 # Arviss tests.
 add_subdirectory("tests")
@@ -54,7 +60,7 @@ install(TARGETS arviss
         INCLUDES DESTINATION include
         )
 
-install(FILES arviss.h memory.h result.h DESTINATION include/arviss)
+install(FILES arviss.h loadelf.h memory.h result.h DESTINATION include/arviss)
 
 install(EXPORT arvissTargets
         FILE arvissTargets.cmake

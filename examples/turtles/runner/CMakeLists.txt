@@ -25,12 +25,6 @@ if (NOT raylib_FOUND)
 endif ()
 
 
-# Run the turtles on via Arviss.
+# Run the turtles on Arviss.
 add_executable(run_turtles run_turtles.c mem.c mem.h syscalls.h)
 target_link_libraries(run_turtles PRIVATE arviss raylib)
-
-# Set _CRT_SECURE_NO_WARNINGS on MSVC or Clang on Windows so that we can use fopen(). Ideally we'd use fopen_s() as it's
-# supposedly C11, but oddly the Linux compilers object to this.
-target_compile_definitions(run_turtles PRIVATE
-        $<$<OR:$<C_COMPILER_ID:MSVC>,$<AND:$<PLATFORM_ID:Windows>,$<C_COMPILER_ID:Clang>>>:_CRT_SECURE_NO_WARNINGS>
-        )

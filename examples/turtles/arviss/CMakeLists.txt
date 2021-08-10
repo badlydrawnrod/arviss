@@ -26,7 +26,7 @@ else ()
     set(THE_LINKER lld)
 endif ()
 
-set(CMAKE_C_LINK_FLAGS "-Wl,--gc-sections -Wl,-T,,${CMAKE_SOURCE_DIR}/minimal.ld -fuse-ld=${THE_LINKER} -nostartfiles")
+set(CMAKE_C_LINK_FLAGS "-Wl,--gc-sections -Wl,-T,,${CMAKE_SOURCE_DIR}/minimal.ld -Wl,--nmagic -fuse-ld=${THE_LINKER} -nostartfiles")
 
 project(turtle
         LANGUAGES C ASM)
@@ -37,8 +37,8 @@ file(MAKE_DIRECTORY ${SAMPLES_BIN})
 
 add_executable(turtle crt0.s main.c)
 
+# Copy "turtle" to the bin directory once built.
 add_custom_command(TARGET turtle
         POST_BUILD
-        COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:turtle> ${SAMPLES_BIN}/turtle.bin
-        VERBATIM
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:turtle> ${SAMPLES_BIN}/turtle
         )

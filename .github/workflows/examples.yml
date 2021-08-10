@@ -36,7 +36,7 @@ jobs:
         shell: cmd
         working-directory: examples/hello_world/arviss
         run: |
-          cmake -G Ninja -B build "-DCMAKE_C_COMPILER=clang" "-DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}" -DCMAKE_OBJCOPY=%USERPROFILE%\scoop\shims\llvm-objcopy
+          cmake -G Ninja -B build "-DCMAKE_C_COMPILER=clang" "-DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}"
 
       - name: Build hello world example
         # Build your program with the given configuration
@@ -50,7 +50,7 @@ jobs:
         shell: cmd
         working-directory: examples/turtles/arviss
         run: |
-          cmake -G Ninja -B build "-DCMAKE_C_COMPILER=clang" "-DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}" -DCMAKE_OBJCOPY=%USERPROFILE%\scoop\shims\llvm-objcopy
+          cmake -G Ninja -B build "-DCMAKE_C_COMPILER=clang" "-DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}"
 
       - name: Build turtles example
         # Build your program with the given configuration

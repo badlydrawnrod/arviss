@@ -6,11 +6,11 @@ Before building this example, build Arviss, then [install the pre-requisite RISC
 
 ### Building
 
-Configure **CMake** to use **Clang** and **llvm-objcopy** as shown here.
+Configure **CMake** to use **Clang** as shown here.
 
 ```
 C:> cd examples\turtles\arviss
-C:> cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_OBJCOPY=%USERPROFILE%\scoop\shims\llvm-objcopy
+C:> cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang
 C:> cmake --build build
 ```
 
@@ -29,11 +29,11 @@ C:> run_turtles
 
 ### Building
 
-Configure **CMake** to use **Clang** and **llvm-objcopy** as shown here.
+Configure **CMake** to use **Clang** as shown here.
 
 ```shell
 $ cd examples/turtles/arviss
-$ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-11 -DCMAKE_OBJCOPY=/usr/bin/llvm-objcopy
+$ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-11
 $ cmake --build build
 ```
 
