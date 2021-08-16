@@ -1,6 +1,6 @@
 #pragma once
 
-#include "memory.h"
+#include <stdint.h>
 
 #define ROM_START 0
 #define ROMSIZE 0x4000
@@ -12,7 +12,7 @@
 
 #define IOBASE (RAMBASE + RAMSIZE)
 
-struct ArvissMemory
+typedef struct Memory
 {
     uint8_t mem[MEMSIZE];
-};
+} Memory;
