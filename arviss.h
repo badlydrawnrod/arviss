@@ -168,18 +168,6 @@ extern "C" {
 void ArvissInit(ArvissCpu* cpu, Bus* bus);
 
 /**
- * Creates an Arviss CPU.
- * @return a CPU if successful, otherwise NULL.
- */
-ArvissCpu* ArvissCreate(Bus* bus);
-
-/**
- * Disposes of the given Arviss CPU and frees its resources.
- * @param cpu the CPU to dispose of.
- */
-void ArvissDispose(ArvissCpu* cpu);
-
-/**
  * Resets the given Arviss CPU.
  * @param cpu the CPU to reset.
  */
