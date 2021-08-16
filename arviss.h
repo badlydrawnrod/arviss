@@ -152,7 +152,7 @@ struct ArvissCpu
     uint32_t mtval;                // The machine trap value register.
     float freg[32];                // Floating point registers, f0-f31.
     uint32_t fcsr;                 // Floating point control and status register.
-    Bus* bus;                      // The CPU's address bus.
+    Bus bus;                       // The address bus.
     DecodedInstructionCache cache; // The decoded instruction cache.
 };
 
@@ -174,7 +174,7 @@ void ArvissReset(ArvissCpu* cpu);
 static inline void ArvissInit(ArvissCpu* cpu, Bus* bus)
 {
     ArvissReset(cpu);
-    cpu->bus = bus;
+    cpu->bus = *bus;
 }
 
 /**

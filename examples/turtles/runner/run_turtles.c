@@ -23,7 +23,6 @@ typedef struct VM
 {
     ArvissCpu cpu;
     Memory memory;
-    Bus bus;
     bool isBlocked;
 } VM;
 
@@ -164,15 +163,14 @@ static void LoadCode(Memory* memory, const char* filename)
 
 static void InitTurtle(Turtle* turtle)
 {
-    turtle->vm.bus = (Bus){.token = {&turtle->vm.memory},
-                           .Read8 = Read8,
-                           .Read16 = Read16,
-                           .Read32 = Read32,
-                           .Write8 = Write8,
-                           .Write16 = Write16,
-                           .Write32 = Write32};
-
-    ArvissInit(&turtle->vm.cpu, &turtle->vm.bus);
+    ArvissInit(&turtle->vm.cpu,
+               &(Bus){.token = {&turtle->vm.memory},
+                      .Read8 = Read8,
+                      .Read16 = Read16,
+                      .Read32 = Read32,
+                      .Write8 = Write8,
+                      .Write16 = Write16,
+                      .Write32 = Write32});
     turtle->vm.isBlocked = false;
 
     const char* filename = "../../../../examples/turtles/arviss/bin/turtle";

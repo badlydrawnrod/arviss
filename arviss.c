@@ -38,32 +38,32 @@ static DecodedInstruction ArvissDecode(uint32_t instruction);
 
 // --- Bus access ------------------------------------------------------------------------------------------------------------------
 
-static inline uint8_t ReadByte(Bus* bus, uint32_t addr, BusCode* busCode)
+static inline uint8_t Read8(Bus* bus, uint32_t addr, BusCode* busCode)
 {
     return bus->Read8(bus->token, addr, busCode);
 }
 
-static inline uint16_t ReadHalfword(Bus* bus, uint32_t addr, BusCode* busCode)
+static inline uint16_t Read16(Bus* bus, uint32_t addr, BusCode* busCode)
 {
     return bus->Read16(bus->token, addr, busCode);
 }
 
-static inline uint32_t ReadWord(Bus* bus, uint32_t addr, BusCode* busCode)
+static inline uint32_t Read32(Bus* bus, uint32_t addr, BusCode* busCode)
 {
     return bus->Read32(bus->token, addr, busCode);
 }
 
-static inline void WriteByte(Bus* bus, uint32_t addr, uint8_t byte, BusCode* busCode)
+static inline void Write8(Bus* bus, uint32_t addr, uint8_t byte, BusCode* busCode)
 {
     bus->Write8(bus->token, addr, byte, busCode);
 }
 
-static inline void WriteHalfword(Bus* bus, uint32_t addr, uint16_t halfword, BusCode* busCode)
+static inline void Write16(Bus* bus, uint32_t addr, uint16_t halfword, BusCode* busCode)
 {
     bus->Write16(bus->token, addr, halfword, busCode);
 }
 
-static inline void WriteWord(Bus* bus, uint32_t addr, uint32_t word, BusCode* busCode)
+static inline void Write32(Bus* bus, uint32_t addr, uint32_t word, BusCode* busCode)
 {
     bus->Write32(bus->token, addr, word, busCode);
 }
@@ -106,7 +106,7 @@ static void Exec_FetchDecodeReplace(ArvissCpu* cpu, const DecodedInstruction* in
     const uint32_t addr = owner * 4 * CACHE_LINE_LENGTH + index * 4;
 
     // Fetch a word from memory at the address.
-    uint32_t instruction = ReadWord(cpu->bus, addr, &cpu->mc);
+    uint32_t instruction = Read32(&cpu->bus, addr, &cpu->mc);
 
     // Decode it, save the result in the cache, then execute it.
     if (cpu->mc == bcOK)
@@ -208,7 +208,7 @@ static void Exec_Lb(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- sx(m8(rs1 + imm_i)), pc += 4
     TRACE("LB %s, %d(%s)\n", abiNames[ins->rd_rs1_imm.rd], ins->rd_rs1_imm.imm, abiNames[ins->rd_rs1_imm.rs1]);
-    uint8_t byte = ReadByte(cpu->bus, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
+    uint8_t byte = Read8(&cpu->bus, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
     if (cpu->mc != bcOK)
     {
         cpu->result = TakeTrap(cpu, ArvissMakeTrap(trLOAD_ACCESS_FAULT, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm));
@@ -223,7 +223,7 @@ static void Exec_Lh(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- sx(m16(rs1 + imm_i)), pc += 4
     TRACE("LH %s, %d(%s)\n", abiNames[ins->rd_rs1_imm.rd], ins->rd_rs1_imm.imm, abiNames[ins->rd_rs1_imm.rs1]);
-    uint16_t halfword = ReadHalfword(cpu->bus, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
+    uint16_t halfword = Read16(&cpu->bus, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
     if (cpu->mc != bcOK)
     {
         cpu->result = TakeTrap(cpu, ArvissMakeTrap(trLOAD_ACCESS_FAULT, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm));
@@ -238,7 +238,7 @@ static void Exec_Lw(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- sx(m32(rs1 + imm_i)), pc += 4
     TRACE("LW %s, %d(%s)\n", abiNames[ins->rd_rs1_imm.rd], ins->rd_rs1_imm.imm, abiNames[ins->rd_rs1_imm.rs1]);
-    uint32_t word = ReadWord(cpu->bus, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
+    uint32_t word = Read32(&cpu->bus, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
     if (cpu->mc != bcOK)
     {
         cpu->result = TakeTrap(cpu, ArvissMakeTrap(trLOAD_ACCESS_FAULT, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm));
@@ -253,7 +253,7 @@ static void Exec_Lbu(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- zx(m8(rs1 + imm_i)), pc += 4
     TRACE("LBU x%d, %d(x%d)\n", ins->rd_rs1_imm.rd, ins->rd_rs1_imm.imm, ins->rd_rs1_imm.rs1);
-    uint8_t byte = ReadByte(cpu->bus, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
+    uint8_t byte = Read8(&cpu->bus, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
     if (cpu->mc != bcOK)
     {
         cpu->result = TakeTrap(cpu, ArvissMakeTrap(trLOAD_ACCESS_FAULT, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm));
@@ -268,7 +268,7 @@ static void Exec_Lhu(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // rd <- zx(m16(rs1 + imm_i)), pc += 4
     TRACE("LHU %s, %d(%s)\n", abiNames[ins->rd_rs1_imm.rd], ins->rd_rs1_imm.imm, abiNames[ins->rd_rs1_imm.rs1]);
-    uint16_t halfword = ReadHalfword(cpu->bus, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
+    uint16_t halfword = Read16(&cpu->bus, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
     if (cpu->mc != bcOK)
     {
         cpu->result = TakeTrap(cpu, ArvissMakeTrap(trLOAD_ACCESS_FAULT, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm));
@@ -283,7 +283,7 @@ static void Exec_Sb(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // m8(rs1 + imm_s) <- rs2[7:0], pc += 4
     TRACE("SB %s, %d(%s)\n", abiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm, abiNames[ins->rs1_rs2_imm.rs1]);
-    WriteByte(cpu->bus, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm, cpu->xreg[ins->rs1_rs2_imm.rs2] & 0xff, &cpu->mc);
+    Write8(&cpu->bus, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm, cpu->xreg[ins->rs1_rs2_imm.rs2] & 0xff, &cpu->mc);
     if (cpu->mc != bcOK)
     {
         cpu->result = TakeTrap(cpu, ArvissMakeTrap(trSTORE_ACCESS_FAULT, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm));
@@ -296,8 +296,7 @@ static void Exec_Sh(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // m16(rs1 + imm_s) <- rs2[15:0], pc += 4
     TRACE("SH %s, %d(%s)\n", abiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm, abiNames[ins->rs1_rs2_imm.rs1]);
-    WriteHalfword(cpu->bus, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm, cpu->xreg[ins->rs1_rs2_imm.rs2] & 0xffff,
-                  &cpu->mc);
+    Write16(&cpu->bus, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm, cpu->xreg[ins->rs1_rs2_imm.rs2] & 0xffff, &cpu->mc);
     if (cpu->mc != bcOK)
     {
         cpu->result = TakeTrap(cpu, ArvissMakeTrap(trSTORE_ACCESS_FAULT, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm));
@@ -310,7 +309,7 @@ static void Exec_Sw(ArvissCpu* cpu, const DecodedInstruction* ins)
 {
     // m32(rs1 + imm_s) <- rs2[31:0], pc += 4
     TRACE("SW %s, %d(%s)\n", abiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm, abiNames[ins->rs1_rs2_imm.rs1]);
-    WriteWord(cpu->bus, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm, cpu->xreg[ins->rs1_rs2_imm.rs2], &cpu->mc);
+    Write32(&cpu->bus, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm, cpu->xreg[ins->rs1_rs2_imm.rs2], &cpu->mc);
     if (cpu->mc != bcOK)
     {
         cpu->result = TakeTrap(cpu, ArvissMakeTrap(trSTORE_ACCESS_FAULT, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm));
@@ -634,7 +633,7 @@ static void Exec_Flw(ArvissCpu* cpu, const DecodedInstruction* ins)
     {
         return;
     }
-    uint32_t word = ReadWord(cpu->bus, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
+    uint32_t word = Read32(&cpu->bus, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm, &cpu->mc);
     if (cpu->mc != bcOK)
     {
         cpu->result = TakeTrap(cpu, ArvissMakeTrap(trLOAD_ACCESS_FAULT, cpu->xreg[ins->rd_rs1_imm.rs1] + ins->rd_rs1_imm.imm));
@@ -650,7 +649,7 @@ static void Exec_Fsw(ArvissCpu* cpu, const DecodedInstruction* ins)
     // f32(rs1 + imm_s) = rs2
     TRACE("FSW %s, %d(%s)\n", fabiNames[ins->rs1_rs2_imm.rs2], ins->rs1_rs2_imm.imm, abiNames[ins->rs1_rs2_imm.rs1]);
     uint32_t t = FloatAsU32(cpu->freg[ins->rs1_rs2_imm.rs2]);
-    WriteWord(cpu->bus, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm, t, &cpu->mc);
+    Write32(&cpu->bus, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm, t, &cpu->mc);
     if (cpu->mc != bcOK)
     {
         cpu->result = TakeTrap(cpu, ArvissMakeTrap(trSTORE_ACCESS_FAULT, cpu->xreg[ins->rs1_rs2_imm.rs1] + ins->rs1_rs2_imm.imm));
