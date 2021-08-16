@@ -26,5 +26,5 @@ endif ()
 
 
 # Run the turtles on Arviss.
-add_executable(run_turtles run_turtles.c mem.c mem.h syscalls.h)
+add_executable(run_turtles run_turtles.c mem.h syscalls.h)
 target_link_libraries(run_turtles PRIVATE arviss raylib)
