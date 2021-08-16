@@ -4,6 +4,7 @@
 #include "opcodes.h"
 
 #include <math.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #if defined(ARVISS_TRACE_ENABLED)
