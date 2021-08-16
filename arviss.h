@@ -13,15 +13,43 @@
  */
 typedef struct ArvissCpu ArvissCpu;
 
+typedef struct
+{
+    void* t;
+} BusToken;
+
+typedef uint8_t (*BusReadByte)(BusToken token, uint32_t addr, MemoryCode* mc);
+typedef uint16_t (*BusReadHalfword)(BusToken token, uint32_t addr, MemoryCode* mc);
+typedef uint32_t (*BusReadWord)(BusToken token, uint32_t addr, MemoryCode* mc);
+typedef void (*BusWriteByte)(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc);
+typedef void (*BusWriteHalfword)(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc);
+typedef void (*BusWriteWord)(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc);
+
+typedef struct Bus
+{
+    BusToken token;
+    BusReadByte ReadByte;
+    BusReadHalfword ReadHalfword;
+    BusReadWord ReadWord;
+    BusWriteByte WriteByte;
+    BusWriteHalfword WriteHalfword;
+    BusWriteWord WriteWord;
+} Bus;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
+ * Initialises an Arviss CPU.
+ */
+void ArvissInit(ArvissCpu* cpu, Bus* bus);
+
+/**
  * Creates an Arviss CPU.
  * @return a CPU if successful, otherwise NULL.
  */
-ArvissCpu* ArvissCreate(void);
+ArvissCpu* ArvissCreate(Bus* bus);
 
 /**
  * Disposes of the given Arviss CPU and frees its resources.
@@ -82,13 +110,6 @@ float ArvissReadFReg(ArvissCpu* cpu, int reg);
  * @param value the value to write.
  */
 void ArvissWriteFReg(ArvissCpu* cpu, int reg, float value);
-
-/**
- * Returns the CPU's memory.
- * @param cpu the CPU.
- * @return the memory attached to the CPU.
- */
-ArvissMemory* ArvissGetMemory(ArvissCpu* cpu);
 
 /**
  * Performs an MRET instruction on the CPU. Use this when returning from a machine-mode trap.
