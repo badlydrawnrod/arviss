@@ -3,7 +3,6 @@
  */
 #pragma once
 
-#include "memory.h"
 #include "result.h"
 
 #include <stdint.h>
@@ -18,6 +17,13 @@ typedef struct
     void* t;
 } BusToken;
 
+typedef enum MemoryCode
+{
+    mcOK,
+    mcLOAD_ACCESS_FAULT,
+    mcSTORE_ACCESS_FAULT
+} MemoryCode;
+
 typedef uint8_t (*BusRead8Fn)(BusToken token, uint32_t addr, MemoryCode* mc);
 typedef uint16_t (*BusRead16Fn)(BusToken token, uint32_t addr, MemoryCode* mc);
 typedef uint32_t (*BusRead32Fn)(BusToken token, uint32_t addr, MemoryCode* mc);
@@ -25,6 +31,9 @@ typedef void (*BusWrite8Fn)(BusToken token, uint32_t addr, uint8_t byte, MemoryC
 typedef void (*BusWrite16Fn)(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc);
 typedef void (*BusWrite32Fn)(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc);
 
+/**
+ * The bus is how an Arviss CPU interacts with the rest of the system.
+ */
 typedef struct Bus
 {
     BusToken token;
@@ -42,6 +51,8 @@ extern "C" {
 
 /**
  * Initialises an Arviss CPU.
+ * @param cpu the CPU.
+ * @param bus the bus that the CPU should use to interact with the rest of the system.
  */
 void ArvissInit(ArvissCpu* cpu, Bus* bus);
 

@@ -60,7 +60,7 @@ install(TARGETS arviss
         INCLUDES DESTINATION include
         )
 
-install(FILES arviss.h loadelf.h memory.h result.h DESTINATION include/arviss)
+install(FILES arviss.h loadelf.h result.h DESTINATION include/arviss)
 
 install(EXPORT arvissTargets
         FILE arvissTargets.cmake
