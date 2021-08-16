@@ -3,10 +3,88 @@
 #include "conversions.h"
 #include "opcodes.h"
 #include "rounding_modes.h"
-#include "smallmem.h"
 
 #include "gtest/gtest.h"
 #include <cmath>
+
+static constexpr uint32_t rambase = 0;
+static constexpr uint32_t ramsize = 0x8000;
+
+struct Memory
+{
+    uint8_t ram[ramsize];
+};
+
+uint8_t MemReadByte(const Memory* memory, uint32_t addr, MemoryCode* mc)
+{
+    if (addr >= rambase && addr < rambase + ramsize)
+    {
+        return memory->ram[addr - rambase];
+    }
+
+    *mc = mcLOAD_ACCESS_FAULT;
+    return 0;
+}
+
+uint16_t MemReadHalfword(const Memory* memory, uint32_t addr, MemoryCode* mc)
+{
+    if (addr >= rambase && addr < rambase + ramsize - 1)
+    {
+        return memory->ram[addr - rambase] | (memory->ram[addr + 1 - rambase] << 8);
+    }
+
+    *mc = mcLOAD_ACCESS_FAULT;
+    return 0;
+}
+
+uint32_t MemReadWord(const Memory* memory, uint32_t addr, MemoryCode* mc)
+{
+    if (addr >= rambase && addr < rambase + ramsize - 3)
+    {
+        return memory->ram[addr - rambase] | (memory->ram[addr + 1 - rambase] << 8) | (memory->ram[addr + 2 - rambase] << 16)
+                | (memory->ram[addr + 3 - rambase] << 24);
+    }
+
+    *mc = mcLOAD_ACCESS_FAULT;
+    return 0;
+}
+
+void MemWriteByte(Memory* memory, uint32_t addr, uint8_t byte, MemoryCode* mc)
+{
+    if (addr >= rambase && addr < rambase + ramsize)
+    {
+        memory->ram[addr - rambase] = byte;
+        return;
+    }
+
+    *mc = mcSTORE_ACCESS_FAULT;
+}
+
+void MemWriteHalfword(Memory* memory, uint32_t addr, uint16_t halfword, MemoryCode* mc)
+{
+    if (addr >= rambase && addr < rambase + ramsize - 1)
+    {
+        memory->ram[addr - rambase] = halfword & 0xff;
+        memory->ram[addr + 1 - rambase] = (halfword >> 8) & 0xff;
+        return;
+    }
+
+    *mc = mcSTORE_ACCESS_FAULT;
+}
+
+void MemWriteWord(Memory* memory, uint32_t addr, uint32_t word, MemoryCode* mc)
+{
+    if (addr >= rambase && addr < rambase + ramsize - 3)
+    {
+        memory->ram[addr - rambase] = word & 0xff;
+        memory->ram[addr + 1 - rambase] = (word >> 8) & 0xff;
+        memory->ram[addr + 2 - rambase] = (word >> 16) & 0xff;
+        memory->ram[addr + 3 - rambase] = (word >> 24) & 0xff;
+        return;
+    }
+
+    *mc = mcSTORE_ACCESS_FAULT;
+}
 
 class TestDecoder : public ::testing::Test
 {
@@ -28,8 +106,7 @@ protected:
 
     ArvissCpu cpu;
     Bus bus;
-
-    ArvissMemory memory;
+    Memory memory;
 
     static uint8_t ReadByte(BusToken token, uint32_t addr, MemoryCode* mc);
     static uint16_t ReadHalfword(BusToken token, uint32_t addr, MemoryCode* mc);
@@ -42,37 +119,37 @@ protected:
 uint8_t TestDecoder::ReadByte(BusToken token, uint32_t addr, MemoryCode* mc)
 {
     auto sys = reinterpret_cast<TestDecoder*>(token.t);
-    return ArvissReadByte(&sys->memory, addr, mc);
+    return MemReadByte(&sys->memory, addr, mc);
 }
 
 uint16_t TestDecoder::ReadHalfword(BusToken token, uint32_t addr, MemoryCode* mc)
 {
     auto sys = reinterpret_cast<TestDecoder*>(token.t);
-    return ArvissReadHalfword(&sys->memory, addr, mc);
+    return MemReadHalfword(&sys->memory, addr, mc);
 }
 
 uint32_t TestDecoder::ReadWord(BusToken token, uint32_t addr, MemoryCode* mc)
 {
     auto sys = reinterpret_cast<TestDecoder*>(token.t);
-    return ArvissReadWord(&sys->memory, addr, mc);
+    return MemReadWord(&sys->memory, addr, mc);
 }
 
 void TestDecoder::WriteByte(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc)
 {
     auto sys = reinterpret_cast<TestDecoder*>(token.t);
-    ArvissWriteByte(&sys->memory, addr, byte, mc);
+    MemWriteByte(&sys->memory, addr, byte, mc);
 }
 
 void TestDecoder::WriteHalfword(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc)
 {
     auto sys = reinterpret_cast<TestDecoder*>(token.t);
-    ArvissWriteHalfword(&sys->memory, addr, halfword, mc);
+    MemWriteHalfword(&sys->memory, addr, halfword, mc);
 }
 
 void TestDecoder::WriteWord(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc)
 {
     auto sys = reinterpret_cast<TestDecoder*>(token.t);
-    ArvissWriteWord(&sys->memory, addr, word, mc);
+    MemWriteWord(&sys->memory, addr, word, mc);
 }
 
 void TestDecoder::SetUp()
@@ -457,7 +534,7 @@ TEST_F(TestDecoder, Load_Lb)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 7 is zero.
-    ArvissWriteByte(&memory, cpu.xreg[rs1] + imm_i, 123, &cpu.mc);
+    MemWriteByte(&memory, cpu.xreg[rs1] + imm_i, 123, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m8(rs1 + imm_i))
@@ -468,7 +545,7 @@ TEST_F(TestDecoder, Load_Lb)
 
     // Sign extend when bit 7 is one.
     pc = cpu.pc;
-    ArvissWriteByte(&memory, cpu.xreg[rs1] + imm_i, 0xff, &cpu.mc);
+    MemWriteByte(&memory, cpu.xreg[rs1] + imm_i, 0xff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m8(rs1 + imm_i))
@@ -488,7 +565,7 @@ TEST_F(TestDecoder, Load_Lh)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 15 is zero.
-    ArvissWriteHalfword(&memory, cpu.xreg[rs1] + imm_i, 0x7fff, &cpu.mc);
+    MemWriteHalfword(&memory, cpu.xreg[rs1] + imm_i, 0x7fff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m16(rs1 + imm_i))
@@ -499,7 +576,7 @@ TEST_F(TestDecoder, Load_Lh)
 
     // Sign extend when bit 15 is one.
     pc = cpu.pc;
-    ArvissWriteHalfword(&memory, cpu.xreg[rs1] + imm_i, 0xffff, &cpu.mc);
+    MemWriteHalfword(&memory, cpu.xreg[rs1] + imm_i, 0xffff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m16(rs1 + imm_i))
@@ -519,7 +596,7 @@ TEST_F(TestDecoder, Load_Lw)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 31 is zero.
-    ArvissWriteWord(&memory, cpu.xreg[rs1] + imm_i, 0x7fffffff, &cpu.mc);
+    MemWriteWord(&memory, cpu.xreg[rs1] + imm_i, 0x7fffffff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m32(rs1 + imm_i))
@@ -530,7 +607,7 @@ TEST_F(TestDecoder, Load_Lw)
 
     // Sign extend when bit 31 is one.
     pc = cpu.pc;
-    ArvissWriteWord(&memory, cpu.xreg[rs1] + imm_i, 0xffffffff, &cpu.mc);
+    MemWriteWord(&memory, cpu.xreg[rs1] + imm_i, 0xffffffff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m32(rs1 + imm_i))
@@ -550,7 +627,7 @@ TEST_F(TestDecoder, Load_Lbu)
     cpu.xreg[rs1] = rambase + ramsize / 2;
 
     // Zero extend when bit 7 is zero.
-    ArvissWriteByte(&memory, cpu.xreg[rs1] + imm_i, 123, &cpu.mc);
+    MemWriteByte(&memory, cpu.xreg[rs1] + imm_i, 123, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m8(rs1 + imm_i))
@@ -561,7 +638,7 @@ TEST_F(TestDecoder, Load_Lbu)
 
     // Zero extend when bit 7 is zero.
     pc = cpu.pc;
-    ArvissWriteByte(&memory, cpu.xreg[rs1] + imm_i, 0xff, &cpu.mc);
+    MemWriteByte(&memory, cpu.xreg[rs1] + imm_i, 0xff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m8(rs1 + imm_i))
@@ -581,7 +658,7 @@ TEST_F(TestDecoder, Load_Lhu)
     cpu.xreg[rs1] = rambase + ramsize / 2;
 
     // Zero extend when bit 15 is zero.
-    ArvissWriteHalfword(&memory, cpu.xreg[rs1] + imm_i, 0x7fff, &cpu.mc);
+    MemWriteHalfword(&memory, cpu.xreg[rs1] + imm_i, 0x7fff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m16(rs1 + imm_i))
@@ -592,7 +669,7 @@ TEST_F(TestDecoder, Load_Lhu)
 
     // Zero extend when bit 15 is one.
     pc = cpu.pc;
-    ArvissWriteHalfword(&memory, cpu.xreg[rs1] + imm_i, 0xffff, &cpu.mc);
+    MemWriteHalfword(&memory, cpu.xreg[rs1] + imm_i, 0xffff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m16(rs1 + imm_i))
@@ -604,12 +681,12 @@ TEST_F(TestDecoder, Load_Lhu)
 
 TEST_F(TestDecoder, Load_x0_Is_Zero)
 {
-    ArvissWriteWord(&memory, rambase, 0x12345678, &cpu.mc);
+    MemWriteWord(&memory, rambase, 0x12345678, &cpu.mc);
 
     // LB
     uint32_t rs1 = 13;
     cpu.xreg[rs1] = rambase;
-    ArvissWriteByte(&memory, rambase, 0xff, &cpu.mc);
+    MemWriteByte(&memory, rambase, 0xff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(0) | OP_LOAD);
 
     // x0 <- 0
@@ -652,7 +729,7 @@ TEST_F(TestDecoder, Store_Sb)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | OP_STORE);
 
     // m8(rs1 + imm_s) <- rs2[7:0]
-    uint8_t byteResult = ::ArvissReadByte(&memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
+    uint8_t byteResult = MemReadByte(&memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
     ASSERT_EQ(mcOK, cpu.mc);
     ASSERT_EQ(byteResult, cpu.xreg[rs2] & 0xff);
 
@@ -672,7 +749,7 @@ TEST_F(TestDecoder, Store_Sh)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | OP_STORE);
 
     // m16(rs1 + imm_s) <- rs2[15:0]
-    uint16_t halfwordResult = ::ArvissReadHalfword(&memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
+    uint16_t halfwordResult = MemReadHalfword(&memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
     ASSERT_EQ(mcOK, cpu.mc);
     ASSERT_EQ(halfwordResult, cpu.xreg[rs2] & 0xffff);
 
@@ -692,7 +769,7 @@ TEST_F(TestDecoder, Store_Sw)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | OP_STORE);
 
     // m32(rs1 + imm_s) <- rs2[31:0]
-    uint32_t wordResult = ::ArvissReadWord(&memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
+    uint32_t wordResult = MemReadWord(&memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
     ASSERT_EQ(mcOK, cpu.mc);
     ASSERT_EQ(wordResult, cpu.xreg[rs2] & 0xffff);
 
@@ -1586,7 +1663,7 @@ TEST_F(TestDecoder, LoadFp_Flw)
     // Write a float.
     float expected = -1234e-6f;
     uint32_t expectedAsU32 = FloatAsU32(expected);
-    ArvissWriteWord(&memory, cpu.xreg[rs1] + imm_i, expectedAsU32, &cpu.mc);
+    MemWriteWord(&memory, cpu.xreg[rs1] + imm_i, expectedAsU32, &cpu.mc);
 
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOADFP);
 
@@ -1611,7 +1688,7 @@ TEST_F(TestDecoder, StoreFp_Fsw)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | OP_STOREFP);
 
     // m32(rs1 + imm_s) <- rs2
-    uint32_t wordResult = ArvissReadWord(&memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
+    uint32_t wordResult = MemReadWord(&memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
     ASSERT_EQ(mcOK, cpu.mc);
 
     float resultAsFloat = U32AsFloat(wordResult);
