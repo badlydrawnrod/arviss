@@ -60,19 +60,19 @@ uint32_t TestDecoder::ReadWord(BusToken token, uint32_t addr, MemoryCode* mc)
 void TestDecoder::WriteByte(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc)
 {
     auto sys = reinterpret_cast<TestDecoder*>(token.t);
-    return ArvissWriteByte(&sys->memory, addr, byte, mc);
+    ArvissWriteByte(&sys->memory, addr, byte, mc);
 }
 
 void TestDecoder::WriteHalfword(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc)
 {
     auto sys = reinterpret_cast<TestDecoder*>(token.t);
-    return ArvissWriteHalfword(&sys->memory, addr, halfword, mc);
+    ArvissWriteHalfword(&sys->memory, addr, halfword, mc);
 }
 
 void TestDecoder::WriteWord(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc)
 {
     auto sys = reinterpret_cast<TestDecoder*>(token.t);
-    return ArvissWriteWord(&sys->memory, addr, word, mc);
+    ArvissWriteWord(&sys->memory, addr, word, mc);
 }
 
 void TestDecoder::SetUp()
