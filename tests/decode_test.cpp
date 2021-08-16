@@ -122,9 +122,9 @@ protected:
     static constexpr uint32_t rambase = 0x1000; // Deliberately not zero.
     static constexpr uint32_t ramsize = 0x1000; // Deliberately small to keep offsets from getting out of range.
 
-    ArvissCpu cpu;
-    Bus bus;
-    Memory memory;
+    ArvissCpu cpu{};
+    Bus bus{};
+    Memory memory{};
 
     static uint8_t ReadByte(BusToken token, uint32_t addr, MemoryCode* mc);
     static uint16_t ReadHalfword(BusToken token, uint32_t addr, MemoryCode* mc);
@@ -136,38 +136,38 @@ protected:
 
 uint8_t TestDecoder::ReadByte(BusToken token, uint32_t addr, MemoryCode* mc)
 {
-    auto sys = reinterpret_cast<TestDecoder*>(token.t);
-    return sys->memory.ReadByte(addr, mc);
+    auto memory = reinterpret_cast<Memory*>(token.t);
+    return memory->ReadByte(addr, mc);
 }
 
 uint16_t TestDecoder::ReadHalfword(BusToken token, uint32_t addr, MemoryCode* mc)
 {
-    auto sys = reinterpret_cast<TestDecoder*>(token.t);
-    return sys->memory.ReadHalfword(addr, mc);
+    auto memory = reinterpret_cast<Memory*>(token.t);
+    return memory->ReadHalfword(addr, mc);
 }
 
 uint32_t TestDecoder::ReadWord(BusToken token, uint32_t addr, MemoryCode* mc)
 {
-    auto sys = reinterpret_cast<TestDecoder*>(token.t);
-    return sys->memory.ReadWord(addr, mc);
+    auto memory = reinterpret_cast<Memory*>(token.t);
+    return memory->ReadWord(addr, mc);
 }
 
 void TestDecoder::WriteByte(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc)
 {
-    auto sys = reinterpret_cast<TestDecoder*>(token.t);
-    sys->memory.WriteByte(addr, byte, mc);
+    auto memory = reinterpret_cast<Memory*>(token.t);
+    memory->WriteByte(addr, byte, mc);
 }
 
 void TestDecoder::WriteHalfword(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc)
 {
-    auto sys = reinterpret_cast<TestDecoder*>(token.t);
-    sys->memory.WriteHalfword(addr, halfword, mc);
+    auto memory = reinterpret_cast<Memory*>(token.t);
+    memory->WriteHalfword(addr, halfword, mc);
 }
 
 void TestDecoder::WriteWord(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc)
 {
-    auto sys = reinterpret_cast<TestDecoder*>(token.t);
-    sys->memory.WriteWord(addr, word, mc);
+    auto memory = reinterpret_cast<Memory*>(token.t);
+    memory->WriteWord(addr, word, mc);
 }
 
 void TestDecoder::SetUp()
@@ -178,7 +178,7 @@ void TestDecoder::SetUp()
     bus.WriteByte = TestDecoder::WriteByte;
     bus.WriteHalfword = TestDecoder::WriteHalfword;
     bus.WriteWord = TestDecoder::WriteWord;
-    bus.token = {this};
+    bus.token = {&this->memory};
 
     memory.Clear();
 
