@@ -6,11 +6,11 @@
 #include "gtest/gtest.h"
 #include <cmath>
 
-static constexpr uint32_t rambase = 0;
-static constexpr uint32_t ramsize = 0x8000;
-
 class Memory
 {
+    static constexpr uint32_t rambase = 0;
+    static constexpr uint32_t ramsize = 0x8000;
+
 private:
     uint8_t ram[ramsize];
 

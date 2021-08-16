@@ -107,13 +107,6 @@ static void Write32(BusToken token, uint32_t addr, uint32_t word, BusCode* busCo
 int main(void)
 {
     Memory memory;
-    Bus bus = {.token = {&memory},
-               .Read8 = Read8,
-               .Read16 = Read16,
-               .Read32 = Read32,
-               .Write8 = Write8,
-               .Write16 = Write16,
-               .Write32 = Write32};
     ArvissCpu cpu;
 
     MemoryDescriptor memoryDesc[] = {{.start = ROM_START, .size = ROMSIZE, .data = memory.mem + ROM_START},
@@ -126,7 +119,14 @@ int main(void)
     }
 
     // Run the program, n instructions at a time.
-    ArvissInit(&cpu, &bus);
+    ArvissInit(&cpu,
+               &(Bus){.token = {&memory},
+                      .Read8 = Read8,
+                      .Read16 = Read16,
+                      .Read32 = Read32,
+                      .Write8 = Write8,
+                      .Write16 = Write16,
+                      .Write32 = Write32});
     ArvissResult result = ArvissMakeOk();
     while (!ArvissResultIsTrap(result))
     {
