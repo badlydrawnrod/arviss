@@ -13,7 +13,7 @@ static const uint32_t memsize = MEMSIZE;
 static const uint32_t rambase = RAMBASE;
 static const uint32_t ramsize = RAMSIZE;
 
-static uint8_t ReadByte(BusToken token, uint32_t addr, MemoryCode* mc)
+static uint8_t Read8(BusToken token, uint32_t addr, MemoryCode* mc)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= membase && addr < membase + memsize)
@@ -30,7 +30,7 @@ static uint8_t ReadByte(BusToken token, uint32_t addr, MemoryCode* mc)
     return 0;
 }
 
-static uint16_t ReadHalfword(BusToken token, uint32_t addr, MemoryCode* mc)
+static uint16_t Read16(BusToken token, uint32_t addr, MemoryCode* mc)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= membase && addr < membase + memsize - 1)
@@ -44,7 +44,7 @@ static uint16_t ReadHalfword(BusToken token, uint32_t addr, MemoryCode* mc)
     return 0;
 }
 
-static uint32_t ReadWord(BusToken token, uint32_t addr, MemoryCode* mc)
+static uint32_t Read32(BusToken token, uint32_t addr, MemoryCode* mc)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= membase && addr < membase + memsize - 3)
@@ -58,7 +58,7 @@ static uint32_t ReadWord(BusToken token, uint32_t addr, MemoryCode* mc)
     return 0;
 }
 
-static void WriteByte(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc)
+static void Write8(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= rambase && addr < rambase + ramsize)
@@ -76,7 +76,7 @@ static void WriteByte(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* m
     *mc = mcSTORE_ACCESS_FAULT;
 }
 
-static void WriteHalfword(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc)
+static void Write16(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= rambase && addr < rambase + ramsize - 1)
@@ -90,7 +90,7 @@ static void WriteHalfword(BusToken token, uint32_t addr, uint16_t halfword, Memo
     *mc = mcSTORE_ACCESS_FAULT;
 }
 
-static void WriteWord(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc)
+static void Write32(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= rambase && addr < rambase + ramsize - 2)
@@ -108,12 +108,12 @@ int main(void)
 {
     Memory memory;
     Bus bus = {.token = {&memory},
-               .ReadByte = ReadByte,
-               .ReadHalfword = ReadHalfword,
-               .ReadWord = ReadWord,
-               .WriteByte = WriteByte,
-               .WriteHalfword = WriteHalfword,
-               .WriteWord = WriteWord};
+               .Read8 = Read8,
+               .Read16 = Read16,
+               .Read32 = Read32,
+               .Write8 = Write8,
+               .Write16 = Write16,
+               .Write32 = Write32};
     ArvissCpu* cpu = ArvissCreate(&bus);
 
     MemoryDescriptor memoryDesc[] = {{.start = ROM_START, .size = ROMSIZE, .data = memory.mem + ROM_START},

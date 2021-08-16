@@ -70,7 +70,7 @@ static const uint32_t memsize = MEMSIZE;
 static const uint32_t rambase = RAMBASE;
 static const uint32_t ramsize = RAMSIZE;
 
-static uint8_t ReadByte(BusToken token, uint32_t addr, MemoryCode* mc)
+static uint8_t Read8(BusToken token, uint32_t addr, MemoryCode* mc)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= membase && addr < membase + memsize)
@@ -82,7 +82,7 @@ static uint8_t ReadByte(BusToken token, uint32_t addr, MemoryCode* mc)
     return 0;
 }
 
-static uint16_t ReadHalfword(BusToken token, uint32_t addr, MemoryCode* mc)
+static uint16_t Read16(BusToken token, uint32_t addr, MemoryCode* mc)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= membase && addr < membase + memsize - 1)
@@ -96,7 +96,7 @@ static uint16_t ReadHalfword(BusToken token, uint32_t addr, MemoryCode* mc)
     return 0;
 }
 
-static uint32_t ReadWord(BusToken token, uint32_t addr, MemoryCode* mc)
+static uint32_t Read32(BusToken token, uint32_t addr, MemoryCode* mc)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= membase && addr < membase + memsize - 3)
@@ -110,7 +110,7 @@ static uint32_t ReadWord(BusToken token, uint32_t addr, MemoryCode* mc)
     return 0;
 }
 
-static void WriteByte(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc)
+static void Write8(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= rambase && addr < rambase + ramsize)
@@ -121,7 +121,7 @@ static void WriteByte(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* m
     *mc = mcSTORE_ACCESS_FAULT;
 }
 
-static void WriteHalfword(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc)
+static void Write16(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= rambase && addr < rambase + ramsize - 1)
@@ -135,7 +135,7 @@ static void WriteHalfword(BusToken token, uint32_t addr, uint16_t halfword, Memo
     *mc = mcSTORE_ACCESS_FAULT;
 }
 
-static void WriteWord(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc)
+static void Write32(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= rambase && addr < rambase + ramsize - 2)
@@ -165,12 +165,12 @@ static void LoadCode(Memory* memory, const char* filename)
 static void InitTurtle(Turtle* turtle)
 {
     turtle->vm.bus = (Bus){.token = {&turtle->vm.memory},
-                           .ReadByte = ReadByte,
-                           .ReadHalfword = ReadHalfword,
-                           .ReadWord = ReadWord,
-                           .WriteByte = WriteByte,
-                           .WriteHalfword = WriteHalfword,
-                           .WriteWord = WriteWord};
+                           .Read8 = Read8,
+                           .Read16 = Read16,
+                           .Read32 = Read32,
+                           .Write8 = Write8,
+                           .Write16 = Write16,
+                           .Write32 = Write32};
 
     turtle->vm.cpu = ArvissCreate(&turtle->vm.bus);
     turtle->vm.isBlocked = false;
@@ -404,13 +404,13 @@ static void HandleTrap(Turtle* turtle, const ArvissTrap* trap)
             if (a0 != 0)
             {
                 // Copy the x coordinate into memory at a0 (x10).
-                WriteWord((BusToken){&turtle->vm.memory}, a0, *(uint32_t*)&turtle->position.x, &mc);
+                Write32((BusToken){&turtle->vm.memory}, a0, *(uint32_t*)&turtle->position.x, &mc);
             }
             uint32_t a1 = ArvissReadXReg(turtle->vm.cpu, 11);
             if (mc == mcOK && a1 != 0)
             {
                 // Copy the y coordinate into memory at a1 (x11).
-                WriteWord((BusToken){&turtle->vm.memory}, a1, *(uint32_t*)&turtle->position.y, &mc);
+                Write32((BusToken){&turtle->vm.memory}, a1, *(uint32_t*)&turtle->position.y, &mc);
             }
             // Return success / failure in a0 (x10).
             ArvissWriteXReg(turtle->vm.cpu, 10, (mc == mcOK));

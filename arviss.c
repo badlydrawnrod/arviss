@@ -42,32 +42,32 @@ static DecodedInstruction ArvissDecode(uint32_t instruction);
 
 static inline uint8_t ReadByte(Bus* bus, uint32_t addr, MemoryCode* mc)
 {
-    return bus->ReadByte(bus->token, addr, mc);
+    return bus->Read8(bus->token, addr, mc);
 }
 
 static inline uint16_t ReadHalfword(Bus* bus, uint32_t addr, MemoryCode* mc)
 {
-    return bus->ReadHalfword(bus->token, addr, mc);
+    return bus->Read16(bus->token, addr, mc);
 }
 
 static inline uint32_t ReadWord(Bus* bus, uint32_t addr, MemoryCode* mc)
 {
-    return bus->ReadWord(bus->token, addr, mc);
+    return bus->Read32(bus->token, addr, mc);
 }
 
 static inline void WriteByte(Bus* bus, uint32_t addr, uint8_t byte, MemoryCode* mc)
 {
-    bus->WriteByte(bus->token, addr, byte, mc);
+    bus->Write8(bus->token, addr, byte, mc);
 }
 
 static inline void WriteHalfword(Bus* bus, uint32_t addr, uint16_t halfword, MemoryCode* mc)
 {
-    bus->WriteHalfword(bus->token, addr, halfword, mc);
+    bus->Write16(bus->token, addr, halfword, mc);
 }
 
 static inline void WriteWord(Bus* bus, uint32_t addr, uint32_t word, MemoryCode* mc)
 {
-    bus->WriteWord(bus->token, addr, word, mc);
+    bus->Write32(bus->token, addr, word, mc);
 }
 
 // --- Execution -------------------------------------------------------------------------------------------------------------------

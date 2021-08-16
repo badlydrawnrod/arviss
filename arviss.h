@@ -18,22 +18,22 @@ typedef struct
     void* t;
 } BusToken;
 
-typedef uint8_t (*BusReadByteFn)(BusToken token, uint32_t addr, MemoryCode* mc);
-typedef uint16_t (*BusReadHalfwordFn)(BusToken token, uint32_t addr, MemoryCode* mc);
-typedef uint32_t (*BusReadWordFn)(BusToken token, uint32_t addr, MemoryCode* mc);
-typedef void (*BusWriteByteFn)(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc);
-typedef void (*BusWriteHalfwordFn)(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc);
-typedef void (*BusWriteWordFn)(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc);
+typedef uint8_t (*BusRead8Fn)(BusToken token, uint32_t addr, MemoryCode* mc);
+typedef uint16_t (*BusRead16Fn)(BusToken token, uint32_t addr, MemoryCode* mc);
+typedef uint32_t (*BusRead32Fn)(BusToken token, uint32_t addr, MemoryCode* mc);
+typedef void (*BusWrite8Fn)(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc);
+typedef void (*BusWrite16Fn)(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc);
+typedef void (*BusWrite32Fn)(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc);
 
 typedef struct Bus
 {
     BusToken token;
-    BusReadByteFn ReadByte;
-    BusReadHalfwordFn ReadHalfword;
-    BusReadWordFn ReadWord;
-    BusWriteByteFn WriteByte;
-    BusWriteHalfwordFn WriteHalfword;
-    BusWriteWordFn WriteWord;
+    BusRead8Fn Read8;
+    BusRead16Fn Read16;
+    BusRead32Fn Read32;
+    BusWrite8Fn Write8;
+    BusWrite16Fn Write16;
+    BusWrite32Fn Write32;
 } Bus;
 
 #ifdef __cplusplus
