@@ -1,6 +1,6 @@
 
 # Run "hello world" via Arviss.
-add_executable(run_hello run_hello.c mem.c mem.h)
+add_executable(run_hello run_hello.c mem.h)
 
 # Link with libm for platforms that need it.
 target_link_libraries(run_hello PRIVATE arviss

@@ -3,10 +3,106 @@
 #include "conversions.h"
 #include "opcodes.h"
 #include "rounding_modes.h"
-#include "smallmem.h"
 
 #include "gtest/gtest.h"
 #include <cmath>
+
+static constexpr uint32_t rambase = 0;
+static constexpr uint32_t ramsize = 0x8000;
+
+class Memory
+{
+private:
+    uint8_t ram[ramsize];
+
+public:
+    void Clear();
+    uint8_t Read8(uint32_t addr, BusCode* busCode) const;
+    uint16_t Read16(uint32_t addr, BusCode* busCode) const;
+    uint32_t Read32(uint32_t addr, BusCode* busCode) const;
+    void Write8(uint32_t addr, uint8_t byte, BusCode* busCode);
+    void Write16(uint32_t addr, uint16_t halfword, BusCode* busCode);
+    void Write32(uint32_t addr, uint32_t word, BusCode* busCode);
+};
+
+void Memory::Clear()
+{
+    for (auto& b : ram)
+    {
+        b = 0;
+    }
+}
+
+uint8_t Memory::Read8(uint32_t addr, BusCode* busCode) const
+{
+    if (addr >= rambase && addr < rambase + ramsize)
+    {
+        return ram[addr - rambase];
+    }
+
+    *busCode = bcLOAD_ACCESS_FAULT;
+    return 0;
+}
+
+uint16_t Memory::Read16(uint32_t addr, BusCode* busCode) const
+{
+    if (addr >= rambase && addr < rambase + ramsize - 1)
+    {
+        return ram[addr - rambase] | (ram[addr + 1 - rambase] << 8);
+    }
+
+    *busCode = bcLOAD_ACCESS_FAULT;
+    return 0;
+}
+
+uint32_t Memory::Read32(uint32_t addr, BusCode* busCode) const
+{
+    if (addr >= rambase && addr < rambase + ramsize - 3)
+    {
+        return ram[addr - rambase] | (ram[addr + 1 - rambase] << 8) | (ram[addr + 2 - rambase] << 16)
+                | (ram[addr + 3 - rambase] << 24);
+    }
+
+    *busCode = bcLOAD_ACCESS_FAULT;
+    return 0;
+}
+
+void Memory::Write8(uint32_t addr, uint8_t byte, BusCode* busCode)
+{
+    if (addr >= rambase && addr < rambase + ramsize)
+    {
+        ram[addr - rambase] = byte;
+        return;
+    }
+
+    *busCode = bcSTORE_ACCESS_FAULT;
+}
+
+void Memory::Write16(uint32_t addr, uint16_t halfword, BusCode* busCode)
+{
+    if (addr >= rambase && addr < rambase + ramsize - 1)
+    {
+        ram[addr - rambase] = halfword & 0xff;
+        ram[addr + 1 - rambase] = (halfword >> 8) & 0xff;
+        return;
+    }
+
+    *busCode = bcSTORE_ACCESS_FAULT;
+}
+
+void Memory::Write32(uint32_t addr, uint32_t word, BusCode* busCode)
+{
+    if (addr >= rambase && addr < rambase + ramsize - 3)
+    {
+        ram[addr - rambase] = word & 0xff;
+        ram[addr + 1 - rambase] = (word >> 8) & 0xff;
+        ram[addr + 2 - rambase] = (word >> 16) & 0xff;
+        ram[addr + 3 - rambase] = (word >> 24) & 0xff;
+        return;
+    }
+
+    *busCode = bcSTORE_ACCESS_FAULT;
+}
 
 class TestDecoder : public ::testing::Test
 {
@@ -27,22 +123,69 @@ protected:
     static constexpr uint32_t ramsize = 0x1000; // Deliberately small to keep offsets from getting out of range.
 
     ArvissCpu cpu{};
+    Bus bus{};
+    Memory memory{};
 
-    inline static ArvissMemory memory;
+    static uint8_t Read8(BusToken token, uint32_t addr, BusCode* busCode);
+    static uint16_t Read16(BusToken token, uint32_t addr, BusCode* busCode);
+    static uint32_t Read32(BusToken token, uint32_t addr, BusCode* busCode);
+    static void Write8(BusToken token, uint32_t addr, uint8_t byte, BusCode* busCode);
+    static void Write16(BusToken token, uint32_t addr, uint16_t halfword, BusCode* busCode);
+    static void Write32(BusToken token, uint32_t addr, uint32_t word, BusCode* busCode);
 };
+
+uint8_t TestDecoder::Read8(BusToken token, uint32_t addr, BusCode* busCode)
+{
+    auto memory = reinterpret_cast<Memory*>(token.t);
+    return memory->Read8(addr, busCode);
+}
+
+uint16_t TestDecoder::Read16(BusToken token, uint32_t addr, BusCode* busCode)
+{
+    auto memory = reinterpret_cast<Memory*>(token.t);
+    return memory->Read16(addr, busCode);
+}
+
+uint32_t TestDecoder::Read32(BusToken token, uint32_t addr, BusCode* busCode)
+{
+    auto memory = reinterpret_cast<Memory*>(token.t);
+    return memory->Read32(addr, busCode);
+}
+
+void TestDecoder::Write8(BusToken token, uint32_t addr, uint8_t byte, BusCode* busCode)
+{
+    auto memory = reinterpret_cast<Memory*>(token.t);
+    memory->Write8(addr, byte, busCode);
+}
+
+void TestDecoder::Write16(BusToken token, uint32_t addr, uint16_t halfword, BusCode* busCode)
+{
+    auto memory = reinterpret_cast<Memory*>(token.t);
+    memory->Write16(addr, halfword, busCode);
+}
+
+void TestDecoder::Write32(BusToken token, uint32_t addr, uint32_t word, BusCode* busCode)
+{
+    auto memory = reinterpret_cast<Memory*>(token.t);
+    memory->Write32(addr, word, busCode);
+}
 
 void TestDecoder::SetUp()
 {
-    // Clear the RAM.
-    for (auto& b : memory.ram)
-    {
-        b = 0;
-    }
+    bus.Read8 = TestDecoder::Read8;
+    bus.Read16 = TestDecoder::Read16;
+    bus.Read32 = TestDecoder::Read32;
+    bus.Write8 = TestDecoder::Write8;
+    bus.Write16 = TestDecoder::Write16;
+    bus.Write32 = TestDecoder::Write32;
+    bus.token = {&this->memory};
 
-    // Reset the CPU.
-    ArvissReset(&cpu);
+    memory.Clear();
+
+    // Initialise the CPU.
+    ArvissInit(&cpu, &bus);
+
     cpu.xreg[2] = rambase + ramsize; // Set the stack pointer.
-    cpu.memory = &memory;
     cpu.pc = rambase;
 }
 
@@ -405,7 +548,7 @@ TEST_F(TestDecoder, Load_Lb)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 7 is zero.
-    ArvissWriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 123, &cpu.mc);
+    memory.Write8(cpu.xreg[rs1] + imm_i, 123, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m8(rs1 + imm_i))
@@ -416,7 +559,7 @@ TEST_F(TestDecoder, Load_Lb)
 
     // Sign extend when bit 7 is one.
     pc = cpu.pc;
-    ArvissWriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 0xff, &cpu.mc);
+    memory.Write8(cpu.xreg[rs1] + imm_i, 0xff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m8(rs1 + imm_i))
@@ -436,7 +579,7 @@ TEST_F(TestDecoder, Load_Lh)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 15 is zero.
-    ArvissWriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fff, &cpu.mc);
+    memory.Write16(cpu.xreg[rs1] + imm_i, 0x7fff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m16(rs1 + imm_i))
@@ -447,7 +590,7 @@ TEST_F(TestDecoder, Load_Lh)
 
     // Sign extend when bit 15 is one.
     pc = cpu.pc;
-    ArvissWriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffff, &cpu.mc);
+    memory.Write16(cpu.xreg[rs1] + imm_i, 0xffff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m16(rs1 + imm_i))
@@ -467,7 +610,7 @@ TEST_F(TestDecoder, Load_Lw)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 31 is zero.
-    ArvissWriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fffffff, &cpu.mc);
+    memory.Write32(cpu.xreg[rs1] + imm_i, 0x7fffffff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m32(rs1 + imm_i))
@@ -478,7 +621,7 @@ TEST_F(TestDecoder, Load_Lw)
 
     // Sign extend when bit 31 is one.
     pc = cpu.pc;
-    ArvissWriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffffffff, &cpu.mc);
+    memory.Write32(cpu.xreg[rs1] + imm_i, 0xffffffff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m32(rs1 + imm_i))
@@ -498,7 +641,7 @@ TEST_F(TestDecoder, Load_Lbu)
     cpu.xreg[rs1] = rambase + ramsize / 2;
 
     // Zero extend when bit 7 is zero.
-    ArvissWriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 123, &cpu.mc);
+    memory.Write8(cpu.xreg[rs1] + imm_i, 123, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m8(rs1 + imm_i))
@@ -509,7 +652,7 @@ TEST_F(TestDecoder, Load_Lbu)
 
     // Zero extend when bit 7 is zero.
     pc = cpu.pc;
-    ArvissWriteByte(cpu.memory, cpu.xreg[rs1] + imm_i, 0xff, &cpu.mc);
+    memory.Write8(cpu.xreg[rs1] + imm_i, 0xff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m8(rs1 + imm_i))
@@ -529,7 +672,7 @@ TEST_F(TestDecoder, Load_Lhu)
     cpu.xreg[rs1] = rambase + ramsize / 2;
 
     // Zero extend when bit 15 is zero.
-    ArvissWriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0x7fff, &cpu.mc);
+    memory.Write16(cpu.xreg[rs1] + imm_i, 0x7fff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m16(rs1 + imm_i))
@@ -540,7 +683,7 @@ TEST_F(TestDecoder, Load_Lhu)
 
     // Zero extend when bit 15 is one.
     pc = cpu.pc;
-    ArvissWriteHalfword(cpu.memory, cpu.xreg[rs1] + imm_i, 0xffff, &cpu.mc);
+    memory.Write16(cpu.xreg[rs1] + imm_i, 0xffff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m16(rs1 + imm_i))
@@ -552,12 +695,12 @@ TEST_F(TestDecoder, Load_Lhu)
 
 TEST_F(TestDecoder, Load_x0_Is_Zero)
 {
-    ArvissWriteWord(cpu.memory, rambase, 0x12345678, &cpu.mc);
+    memory.Write32(rambase, 0x12345678, &cpu.mc);
 
     // LB
     uint32_t rs1 = 13;
     cpu.xreg[rs1] = rambase;
-    ArvissWriteByte(cpu.memory, rambase, 0xff, &cpu.mc);
+    memory.Write8(rambase, 0xff, &cpu.mc);
     ArvissExecute(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(0) | OP_LOAD);
 
     // x0 <- 0
@@ -600,8 +743,8 @@ TEST_F(TestDecoder, Store_Sb)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | OP_STORE);
 
     // m8(rs1 + imm_s) <- rs2[7:0]
-    uint8_t byteResult = ::ArvissReadByte(cpu.memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
-    ASSERT_EQ(mcOK, cpu.mc);
+    uint8_t byteResult = memory.Read8(cpu.xreg[rs1] + imm_s, &cpu.mc);
+    ASSERT_EQ(bcOK, cpu.mc);
     ASSERT_EQ(byteResult, cpu.xreg[rs2] & 0xff);
 
     // pc <- pc + 4
@@ -620,8 +763,8 @@ TEST_F(TestDecoder, Store_Sh)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | OP_STORE);
 
     // m16(rs1 + imm_s) <- rs2[15:0]
-    uint16_t halfwordResult = ::ArvissReadHalfword(cpu.memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
-    ASSERT_EQ(mcOK, cpu.mc);
+    uint16_t halfwordResult = memory.Read16(cpu.xreg[rs1] + imm_s, &cpu.mc);
+    ASSERT_EQ(bcOK, cpu.mc);
     ASSERT_EQ(halfwordResult, cpu.xreg[rs2] & 0xffff);
 
     // pc <- pc + 4
@@ -640,8 +783,8 @@ TEST_F(TestDecoder, Store_Sw)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | OP_STORE);
 
     // m32(rs1 + imm_s) <- rs2[31:0]
-    uint32_t wordResult = ::ArvissReadWord(cpu.memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
-    ASSERT_EQ(mcOK, cpu.mc);
+    uint32_t wordResult = memory.Read32(cpu.xreg[rs1] + imm_s, &cpu.mc);
+    ASSERT_EQ(bcOK, cpu.mc);
     ASSERT_EQ(wordResult, cpu.xreg[rs2] & 0xffff);
 
     // pc <- pc + 4
@@ -1534,7 +1677,7 @@ TEST_F(TestDecoder, LoadFp_Flw)
     // Write a float.
     float expected = -1234e-6f;
     uint32_t expectedAsU32 = FloatAsU32(expected);
-    ArvissWriteWord(cpu.memory, cpu.xreg[rs1] + imm_i, expectedAsU32, &cpu.mc);
+    memory.Write32(cpu.xreg[rs1] + imm_i, expectedAsU32, &cpu.mc);
 
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOADFP);
 
@@ -1559,8 +1702,8 @@ TEST_F(TestDecoder, StoreFp_Fsw)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | OP_STOREFP);
 
     // m32(rs1 + imm_s) <- rs2
-    uint32_t wordResult = ArvissReadWord(cpu.memory, cpu.xreg[rs1] + imm_s, &cpu.mc);
-    ASSERT_EQ(mcOK, cpu.mc);
+    uint32_t wordResult = memory.Read32(cpu.xreg[rs1] + imm_s, &cpu.mc);
+    ASSERT_EQ(bcOK, cpu.mc);
 
     float resultAsFloat = U32AsFloat(wordResult);
     ASSERT_EQ(expected, resultAsFloat);

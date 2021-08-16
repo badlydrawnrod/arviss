@@ -3,7 +3,6 @@
  */
 #pragma once
 
-#include "memory.h"
 #include "result.h"
 
 #include <stdint.h>
@@ -13,15 +12,62 @@
  */
 typedef struct ArvissCpu ArvissCpu;
 
+/**
+ * An arbitrary, caller supplied token that an Arviss CPU passes to the bus callbacks.
+ */
+typedef struct
+{
+    void* t;
+} BusToken;
+
+typedef enum BusCode
+{
+    bcOK,
+    bcLOAD_ACCESS_FAULT,
+    bcSTORE_ACCESS_FAULT
+} BusCode;
+
+/**
+ * Signatures of bus callbacks.
+ */
+typedef uint8_t (*BusRead8Fn)(BusToken token, uint32_t addr, BusCode* busCode);
+typedef uint16_t (*BusRead16Fn)(BusToken token, uint32_t addr, BusCode* busCode);
+typedef uint32_t (*BusRead32Fn)(BusToken token, uint32_t addr, BusCode* busCode);
+typedef void (*BusWrite8Fn)(BusToken token, uint32_t addr, uint8_t byte, BusCode* busCode);
+typedef void (*BusWrite16Fn)(BusToken token, uint32_t addr, uint16_t halfword, BusCode* busCode);
+typedef void (*BusWrite32Fn)(BusToken token, uint32_t addr, uint32_t word, BusCode* busCode);
+
+/**
+ * The bus is how an Arviss CPU interacts with the rest of the system. It has a number of callbacks, and a caller-supplied token
+ * that is passed to them on invocation.
+ */
+typedef struct Bus
+{
+    BusToken token;
+    BusRead8Fn Read8;
+    BusRead16Fn Read16;
+    BusRead32Fn Read32;
+    BusWrite8Fn Write8;
+    BusWrite16Fn Write16;
+    BusWrite32Fn Write32;
+} Bus;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
+ * Initialises an Arviss CPU.
+ * @param cpu the CPU.
+ * @param bus the bus that the CPU should use to interact with the rest of the system.
+ */
+void ArvissInit(ArvissCpu* cpu, Bus* bus);
+
+/**
  * Creates an Arviss CPU.
  * @return a CPU if successful, otherwise NULL.
  */
-ArvissCpu* ArvissCreate(void);
+ArvissCpu* ArvissCreate(Bus* bus);
 
 /**
  * Disposes of the given Arviss CPU and frees its resources.
@@ -82,13 +128,6 @@ float ArvissReadFReg(ArvissCpu* cpu, int reg);
  * @param value the value to write.
  */
 void ArvissWriteFReg(ArvissCpu* cpu, int reg, float value);
-
-/**
- * Returns the CPU's memory.
- * @param cpu the CPU.
- * @return the memory attached to the CPU.
- */
-ArvissMemory* ArvissGetMemory(ArvissCpu* cpu);
 
 /**
  * Performs an MRET instruction on the CPU. Use this when returning from a machine-mode trap.

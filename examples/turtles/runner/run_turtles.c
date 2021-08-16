@@ -22,6 +22,8 @@
 typedef struct VM
 {
     ArvissCpu* cpu;
+    Memory memory;
+    Bus bus;
     bool isBlocked;
 } VM;
 
@@ -61,9 +63,95 @@ static const DrawCommand turtleShape[MAX_LINES] = {{MOVE, {-1, 1}},   {LINE, {0,
 
 static void Home(Turtle* turtle);
 
+// --- Bus access ------------------------------------------------------------------------------------------------------------------
+
+static const uint32_t membase = MEMBASE;
+static const uint32_t memsize = MEMSIZE;
+static const uint32_t rambase = RAMBASE;
+static const uint32_t ramsize = RAMSIZE;
+
+static uint8_t Read8(BusToken token, uint32_t addr, BusCode* busCode)
+{
+    Memory* memory = (Memory*)(token.t);
+    if (addr >= membase && addr < membase + memsize)
+    {
+        return memory->mem[addr - membase];
+    }
+
+    *busCode = bcLOAD_ACCESS_FAULT;
+    return 0;
+}
+
+static uint16_t Read16(BusToken token, uint32_t addr, BusCode* busCode)
+{
+    Memory* memory = (Memory*)(token.t);
+    if (addr >= membase && addr < membase + memsize - 1)
+    {
+        // TODO: implement for big-endian ISAs.
+        const uint16_t* base = (uint16_t*)&memory->mem[addr - membase];
+        return *base;
+    }
+
+    *busCode = bcLOAD_ACCESS_FAULT;
+    return 0;
+}
+
+static uint32_t Read32(BusToken token, uint32_t addr, BusCode* busCode)
+{
+    Memory* memory = (Memory*)(token.t);
+    if (addr >= membase && addr < membase + memsize - 3)
+    {
+        // TODO: implement for big-endian ISAs.
+        const uint32_t* base = (uint32_t*)&memory->mem[addr - membase];
+        return *base;
+    }
+
+    *busCode = bcLOAD_ACCESS_FAULT;
+    return 0;
+}
+
+static void Write8(BusToken token, uint32_t addr, uint8_t byte, BusCode* busCode)
+{
+    Memory* memory = (Memory*)(token.t);
+    if (addr >= rambase && addr < rambase + ramsize)
+    {
+        memory->mem[addr - membase] = byte;
+        return;
+    }
+    *busCode = bcSTORE_ACCESS_FAULT;
+}
+
+static void Write16(BusToken token, uint32_t addr, uint16_t halfword, BusCode* busCode)
+{
+    Memory* memory = (Memory*)(token.t);
+    if (addr >= rambase && addr < rambase + ramsize - 1)
+    {
+        // TODO: implement for big-endian ISAs.
+        uint16_t* base = (uint16_t*)&memory->mem[addr - membase];
+        *base = halfword;
+        return;
+    }
+
+    *busCode = bcSTORE_ACCESS_FAULT;
+}
+
+static void Write32(BusToken token, uint32_t addr, uint32_t word, BusCode* busCode)
+{
+    Memory* memory = (Memory*)(token.t);
+    if (addr >= rambase && addr < rambase + ramsize - 2)
+    {
+        // TODO: implement for big-endian ISAs.
+        uint32_t* base = (uint32_t*)&memory->mem[addr - membase];
+        *base = word;
+        return;
+    }
+
+    *busCode = bcSTORE_ACCESS_FAULT;
+}
+
 // --- Initialization --------------------------------------------------------------------------------------------------------------
 
-static void LoadCode(ArvissMemory* memory, const char* filename)
+static void LoadCode(Memory* memory, const char* filename)
 {
     printf("--- Loading %s\n", filename);
     MemoryDescriptor memoryDesc[] = {{.start = ROM_START, .size = ROMSIZE, .data = memory->mem + ROM_START},
@@ -76,12 +164,19 @@ static void LoadCode(ArvissMemory* memory, const char* filename)
 
 static void InitTurtle(Turtle* turtle)
 {
-    turtle->vm.cpu = ArvissCreate();
-    ArvissReset(turtle->vm.cpu);
+    turtle->vm.bus = (Bus){.token = {&turtle->vm.memory},
+                           .Read8 = Read8,
+                           .Read16 = Read16,
+                           .Read32 = Read32,
+                           .Write8 = Write8,
+                           .Write16 = Write16,
+                           .Write32 = Write32};
+
+    turtle->vm.cpu = ArvissCreate(&turtle->vm.bus);
     turtle->vm.isBlocked = false;
 
     const char* filename = "../../../../examples/turtles/arviss/bin/turtle";
-    ArvissMemory* memory = ArvissGetMemory(turtle->vm.cpu);
+    Memory* memory = &turtle->vm.memory;
     LoadCode(memory, filename);
 
     turtle->isActive = true;
@@ -305,20 +400,20 @@ static void HandleTrap(Turtle* turtle, const ArvissTrap* trap)
             // Return the turtle's position via the addresses pointed to by a0 and a1 (x10 and x11). An address of zero means
             // that the given coordinate is not required.
             uint32_t a0 = ArvissReadXReg(turtle->vm.cpu, 10);
-            MemoryCode mc = mcOK;
+            BusCode mc = bcOK;
             if (a0 != 0)
             {
                 // Copy the x coordinate into memory at a0 (x10).
-                ArvissWriteWord(ArvissGetMemory(turtle->vm.cpu), a0, *(uint32_t*)&turtle->position.x, &mc);
+                Write32((BusToken){&turtle->vm.memory}, a0, *(uint32_t*)&turtle->position.x, &mc);
             }
             uint32_t a1 = ArvissReadXReg(turtle->vm.cpu, 11);
-            if (mc == mcOK && a1 != 0)
+            if (mc == bcOK && a1 != 0)
             {
                 // Copy the y coordinate into memory at a1 (x11).
-                ArvissWriteWord(ArvissGetMemory(turtle->vm.cpu), a1, *(uint32_t*)&turtle->position.y, &mc);
+                Write32((BusToken){&turtle->vm.memory}, a1, *(uint32_t*)&turtle->position.y, &mc);
             }
             // Return success / failure in a0 (x10).
-            ArvissWriteXReg(turtle->vm.cpu, 10, (mc == mcOK));
+            ArvissWriteXReg(turtle->vm.cpu, 10, (mc == bcOK));
         }
         break;
         case SYSCALL_GET_HEADING: {

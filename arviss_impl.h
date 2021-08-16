@@ -98,7 +98,7 @@ typedef struct DecodedInstructionCache
 struct ArvissCpu
 {
     ArvissResult result;           // The result of the last operation.
-    MemoryCode mc;                 // The result of the last memory operation.
+    BusCode mc;                 // The result of the last memory operation.
     uint32_t pc;                   // The program counter.
     uint32_t xreg[32];             // Regular registers, x0-x31.
     uint32_t mepc;                 // The machine exception program counter.
@@ -106,8 +106,8 @@ struct ArvissCpu
     uint32_t mtval;                // The machine trap value register.
     float freg[32];                // Floating point registers, f0-f31.
     uint32_t fcsr;                 // Floating point control and status register.
+    Bus* bus;                      // The CPU's address bus.
     DecodedInstructionCache cache; // The decoded instruction cache.
-    ArvissMemory* memory;          // The CPU's memory.
 };
 
 #ifdef __cplusplus
