@@ -13,7 +13,7 @@ static const uint32_t memsize = MEMSIZE;
 static const uint32_t rambase = RAMBASE;
 static const uint32_t ramsize = RAMSIZE;
 
-static uint8_t Read8(BusToken token, uint32_t addr, MemoryCode* mc)
+static uint8_t Read8(BusToken token, uint32_t addr, BusCode* busCode)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= membase && addr < membase + memsize)
@@ -26,11 +26,11 @@ static uint8_t Read8(BusToken token, uint32_t addr, MemoryCode* mc)
         return 0xff; // TODO: return a real status.
     }
 
-    *mc = mcLOAD_ACCESS_FAULT;
+    *busCode = bcLOAD_ACCESS_FAULT;
     return 0;
 }
 
-static uint16_t Read16(BusToken token, uint32_t addr, MemoryCode* mc)
+static uint16_t Read16(BusToken token, uint32_t addr, BusCode* busCode)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= membase && addr < membase + memsize - 1)
@@ -40,11 +40,11 @@ static uint16_t Read16(BusToken token, uint32_t addr, MemoryCode* mc)
         return *base;
     }
 
-    *mc = mcLOAD_ACCESS_FAULT;
+    *busCode = bcLOAD_ACCESS_FAULT;
     return 0;
 }
 
-static uint32_t Read32(BusToken token, uint32_t addr, MemoryCode* mc)
+static uint32_t Read32(BusToken token, uint32_t addr, BusCode* busCode)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= membase && addr < membase + memsize - 3)
@@ -54,11 +54,11 @@ static uint32_t Read32(BusToken token, uint32_t addr, MemoryCode* mc)
         return *base;
     }
 
-    *mc = mcLOAD_ACCESS_FAULT;
+    *busCode = bcLOAD_ACCESS_FAULT;
     return 0;
 }
 
-static void Write8(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc)
+static void Write8(BusToken token, uint32_t addr, uint8_t byte, BusCode* busCode)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= rambase && addr < rambase + ramsize)
@@ -73,10 +73,10 @@ static void Write8(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc)
         return;
     }
 
-    *mc = mcSTORE_ACCESS_FAULT;
+    *busCode = bcSTORE_ACCESS_FAULT;
 }
 
-static void Write16(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc)
+static void Write16(BusToken token, uint32_t addr, uint16_t halfword, BusCode* busCode)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= rambase && addr < rambase + ramsize - 1)
@@ -87,10 +87,10 @@ static void Write16(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode
         return;
     }
 
-    *mc = mcSTORE_ACCESS_FAULT;
+    *busCode = bcSTORE_ACCESS_FAULT;
 }
 
-static void Write32(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc)
+static void Write32(BusToken token, uint32_t addr, uint32_t word, BusCode* busCode)
 {
     Memory* memory = (Memory*)(token.t);
     if (addr >= rambase && addr < rambase + ramsize - 2)
@@ -101,7 +101,7 @@ static void Write32(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc
         return;
     }
 
-    *mc = mcSTORE_ACCESS_FAULT;
+    *busCode = bcSTORE_ACCESS_FAULT;
 }
 
 int main(void)

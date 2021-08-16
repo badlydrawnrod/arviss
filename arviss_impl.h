@@ -98,7 +98,7 @@ typedef struct DecodedInstructionCache
 struct ArvissCpu
 {
     ArvissResult result;           // The result of the last operation.
-    MemoryCode mc;                 // The result of the last memory operation.
+    BusCode mc;                 // The result of the last memory operation.
     uint32_t pc;                   // The program counter.
     uint32_t xreg[32];             // Regular registers, x0-x31.
     uint32_t mepc;                 // The machine exception program counter.

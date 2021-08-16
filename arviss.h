@@ -12,27 +12,34 @@
  */
 typedef struct ArvissCpu ArvissCpu;
 
+/**
+ * An arbitrary, caller supplied token that an Arviss CPU passes to the bus callbacks.
+ */
 typedef struct
 {
     void* t;
 } BusToken;
 
-typedef enum MemoryCode
+typedef enum BusCode
 {
-    mcOK,
-    mcLOAD_ACCESS_FAULT,
-    mcSTORE_ACCESS_FAULT
-} MemoryCode;
-
-typedef uint8_t (*BusRead8Fn)(BusToken token, uint32_t addr, MemoryCode* mc);
-typedef uint16_t (*BusRead16Fn)(BusToken token, uint32_t addr, MemoryCode* mc);
-typedef uint32_t (*BusRead32Fn)(BusToken token, uint32_t addr, MemoryCode* mc);
-typedef void (*BusWrite8Fn)(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc);
-typedef void (*BusWrite16Fn)(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc);
-typedef void (*BusWrite32Fn)(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc);
+    bcOK,
+    bcLOAD_ACCESS_FAULT,
+    bcSTORE_ACCESS_FAULT
+} BusCode;
 
 /**
- * The bus is how an Arviss CPU interacts with the rest of the system.
+ * Signatures of bus callbacks.
+ */
+typedef uint8_t (*BusRead8Fn)(BusToken token, uint32_t addr, BusCode* busCode);
+typedef uint16_t (*BusRead16Fn)(BusToken token, uint32_t addr, BusCode* busCode);
+typedef uint32_t (*BusRead32Fn)(BusToken token, uint32_t addr, BusCode* busCode);
+typedef void (*BusWrite8Fn)(BusToken token, uint32_t addr, uint8_t byte, BusCode* busCode);
+typedef void (*BusWrite16Fn)(BusToken token, uint32_t addr, uint16_t halfword, BusCode* busCode);
+typedef void (*BusWrite32Fn)(BusToken token, uint32_t addr, uint32_t word, BusCode* busCode);
+
+/**
+ * The bus is how an Arviss CPU interacts with the rest of the system. It has a number of callbacks, and a caller-supplied token
+ * that is passed to them on invocation.
  */
 typedef struct Bus
 {

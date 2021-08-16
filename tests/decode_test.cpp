@@ -17,12 +17,12 @@ private:
 
 public:
     void Clear();
-    uint8_t Read8(uint32_t addr, MemoryCode* mc) const;
-    uint16_t Read16(uint32_t addr, MemoryCode* mc) const;
-    uint32_t Read32(uint32_t addr, MemoryCode* mc) const;
-    void Write8(uint32_t addr, uint8_t byte, MemoryCode* mc);
-    void Write16(uint32_t addr, uint16_t halfword, MemoryCode* mc);
-    void Write32(uint32_t addr, uint32_t word, MemoryCode* mc);
+    uint8_t Read8(uint32_t addr, BusCode* busCode) const;
+    uint16_t Read16(uint32_t addr, BusCode* busCode) const;
+    uint32_t Read32(uint32_t addr, BusCode* busCode) const;
+    void Write8(uint32_t addr, uint8_t byte, BusCode* busCode);
+    void Write16(uint32_t addr, uint16_t halfword, BusCode* busCode);
+    void Write32(uint32_t addr, uint32_t word, BusCode* busCode);
 };
 
 void Memory::Clear()
@@ -33,29 +33,29 @@ void Memory::Clear()
     }
 }
 
-uint8_t Memory::Read8(uint32_t addr, MemoryCode* mc) const
+uint8_t Memory::Read8(uint32_t addr, BusCode* busCode) const
 {
     if (addr >= rambase && addr < rambase + ramsize)
     {
         return ram[addr - rambase];
     }
 
-    *mc = mcLOAD_ACCESS_FAULT;
+    *busCode = bcLOAD_ACCESS_FAULT;
     return 0;
 }
 
-uint16_t Memory::Read16(uint32_t addr, MemoryCode* mc) const
+uint16_t Memory::Read16(uint32_t addr, BusCode* busCode) const
 {
     if (addr >= rambase && addr < rambase + ramsize - 1)
     {
         return ram[addr - rambase] | (ram[addr + 1 - rambase] << 8);
     }
 
-    *mc = mcLOAD_ACCESS_FAULT;
+    *busCode = bcLOAD_ACCESS_FAULT;
     return 0;
 }
 
-uint32_t Memory::Read32(uint32_t addr, MemoryCode* mc) const
+uint32_t Memory::Read32(uint32_t addr, BusCode* busCode) const
 {
     if (addr >= rambase && addr < rambase + ramsize - 3)
     {
@@ -63,11 +63,11 @@ uint32_t Memory::Read32(uint32_t addr, MemoryCode* mc) const
                 | (ram[addr + 3 - rambase] << 24);
     }
 
-    *mc = mcLOAD_ACCESS_FAULT;
+    *busCode = bcLOAD_ACCESS_FAULT;
     return 0;
 }
 
-void Memory::Write8(uint32_t addr, uint8_t byte, MemoryCode* mc)
+void Memory::Write8(uint32_t addr, uint8_t byte, BusCode* busCode)
 {
     if (addr >= rambase && addr < rambase + ramsize)
     {
@@ -75,10 +75,10 @@ void Memory::Write8(uint32_t addr, uint8_t byte, MemoryCode* mc)
         return;
     }
 
-    *mc = mcSTORE_ACCESS_FAULT;
+    *busCode = bcSTORE_ACCESS_FAULT;
 }
 
-void Memory::Write16(uint32_t addr, uint16_t halfword, MemoryCode* mc)
+void Memory::Write16(uint32_t addr, uint16_t halfword, BusCode* busCode)
 {
     if (addr >= rambase && addr < rambase + ramsize - 1)
     {
@@ -87,10 +87,10 @@ void Memory::Write16(uint32_t addr, uint16_t halfword, MemoryCode* mc)
         return;
     }
 
-    *mc = mcSTORE_ACCESS_FAULT;
+    *busCode = bcSTORE_ACCESS_FAULT;
 }
 
-void Memory::Write32(uint32_t addr, uint32_t word, MemoryCode* mc)
+void Memory::Write32(uint32_t addr, uint32_t word, BusCode* busCode)
 {
     if (addr >= rambase && addr < rambase + ramsize - 3)
     {
@@ -101,7 +101,7 @@ void Memory::Write32(uint32_t addr, uint32_t word, MemoryCode* mc)
         return;
     }
 
-    *mc = mcSTORE_ACCESS_FAULT;
+    *busCode = bcSTORE_ACCESS_FAULT;
 }
 
 class TestDecoder : public ::testing::Test
@@ -126,48 +126,48 @@ protected:
     Bus bus{};
     Memory memory{};
 
-    static uint8_t Read8(BusToken token, uint32_t addr, MemoryCode* mc);
-    static uint16_t Read16(BusToken token, uint32_t addr, MemoryCode* mc);
-    static uint32_t Read32(BusToken token, uint32_t addr, MemoryCode* mc);
-    static void Write8(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc);
-    static void Write16(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc);
-    static void Write32(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc);
+    static uint8_t Read8(BusToken token, uint32_t addr, BusCode* busCode);
+    static uint16_t Read16(BusToken token, uint32_t addr, BusCode* busCode);
+    static uint32_t Read32(BusToken token, uint32_t addr, BusCode* busCode);
+    static void Write8(BusToken token, uint32_t addr, uint8_t byte, BusCode* busCode);
+    static void Write16(BusToken token, uint32_t addr, uint16_t halfword, BusCode* busCode);
+    static void Write32(BusToken token, uint32_t addr, uint32_t word, BusCode* busCode);
 };
 
-uint8_t TestDecoder::Read8(BusToken token, uint32_t addr, MemoryCode* mc)
+uint8_t TestDecoder::Read8(BusToken token, uint32_t addr, BusCode* busCode)
 {
     auto memory = reinterpret_cast<Memory*>(token.t);
-    return memory->Read8(addr, mc);
+    return memory->Read8(addr, busCode);
 }
 
-uint16_t TestDecoder::Read16(BusToken token, uint32_t addr, MemoryCode* mc)
+uint16_t TestDecoder::Read16(BusToken token, uint32_t addr, BusCode* busCode)
 {
     auto memory = reinterpret_cast<Memory*>(token.t);
-    return memory->Read16(addr, mc);
+    return memory->Read16(addr, busCode);
 }
 
-uint32_t TestDecoder::Read32(BusToken token, uint32_t addr, MemoryCode* mc)
+uint32_t TestDecoder::Read32(BusToken token, uint32_t addr, BusCode* busCode)
 {
     auto memory = reinterpret_cast<Memory*>(token.t);
-    return memory->Read32(addr, mc);
+    return memory->Read32(addr, busCode);
 }
 
-void TestDecoder::Write8(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc)
+void TestDecoder::Write8(BusToken token, uint32_t addr, uint8_t byte, BusCode* busCode)
 {
     auto memory = reinterpret_cast<Memory*>(token.t);
-    memory->Write8(addr, byte, mc);
+    memory->Write8(addr, byte, busCode);
 }
 
-void TestDecoder::Write16(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc)
+void TestDecoder::Write16(BusToken token, uint32_t addr, uint16_t halfword, BusCode* busCode)
 {
     auto memory = reinterpret_cast<Memory*>(token.t);
-    memory->Write16(addr, halfword, mc);
+    memory->Write16(addr, halfword, busCode);
 }
 
-void TestDecoder::Write32(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc)
+void TestDecoder::Write32(BusToken token, uint32_t addr, uint32_t word, BusCode* busCode)
 {
     auto memory = reinterpret_cast<Memory*>(token.t);
-    memory->Write32(addr, word, mc);
+    memory->Write32(addr, word, busCode);
 }
 
 void TestDecoder::SetUp()
@@ -744,7 +744,7 @@ TEST_F(TestDecoder, Store_Sb)
 
     // m8(rs1 + imm_s) <- rs2[7:0]
     uint8_t byteResult = memory.Read8(cpu.xreg[rs1] + imm_s, &cpu.mc);
-    ASSERT_EQ(mcOK, cpu.mc);
+    ASSERT_EQ(bcOK, cpu.mc);
     ASSERT_EQ(byteResult, cpu.xreg[rs2] & 0xff);
 
     // pc <- pc + 4
@@ -764,7 +764,7 @@ TEST_F(TestDecoder, Store_Sh)
 
     // m16(rs1 + imm_s) <- rs2[15:0]
     uint16_t halfwordResult = memory.Read16(cpu.xreg[rs1] + imm_s, &cpu.mc);
-    ASSERT_EQ(mcOK, cpu.mc);
+    ASSERT_EQ(bcOK, cpu.mc);
     ASSERT_EQ(halfwordResult, cpu.xreg[rs2] & 0xffff);
 
     // pc <- pc + 4
@@ -784,7 +784,7 @@ TEST_F(TestDecoder, Store_Sw)
 
     // m32(rs1 + imm_s) <- rs2[31:0]
     uint32_t wordResult = memory.Read32(cpu.xreg[rs1] + imm_s, &cpu.mc);
-    ASSERT_EQ(mcOK, cpu.mc);
+    ASSERT_EQ(bcOK, cpu.mc);
     ASSERT_EQ(wordResult, cpu.xreg[rs2] & 0xffff);
 
     // pc <- pc + 4
@@ -1703,7 +1703,7 @@ TEST_F(TestDecoder, StoreFp_Fsw)
 
     // m32(rs1 + imm_s) <- rs2
     uint32_t wordResult = memory.Read32(cpu.xreg[rs1] + imm_s, &cpu.mc);
-    ASSERT_EQ(mcOK, cpu.mc);
+    ASSERT_EQ(bcOK, cpu.mc);
 
     float resultAsFloat = U32AsFloat(wordResult);
     ASSERT_EQ(expected, resultAsFloat);
