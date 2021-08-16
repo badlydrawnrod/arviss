@@ -58,7 +58,7 @@ typedef void (*ExecFn)(ArvissCpu* cpu, const DecodedInstruction* ins);
 
 struct DecodedInstruction
 {
-    ExecFn opcode;
+    ExecFn opcode; // The function that will execute this instruction.
     union
     {
         struct

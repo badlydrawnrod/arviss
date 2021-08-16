@@ -3,10 +3,8 @@
 #include "conversions.h"
 #include "opcodes.h"
 
-#include <malloc.h>
 #include <math.h>
 #include <stdint.h>
-#include <string.h>
 
 #if defined(ARVISS_TRACE_ENABLED)
 #include <stdio.h>
@@ -39,34 +37,34 @@ static DecodedInstruction ArvissDecode(uint32_t instruction);
 
 // --- Bus access ------------------------------------------------------------------------------------------------------------------
 
-static inline uint8_t ReadByte(Bus* bus, uint32_t addr, BusCode* mc)
+static inline uint8_t ReadByte(Bus* bus, uint32_t addr, BusCode* busCode)
 {
-    return bus->Read8(bus->token, addr, mc);
+    return bus->Read8(bus->token, addr, busCode);
 }
 
-static inline uint16_t ReadHalfword(Bus* bus, uint32_t addr, BusCode* mc)
+static inline uint16_t ReadHalfword(Bus* bus, uint32_t addr, BusCode* busCode)
 {
-    return bus->Read16(bus->token, addr, mc);
+    return bus->Read16(bus->token, addr, busCode);
 }
 
-static inline uint32_t ReadWord(Bus* bus, uint32_t addr, BusCode* mc)
+static inline uint32_t ReadWord(Bus* bus, uint32_t addr, BusCode* busCode)
 {
-    return bus->Read32(bus->token, addr, mc);
+    return bus->Read32(bus->token, addr, busCode);
 }
 
-static inline void WriteByte(Bus* bus, uint32_t addr, uint8_t byte, BusCode* mc)
+static inline void WriteByte(Bus* bus, uint32_t addr, uint8_t byte, BusCode* busCode)
 {
-    bus->Write8(bus->token, addr, byte, mc);
+    bus->Write8(bus->token, addr, byte, busCode);
 }
 
-static inline void WriteHalfword(Bus* bus, uint32_t addr, uint16_t halfword, BusCode* mc)
+static inline void WriteHalfword(Bus* bus, uint32_t addr, uint16_t halfword, BusCode* busCode)
 {
-    bus->Write16(bus->token, addr, halfword, mc);
+    bus->Write16(bus->token, addr, halfword, busCode);
 }
 
-static inline void WriteWord(Bus* bus, uint32_t addr, uint32_t word, BusCode* mc)
+static inline void WriteWord(Bus* bus, uint32_t addr, uint32_t word, BusCode* busCode)
 {
-    bus->Write32(bus->token, addr, word, mc);
+    bus->Write32(bus->token, addr, word, busCode);
 }
 
 // --- Execution -------------------------------------------------------------------------------------------------------------------
@@ -1619,18 +1617,6 @@ void ArvissInit(ArvissCpu* cpu, Bus* bus)
 {
     ArvissReset(cpu);
     cpu->bus = bus;
-}
-
-ArvissCpu* ArvissCreate(Bus* bus)
-{
-    ArvissCpu* cpu = calloc(1, sizeof(ArvissCpu));
-    ArvissInit(cpu, bus);
-    return cpu;
-}
-
-void ArvissDispose(ArvissCpu* cpu)
-{
-    free(cpu);
 }
 
 void ArvissReset(ArvissCpu* cpu)
