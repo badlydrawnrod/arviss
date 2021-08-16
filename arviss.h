@@ -161,17 +161,21 @@ extern "C" {
 #endif
 
 /**
- * Initialises an Arviss CPU.
- * @param cpu the CPU.
- * @param bus the bus that the CPU should use to interact with the rest of the system.
- */
-void ArvissInit(ArvissCpu* cpu, Bus* bus);
-
-/**
  * Resets the given Arviss CPU.
  * @param cpu the CPU to reset.
  */
 void ArvissReset(ArvissCpu* cpu);
+
+/**
+ * Initialises the given Arviss CPU and provides it with its bus.
+ * @param cpu the CPU.
+ * @param bus the bus that the CPU should use to interact with the rest of the system.
+ */
+static inline void ArvissInit(ArvissCpu* cpu, Bus* bus)
+{
+    ArvissReset(cpu);
+    cpu->bus = bus;
+}
 
 /**
  * Decodes and executes a single Arviss instruction.
@@ -195,7 +199,10 @@ ArvissResult ArvissRun(ArvissCpu* cpu, int count);
  * @param reg which X register to read (0 - 31).
  * @return the content of the X register.
  */
-uint32_t ArvissReadXReg(ArvissCpu* cpu, int reg);
+static inline uint32_t ArvissReadXReg(ArvissCpu* cpu, int reg)
+{
+    return cpu->xreg[reg];
+}
 
 /**
  * Writes to the given X register.
@@ -203,7 +210,10 @@ uint32_t ArvissReadXReg(ArvissCpu* cpu, int reg);
  * @param reg which X register to write to (0 - 31).
  * @param value the value to write.
  */
-void ArvissWriteXReg(ArvissCpu* cpu, int reg, uint32_t value);
+static inline void ArvissWriteXReg(ArvissCpu* cpu, int reg, uint32_t value)
+{
+    cpu->xreg[reg] = value;
+}
 
 /**
  * Reads the given F register.
@@ -211,7 +221,10 @@ void ArvissWriteXReg(ArvissCpu* cpu, int reg, uint32_t value);
  * @param reg which F register to read (0 - 31).
  * @return the content of the F register.
  */
-float ArvissReadFReg(ArvissCpu* cpu, int reg);
+static inline float ArvissReadFReg(ArvissCpu* cpu, int reg)
+{
+    return cpu->freg[reg];
+}
 
 /**
  * Writes to the given F register.
@@ -219,7 +232,10 @@ float ArvissReadFReg(ArvissCpu* cpu, int reg);
  * @param reg which F register to write to (0 - 31).
  * @param value the value to write.
  */
-void ArvissWriteFReg(ArvissCpu* cpu, int reg, float value);
+static inline void ArvissWriteFReg(ArvissCpu* cpu, int reg, float value)
+{
+    cpu->freg[reg] = value;
+}
 
 /**
  * Performs an MRET instruction on the CPU. Use this when returning from a machine-mode trap.

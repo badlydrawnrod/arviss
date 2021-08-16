@@ -1588,35 +1588,9 @@ ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
     return cpu->result;
 }
 
-uint32_t ArvissReadXReg(ArvissCpu* cpu, int reg)
-{
-    return cpu->xreg[reg];
-}
-
-void ArvissWriteXReg(ArvissCpu* cpu, int reg, uint32_t value)
-{
-    cpu->xreg[reg] = value;
-}
-
-float ArvissReadFReg(ArvissCpu* cpu, int reg)
-{
-    return cpu->freg[reg];
-}
-
-void ArvissWriteFReg(ArvissCpu* cpu, int reg, float value)
-{
-    cpu->freg[reg] = value;
-}
-
 void ArvissMret(ArvissCpu* cpu)
 {
     Exec_Mret(cpu, NULL);
-}
-
-void ArvissInit(ArvissCpu* cpu, Bus* bus)
-{
-    ArvissReset(cpu);
-    cpu->bus = bus;
 }
 
 void ArvissReset(ArvissCpu* cpu)
