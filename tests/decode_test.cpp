@@ -1,5 +1,4 @@
 #include "arviss.h"
-#include "arviss_impl.h"
 #include "conversions.h"
 #include "opcodes.h"
 #include "rounding_modes.h"
