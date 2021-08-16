@@ -21,7 +21,7 @@
 
 typedef struct VM
 {
-    ArvissCpu* cpu;
+    ArvissCpu cpu;
     Memory memory;
     Bus bus;
     bool isBlocked;
@@ -172,7 +172,7 @@ static void InitTurtle(Turtle* turtle)
                            .Write16 = Write16,
                            .Write32 = Write32};
 
-    turtle->vm.cpu = ArvissCreate(&turtle->vm.bus);
+    ArvissInit(&turtle->vm.cpu, &turtle->vm.bus);
     turtle->vm.isBlocked = false;
 
     const char* filename = "../../../../examples/turtles/arviss/bin/turtle";
@@ -195,8 +195,6 @@ static void InitTurtles(Turtle* turtles, int numTurtles)
 
 static void DestroyTurtle(Turtle* turtle)
 {
-    ArvissDispose(turtle->vm.cpu);
-    turtle->vm.cpu = NULL;
 }
 
 static void DestroyTurtles(Turtle* turtles, int numTurtles)
@@ -324,7 +322,7 @@ static void HandleTrap(Turtle* turtle, const ArvissTrap* trap)
     if (trap->mcause == trENVIRONMENT_CALL_FROM_M_MODE)
     {
         // The syscall number is in a7 (x17).
-        const uint32_t syscall = ArvissReadXReg(turtle->vm.cpu, 17);
+        const uint32_t syscall = ArvissReadXReg(&turtle->vm.cpu, 17);
 
         // Service the syscall.
         bool syscallHandled = true;
@@ -341,22 +339,22 @@ static void HandleTrap(Turtle* turtle, const ArvissTrap* trap)
         break;
         case SYSCALL_AHEAD: {
             // The distance is in a0 (x10).
-            uint32_t a0 = ArvissReadXReg(turtle->vm.cpu, 10);
+            uint32_t a0 = ArvissReadXReg(&turtle->vm.cpu, 10);
             float distance = *(float*)&a0;
             SetAhead(turtle, distance);
         }
         break;
         case SYSCALL_TURN: {
             // The angle is in a0 (x10).
-            uint32_t a0 = ArvissReadXReg(turtle->vm.cpu, 10);
+            uint32_t a0 = ArvissReadXReg(&turtle->vm.cpu, 10);
             float angle = *(float*)&a0;
             SetTurn(turtle, angle);
         }
         break;
         case SYSCALL_GOTO: {
             // The coordinates are in a0 and a1 (x10 and x11).
-            uint32_t a0 = ArvissReadXReg(turtle->vm.cpu, 10);
-            uint32_t a1 = ArvissReadXReg(turtle->vm.cpu, 11);
+            uint32_t a0 = ArvissReadXReg(&turtle->vm.cpu, 10);
+            uint32_t a1 = ArvissReadXReg(&turtle->vm.cpu, 11);
             float x = *(float*)&a0;
             float y = *(float*)&a1;
             Goto(turtle, x, y);
@@ -364,62 +362,62 @@ static void HandleTrap(Turtle* turtle, const ArvissTrap* trap)
         break;
         case SYSCALL_SET_PEN_STATE: {
             // The pen state is in a0 (x10).
-            uint32_t a0 = ArvissReadXReg(turtle->vm.cpu, 10);
+            uint32_t a0 = ArvissReadXReg(&turtle->vm.cpu, 10);
             SetPenState(turtle, a0 != 0);
         }
         break;
         case SYSCALL_GET_PEN_STATE: {
             // Return the pen state in a0 (x10).
-            ArvissWriteXReg(turtle->vm.cpu, 10, turtle->isPenDown);
+            ArvissWriteXReg(&turtle->vm.cpu, 10, turtle->isPenDown);
         }
         break;
         case SYSCALL_SET_VISIBILITY: {
             // The visibility state is in a0 (x10).
-            uint32_t a0 = ArvissReadXReg(turtle->vm.cpu, 10);
+            uint32_t a0 = ArvissReadXReg(&turtle->vm.cpu, 10);
             SetVisibility(turtle, a0 != 0);
         }
         break;
         case SYSCALL_GET_VISIBILITY: {
             // Return the visibility state in a0 (x10).
-            ArvissWriteXReg(turtle->vm.cpu, 10, turtle->isVisible);
+            ArvissWriteXReg(&turtle->vm.cpu, 10, turtle->isVisible);
         }
         break;
         case SYSCALL_SET_PEN_COLOUR: {
             // The colour's RGBA components are given in a0 (x10).
-            uint32_t a0 = ArvissReadXReg(turtle->vm.cpu, 10);
+            uint32_t a0 = ArvissReadXReg(&turtle->vm.cpu, 10);
             Color colour = GetColor((int)a0);
             SetPenColour(turtle, colour);
         }
         break;
         case SYSCALL_GET_PEN_COLOUR: {
             // Return the colour's RGBA components in a0 (x10).
-            ArvissWriteXReg(turtle->vm.cpu, 10, (uint32_t)ColorToInt(turtle->penColour));
+            ArvissWriteXReg(&turtle->vm.cpu, 10, (uint32_t)ColorToInt(turtle->penColour));
         }
         break;
         case SYSCALL_GET_POSITION: {
             // Return the turtle's position via the addresses pointed to by a0 and a1 (x10 and x11). An address of zero means
             // that the given coordinate is not required.
-            uint32_t a0 = ArvissReadXReg(turtle->vm.cpu, 10);
+            uint32_t a0 = ArvissReadXReg(&turtle->vm.cpu, 10);
             BusCode mc = bcOK;
             if (a0 != 0)
             {
                 // Copy the x coordinate into memory at a0 (x10).
                 Write32((BusToken){&turtle->vm.memory}, a0, *(uint32_t*)&turtle->position.x, &mc);
             }
-            uint32_t a1 = ArvissReadXReg(turtle->vm.cpu, 11);
+            uint32_t a1 = ArvissReadXReg(&turtle->vm.cpu, 11);
             if (mc == bcOK && a1 != 0)
             {
                 // Copy the y coordinate into memory at a1 (x11).
                 Write32((BusToken){&turtle->vm.memory}, a1, *(uint32_t*)&turtle->position.y, &mc);
             }
             // Return success / failure in a0 (x10).
-            ArvissWriteXReg(turtle->vm.cpu, 10, (mc == bcOK));
+            ArvissWriteXReg(&turtle->vm.cpu, 10, (mc == bcOK));
         }
         break;
         case SYSCALL_GET_HEADING: {
             // Return the turtle's heading in a0 (x10).
             const float heading = turtle->heading * RAD2DEG;
-            ArvissWriteXReg(turtle->vm.cpu, 10, *(uint32_t*)&heading);
+            ArvissWriteXReg(&turtle->vm.cpu, 10, *(uint32_t*)&heading);
         }
         break;
         default:
@@ -431,7 +429,7 @@ static void HandleTrap(Turtle* turtle, const ArvissTrap* trap)
         // If we handled the syscall then perform an MRET so that we can return from the trap.
         if (syscallHandled)
         {
-            ArvissMret(turtle->vm.cpu);
+            ArvissMret(&turtle->vm.cpu);
         }
     }
 }
@@ -443,7 +441,7 @@ static void UpdateTurtleVM(Turtle* turtle)
         return;
     }
 
-    ArvissResult result = ArvissRun(turtle->vm.cpu, QUANTUM);
+    ArvissResult result = ArvissRun(&turtle->vm.cpu, QUANTUM);
 
     if (ArvissResultIsTrap(result))
     {

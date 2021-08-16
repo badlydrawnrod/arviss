@@ -114,7 +114,7 @@ int main(void)
                .Write8 = Write8,
                .Write16 = Write16,
                .Write32 = Write32};
-    ArvissCpu* cpu = ArvissCreate(&bus);
+    ArvissCpu cpu;
 
     MemoryDescriptor memoryDesc[] = {{.start = ROM_START, .size = ROMSIZE, .data = memory.mem + ROM_START},
                                      {.start = RAMBASE, .size = RAMSIZE, .data = memory.mem + RAMBASE}};
@@ -126,17 +126,15 @@ int main(void)
     }
 
     // Run the program, n instructions at a time.
-    ArvissInit(cpu, &bus);
+    ArvissInit(&cpu, &bus);
     ArvissResult result = ArvissMakeOk();
     while (!ArvissResultIsTrap(result))
     {
-        result = ArvissRun(cpu, 100000);
+        result = ArvissRun(&cpu, 100000);
     }
 
     // The exit code (assuming that it exited) is in x10.
-    printf("--- Program finished with exit code %d\n", ArvissReadXReg(cpu, 10));
-
-    ArvissDispose(cpu);
+    printf("--- Program finished with exit code %d\n", ArvissReadXReg(&cpu, 10));
 
     return 0;
 }

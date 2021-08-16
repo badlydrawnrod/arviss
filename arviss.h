@@ -52,34 +52,130 @@ typedef struct Bus
     BusWrite32Fn Write32;
 } Bus;
 
+typedef struct DecodedInstruction DecodedInstruction;
+
+typedef void (*ExecFn)(ArvissCpu* cpu, const DecodedInstruction* ins);
+
+struct DecodedInstruction
+{
+    ExecFn opcode; // The function that will execute this instruction.
+    union
+    {
+        struct
+        {
+            uint32_t cacheLine; // The instruction's cache line.
+            uint32_t index;     // The instruction's index in the cache line.
+        } fdr;
+
+        struct
+        {
+            uint8_t rd;  // Destination register.
+            int32_t imm; // Immediate operand.
+        } rd_imm;
+
+        struct
+        {
+            uint8_t rd;  // Destination register.
+            uint8_t rs1; // Source register.
+        } rd_rs1;
+
+        struct
+        {
+            uint8_t rd;  // Destination register.
+            uint8_t rs1; // Source register.
+            int32_t imm; // Immediate operand.
+        } rd_rs1_imm;
+
+        struct
+        {
+            uint8_t rd;  // Destination register.
+            uint8_t rs1; // First source register.
+            uint8_t rs2; // Second source register.
+        } rd_rs1_rs2;
+
+        struct
+        {
+            uint8_t rs1; // First source register.
+            uint8_t rs2; // Second source register.
+            int32_t imm; // Immediate operand.
+        } rs1_rs2_imm;
+
+        struct
+        {
+            uint8_t rd;  // Destination register.
+            uint8_t rs1; // First source register.
+            uint8_t rs2; // Second source register.
+            uint8_t rs3; // Third source register.
+            uint8_t rm;  // Rounding mode.
+        } rd_rs1_rs2_rs3_rm;
+
+        struct
+        {
+            uint8_t rd;  // Destination register.
+            uint8_t rs1; // Source register.
+            uint8_t rm;  // Rounding mode.
+        } rd_rs1_rm;
+
+        struct
+        {
+            uint8_t rd;  // Destination register.
+            uint8_t rs1; // First source register.
+            uint8_t rs2; // Second source register.
+            uint8_t rm;  // Rounding mode.
+        } rd_rs1_rs2_rm;
+
+        uint32_t ins; // Instruction.
+    };
+};
+
+#define CACHE_LINES 64
+#define CACHE_LINE_LENGTH 32
+
+typedef struct DecodedInstructionCache
+{
+    struct CacheLine
+    {
+        uint32_t owner;                                     // The address that owns this cache line.
+        DecodedInstruction instructions[CACHE_LINE_LENGTH]; // The cache line itself.
+        bool isValid;                                       // True if the cache line is valid.
+    } line[CACHE_LINES];
+} DecodedInstructionCache;
+
+struct ArvissCpu
+{
+    ArvissResult result;           // The result of the last operation.
+    BusCode mc;                    // The result of the last memory operation.
+    uint32_t pc;                   // The program counter.
+    uint32_t xreg[32];             // Regular registers, x0-x31.
+    uint32_t mepc;                 // The machine exception program counter.
+    uint32_t mcause;               // The machine cause register.
+    uint32_t mtval;                // The machine trap value register.
+    float freg[32];                // Floating point registers, f0-f31.
+    uint32_t fcsr;                 // Floating point control and status register.
+    Bus* bus;                      // The CPU's address bus.
+    DecodedInstructionCache cache; // The decoded instruction cache.
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * Initialises an Arviss CPU.
- * @param cpu the CPU.
- * @param bus the bus that the CPU should use to interact with the rest of the system.
- */
-void ArvissInit(ArvissCpu* cpu, Bus* bus);
-
-/**
- * Creates an Arviss CPU.
- * @return a CPU if successful, otherwise NULL.
- */
-ArvissCpu* ArvissCreate(Bus* bus);
-
-/**
- * Disposes of the given Arviss CPU and frees its resources.
- * @param cpu the CPU to dispose of.
- */
-void ArvissDispose(ArvissCpu* cpu);
 
 /**
  * Resets the given Arviss CPU.
  * @param cpu the CPU to reset.
  */
 void ArvissReset(ArvissCpu* cpu);
+
+/**
+ * Initialises the given Arviss CPU and provides it with its bus.
+ * @param cpu the CPU.
+ * @param bus the bus that the CPU should use to interact with the rest of the system.
+ */
+static inline void ArvissInit(ArvissCpu* cpu, Bus* bus)
+{
+    ArvissReset(cpu);
+    cpu->bus = bus;
+}
 
 /**
  * Decodes and executes a single Arviss instruction.
@@ -103,7 +199,10 @@ ArvissResult ArvissRun(ArvissCpu* cpu, int count);
  * @param reg which X register to read (0 - 31).
  * @return the content of the X register.
  */
-uint32_t ArvissReadXReg(ArvissCpu* cpu, int reg);
+static inline uint32_t ArvissReadXReg(ArvissCpu* cpu, int reg)
+{
+    return cpu->xreg[reg];
+}
 
 /**
  * Writes to the given X register.
@@ -111,7 +210,10 @@ uint32_t ArvissReadXReg(ArvissCpu* cpu, int reg);
  * @param reg which X register to write to (0 - 31).
  * @param value the value to write.
  */
-void ArvissWriteXReg(ArvissCpu* cpu, int reg, uint32_t value);
+static inline void ArvissWriteXReg(ArvissCpu* cpu, int reg, uint32_t value)
+{
+    cpu->xreg[reg] = value;
+}
 
 /**
  * Reads the given F register.
@@ -119,7 +221,10 @@ void ArvissWriteXReg(ArvissCpu* cpu, int reg, uint32_t value);
  * @param reg which F register to read (0 - 31).
  * @return the content of the F register.
  */
-float ArvissReadFReg(ArvissCpu* cpu, int reg);
+static inline float ArvissReadFReg(ArvissCpu* cpu, int reg)
+{
+    return cpu->freg[reg];
+}
 
 /**
  * Writes to the given F register.
@@ -127,7 +232,10 @@ float ArvissReadFReg(ArvissCpu* cpu, int reg);
  * @param reg which F register to write to (0 - 31).
  * @param value the value to write.
  */
-void ArvissWriteFReg(ArvissCpu* cpu, int reg, float value);
+static inline void ArvissWriteFReg(ArvissCpu* cpu, int reg, float value)
+{
+    cpu->freg[reg] = value;
+}
 
 /**
  * Performs an MRET instruction on the CPU. Use this when returning from a machine-mode trap.
