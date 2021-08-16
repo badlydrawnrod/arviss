@@ -22,6 +22,8 @@
 typedef struct VM
 {
     ArvissCpu* cpu;
+    ArvissMemory memory;
+    Bus bus;
     bool isBlocked;
 } VM;
 
@@ -61,6 +63,44 @@ static const DrawCommand turtleShape[MAX_LINES] = {{MOVE, {-1, 1}},   {LINE, {0,
 
 static void Home(Turtle* turtle);
 
+// --- Bus access ------------------------------------------------------------------------------------------------------------------
+
+uint8_t ReadByte(BusToken token, uint32_t addr, MemoryCode* mc)
+{
+    ArvissMemory* mem = (ArvissMemory*)(token.t);
+    return ArvissReadByte(mem, addr, mc);
+}
+
+uint16_t ReadHalfword(BusToken token, uint32_t addr, MemoryCode* mc)
+{
+    ArvissMemory* mem = (ArvissMemory*)(token.t);
+    return ArvissReadHalfword(mem, addr, mc);
+}
+
+uint32_t ReadWord(BusToken token, uint32_t addr, MemoryCode* mc)
+{
+    ArvissMemory* mem = (ArvissMemory*)(token.t);
+    return ArvissReadWord(mem, addr, mc);
+}
+
+void WriteByte(BusToken token, uint32_t addr, uint8_t byte, MemoryCode* mc)
+{
+    ArvissMemory* mem = (ArvissMemory*)(token.t);
+    ArvissWriteByte(mem, addr, byte, mc);
+}
+
+void WriteHalfword(BusToken token, uint32_t addr, uint16_t halfword, MemoryCode* mc)
+{
+    ArvissMemory* mem = (ArvissMemory*)(token.t);
+    ArvissWriteHalfword(mem, addr, halfword, mc);
+}
+
+void WriteWord(BusToken token, uint32_t addr, uint32_t word, MemoryCode* mc)
+{
+    ArvissMemory* mem = (ArvissMemory*)(token.t);
+    ArvissWriteWord(mem, addr, word, mc);
+}
+
 // --- Initialization --------------------------------------------------------------------------------------------------------------
 
 static void LoadCode(ArvissMemory* memory, const char* filename)
@@ -76,12 +116,19 @@ static void LoadCode(ArvissMemory* memory, const char* filename)
 
 static void InitTurtle(Turtle* turtle)
 {
-    turtle->vm.cpu = ArvissCreate();
-    ArvissReset(turtle->vm.cpu);
+    turtle->vm.bus = (Bus){.token = {&turtle->vm.memory},
+                           .ReadByte = ReadByte,
+                           .ReadHalfword = ReadHalfword,
+                           .ReadWord = ReadWord,
+                           .WriteByte = WriteByte,
+                           .WriteHalfword = WriteHalfword,
+                           .WriteWord = WriteWord};
+
+    turtle->vm.cpu = ArvissCreate(&turtle->vm.bus);
     turtle->vm.isBlocked = false;
 
     const char* filename = "../../../../examples/turtles/arviss/bin/turtle";
-    ArvissMemory* memory = ArvissGetMemory(turtle->vm.cpu);
+    ArvissMemory* memory = &turtle->vm.memory;
     LoadCode(memory, filename);
 
     turtle->isActive = true;
@@ -309,13 +356,13 @@ static void HandleTrap(Turtle* turtle, const ArvissTrap* trap)
             if (a0 != 0)
             {
                 // Copy the x coordinate into memory at a0 (x10).
-                ArvissWriteWord(ArvissGetMemory(turtle->vm.cpu), a0, *(uint32_t*)&turtle->position.x, &mc);
+                ArvissWriteWord(&turtle->vm.memory, a0, *(uint32_t*)&turtle->position.x, &mc);
             }
             uint32_t a1 = ArvissReadXReg(turtle->vm.cpu, 11);
             if (mc == mcOK && a1 != 0)
             {
                 // Copy the y coordinate into memory at a1 (x11).
-                ArvissWriteWord(ArvissGetMemory(turtle->vm.cpu), a1, *(uint32_t*)&turtle->position.y, &mc);
+                ArvissWriteWord(&turtle->vm.memory, a1, *(uint32_t*)&turtle->position.y, &mc);
             }
             // Return success / failure in a0 (x10).
             ArvissWriteXReg(turtle->vm.cpu, 10, (mc == mcOK));

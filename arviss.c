@@ -1625,7 +1625,7 @@ void ArvissInit(ArvissCpu* cpu, Bus* bus)
 ArvissCpu* ArvissCreate(Bus* bus)
 {
     ArvissCpu* cpu = calloc(1, sizeof(ArvissCpu));
-    cpu->bus = bus;
+    ArvissInit(cpu, bus);
     return cpu;
 }
 
