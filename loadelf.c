@@ -272,7 +272,7 @@ ElfResult LoadElf(const char* filename, ElfToken token, ElfFillNFn fillFn, ElfWr
                 }
 
                 // Zero the target memory.
-                uint32_t dstAddr = (phdr.p_vaddr - m->start);
+                uint32_t dstAddr = phdr.p_vaddr;
                 fillFn(token, dstAddr, phdr.p_memsz, '\0');
 
                 // Load the image.
