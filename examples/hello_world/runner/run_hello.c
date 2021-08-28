@@ -105,10 +105,10 @@ static void Write32(BusToken token, uint32_t addr, uint32_t word, BusCode* busCo
     *busCode = bcSTORE_ACCESS_FAULT;
 }
 
-static void FillN(ElfToken token, uint32_t addr, uint32_t len, uint8_t byte)
+static void ZeroMem(ElfToken token, uint32_t addr, uint32_t len)
 {
     uint8_t* target = token.t;
-    memset(target + addr, byte, len);
+    memset(target + addr, 0, len);
 }
 
 static void WriteV(ElfToken token, uint32_t addr, void* src, uint32_t len)
@@ -126,8 +126,8 @@ int main(void)
 
     if (LoadElf(filename,
                 &(ElfLoaderConfig){.token = {&memory.mem},
-                                   .fillFn = FillN,
-                                   .writeFn = WriteV,
+                                   .zeroMemFn = ZeroMem,
+                                   .writeMemFn = WriteV,
                                    .targetSegments = (ElfSegmentDescriptor[]){{.start = ROM_START, .size = ROMSIZE},
                                                                               {.start = RAMBASE, .size = RAMSIZE}},
                                    .numSegments = 2}))

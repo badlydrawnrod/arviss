@@ -7,8 +7,8 @@ typedef struct ElfToken
     void* t;
 } ElfToken;
 
-typedef void (*ElfFillNFn)(ElfToken token, uint32_t addr, uint32_t len, uint8_t byte);
-typedef void (*ElfWriteVFn)(ElfToken token, uint32_t addr, void* src, uint32_t len);
+typedef void (*ElfZeroMem)(ElfToken token, uint32_t addr, uint32_t len);
+typedef void (*ElfWriteMem)(ElfToken token, uint32_t addr, void* src, uint32_t len);
 
 typedef struct ElfSegmentDescriptor
 {
@@ -19,8 +19,8 @@ typedef struct ElfSegmentDescriptor
 typedef struct ElfLoaderConfig
 {
     ElfToken token;
-    ElfFillNFn fillFn;
-    ElfWriteVFn writeFn;
+    ElfZeroMem zeroMemFn;
+    ElfWriteMem writeMemFn;
     ElfSegmentDescriptor* targetSegments;
     int numSegments;
 } ElfLoaderConfig;
@@ -36,4 +36,4 @@ typedef enum ElfResult
     ER_ENTRY_POINT_INVALID,   // The entry point doesn't correspond to any memory location supplied by the caller.
 } ElfResult;
 
-ElfResult LoadElf(const char* filename, ElfLoaderConfig* config);
+ElfResult LoadElf(const char* filename, const ElfLoaderConfig* config);
