@@ -2,7 +2,6 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
 
 // ELF format references:
 // https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
@@ -70,19 +69,27 @@ typedef struct Elf32_Shdr
     uint32_t sh_entsize;
 } Elf32_Shdr;
 
-ElfResult LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int numDescriptors)
+// TODO: Check everything that we load, because we're going to execute it.
+//
+// Given that we're loading something into memory to execute it, it would be remiss of us to trust it completely. I
+// don't think that ELF has the equivalent of authenticode signing, but we still need to check the following at the very least:
+// - Check for overflows and underflows when performing arithmetic on untrusted values.
+// - Check that untrusted values are within sensible ranges, e.g., a file offset can't be outside of the file.
+
+static ElfResult LoadElfPriv(const char* filename, ElfToken token, ElfFillNFn fillFn, ElfWriteVFn writeFn,
+                             ElfSegmentDescriptor* targetSegments, int numSegments)
 {
     ElfResult er = ER_BAD_ELF;
 
     FILE* fp = NULL;
 
-    if (memoryDescriptors == NULL)
+    if (targetSegments == NULL)
     {
         er = ER_INVALID_ARGUMENT;
         goto finish;
     }
 
-    if (numDescriptors < 0)
+    if (numSegments < 0)
     {
         er = ER_INVALID_ARGUMENT;
         goto finish;
@@ -255,7 +262,7 @@ ElfResult LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int
         if (phdr.p_memsz != 0)
         {
             bool targetSegmentFound = false;
-            for (MemoryDescriptor* m = memoryDescriptors; m < memoryDescriptors + numDescriptors; m++)
+            for (ElfSegmentDescriptor* m = targetSegments; m < targetSegments + numSegments; m++)
             {
                 if (phdr.p_vaddr < m->start || phdr.p_vaddr + phdr.p_memsz >= m->start + m->size)
                 {
@@ -263,13 +270,6 @@ ElfResult LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int
                 }
                 targetSegmentFound = true;
                 entryPointValid = entryPointValid || (header.e_entry >= m->start && header.e_entry < m->start + m->size);
-
-                // Check that the memory actually points somewhere.
-                if (!m->data)
-                {
-                    er = ER_INVALID_ARGUMENT;
-                    goto finish;
-                }
 
                 // Go to the segment's file image.
                 if (fseek(fp, phdr.p_offset, SEEK_SET) != 0)
@@ -279,11 +279,29 @@ ElfResult LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int
                 }
 
                 // Zero the target memory.
-                void* target = (char*)m->data + (phdr.p_vaddr - m->start);
-                memset(target, 0, phdr.p_memsz);
+                uint32_t dstAddr = phdr.p_vaddr;
+                fillFn(token, dstAddr, phdr.p_memsz, '\0');
 
                 // Load the image.
-                if (fread(target, 1, phdr.p_filesz, fp) != phdr.p_filesz)
+                uint8_t buf[BUFSIZ];
+                uint32_t remaining = phdr.p_filesz;
+                uint32_t ofs = 0;
+                while (remaining != 0)
+                {
+                    const size_t readLen = remaining >= sizeof(buf) ? sizeof(buf) : remaining;
+                    // It's safe to cast to U32 here as we never read more than BUFSIZ.
+                    uint32_t amountRead = (uint32_t)fread(buf, 1, readLen, fp);
+                    if (amountRead == 0)
+                    {
+                        break;
+                    }
+                    remaining -= amountRead;
+                    // Copy the buffer into the target memory.
+                    writeFn(token, dstAddr + ofs, buf, amountRead);
+                    ofs += amountRead;
+                }
+
+                if (remaining != 0)
                 {
                     er = ER_IO_FAILED;
                     goto finish;
@@ -322,4 +340,9 @@ finish:
     }
 
     return er;
+}
+
+ElfResult LoadElf(const char* filename, ElfLoaderConfig* config)
+{
+    return LoadElfPriv(filename, config->token, config->fillFn, config->writeFn, config->targetSegments, config->numSegments);
 }

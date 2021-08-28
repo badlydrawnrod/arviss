@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #define TTY_STATUS IOBASE
 #define TTY_DATA (TTY_STATUS + 1)
@@ -104,15 +105,32 @@ static void Write32(BusToken token, uint32_t addr, uint32_t word, BusCode* busCo
     *busCode = bcSTORE_ACCESS_FAULT;
 }
 
+static void FillN(ElfToken token, uint32_t addr, uint32_t len, uint8_t byte)
+{
+    uint8_t* target = token.t;
+    memset(target + addr, byte, len);
+}
+
+static void WriteV(ElfToken token, uint32_t addr, void* src, uint32_t len)
+{
+    uint8_t* target = token.t;
+    memcpy(target + addr, src, len);
+}
+
 int main(void)
 {
     Memory memory;
     ArvissCpu cpu;
 
-    MemoryDescriptor memoryDesc[] = {{.start = ROM_START, .size = ROMSIZE, .data = memory.mem + ROM_START},
-                                     {.start = RAMBASE, .size = RAMSIZE, .data = memory.mem + RAMBASE}};
     const char* filename = "../../../../examples/hello_world/arviss/bin/hello";
-    if (LoadElf(filename, memoryDesc, sizeof(memoryDesc) / sizeof(memoryDesc[0])) != ER_OK)
+
+    if (LoadElf(filename,
+                &(ElfLoaderConfig){.token = {&memory.mem},
+                                   .fillFn = FillN,
+                                   .writeFn = WriteV,
+                                   .targetSegments = (ElfSegmentDescriptor[]){{.start = ROM_START, .size = ROMSIZE},
+                                                                              {.start = RAMBASE, .size = RAMSIZE}},
+                                   .numSegments = 2}))
     {
         printf("--- Failed to load %s\n", filename);
         return -1;

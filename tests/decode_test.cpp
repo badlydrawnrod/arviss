@@ -547,7 +547,7 @@ TEST_F(TestDecoder, Load_Lb)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 7 is zero.
-    memory.Write8(cpu.xreg[rs1] + imm_i, 123, &cpu.mc);
+    memory.Write8(cpu.xreg[rs1] + imm_i, 123, &cpu.busCode);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m8(rs1 + imm_i))
@@ -558,7 +558,7 @@ TEST_F(TestDecoder, Load_Lb)
 
     // Sign extend when bit 7 is one.
     pc = cpu.pc;
-    memory.Write8(cpu.xreg[rs1] + imm_i, 0xff, &cpu.mc);
+    memory.Write8(cpu.xreg[rs1] + imm_i, 0xff, &cpu.busCode);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m8(rs1 + imm_i))
@@ -578,7 +578,7 @@ TEST_F(TestDecoder, Load_Lh)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 15 is zero.
-    memory.Write16(cpu.xreg[rs1] + imm_i, 0x7fff, &cpu.mc);
+    memory.Write16(cpu.xreg[rs1] + imm_i, 0x7fff, &cpu.busCode);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m16(rs1 + imm_i))
@@ -589,7 +589,7 @@ TEST_F(TestDecoder, Load_Lh)
 
     // Sign extend when bit 15 is one.
     pc = cpu.pc;
-    memory.Write16(cpu.xreg[rs1] + imm_i, 0xffff, &cpu.mc);
+    memory.Write16(cpu.xreg[rs1] + imm_i, 0xffff, &cpu.busCode);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b001 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m16(rs1 + imm_i))
@@ -609,7 +609,7 @@ TEST_F(TestDecoder, Load_Lw)
     cpu.xreg[rs1] = rambase;
 
     // Sign extend when bit 31 is zero.
-    memory.Write32(cpu.xreg[rs1] + imm_i, 0x7fffffff, &cpu.mc);
+    memory.Write32(cpu.xreg[rs1] + imm_i, 0x7fffffff, &cpu.busCode);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m32(rs1 + imm_i))
@@ -620,7 +620,7 @@ TEST_F(TestDecoder, Load_Lw)
 
     // Sign extend when bit 31 is one.
     pc = cpu.pc;
-    memory.Write32(cpu.xreg[rs1] + imm_i, 0xffffffff, &cpu.mc);
+    memory.Write32(cpu.xreg[rs1] + imm_i, 0xffffffff, &cpu.busCode);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- sx(m32(rs1 + imm_i))
@@ -640,7 +640,7 @@ TEST_F(TestDecoder, Load_Lbu)
     cpu.xreg[rs1] = rambase + ramsize / 2;
 
     // Zero extend when bit 7 is zero.
-    memory.Write8(cpu.xreg[rs1] + imm_i, 123, &cpu.mc);
+    memory.Write8(cpu.xreg[rs1] + imm_i, 123, &cpu.busCode);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m8(rs1 + imm_i))
@@ -651,7 +651,7 @@ TEST_F(TestDecoder, Load_Lbu)
 
     // Zero extend when bit 7 is zero.
     pc = cpu.pc;
-    memory.Write8(cpu.xreg[rs1] + imm_i, 0xff, &cpu.mc);
+    memory.Write8(cpu.xreg[rs1] + imm_i, 0xff, &cpu.busCode);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b100 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m8(rs1 + imm_i))
@@ -671,7 +671,7 @@ TEST_F(TestDecoder, Load_Lhu)
     cpu.xreg[rs1] = rambase + ramsize / 2;
 
     // Zero extend when bit 15 is zero.
-    memory.Write16(cpu.xreg[rs1] + imm_i, 0x7fff, &cpu.mc);
+    memory.Write16(cpu.xreg[rs1] + imm_i, 0x7fff, &cpu.busCode);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m16(rs1 + imm_i))
@@ -682,7 +682,7 @@ TEST_F(TestDecoder, Load_Lhu)
 
     // Zero extend when bit 15 is one.
     pc = cpu.pc;
-    memory.Write16(cpu.xreg[rs1] + imm_i, 0xffff, &cpu.mc);
+    memory.Write16(cpu.xreg[rs1] + imm_i, 0xffff, &cpu.busCode);
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b101 << 12) | EncodeRd(rd) | OP_LOAD);
 
     // rd <- zx(m16(rs1 + imm_i))
@@ -694,12 +694,12 @@ TEST_F(TestDecoder, Load_Lhu)
 
 TEST_F(TestDecoder, Load_x0_Is_Zero)
 {
-    memory.Write32(rambase, 0x12345678, &cpu.mc);
+    memory.Write32(rambase, 0x12345678, &cpu.busCode);
 
     // LB
     uint32_t rs1 = 13;
     cpu.xreg[rs1] = rambase;
-    memory.Write8(rambase, 0xff, &cpu.mc);
+    memory.Write8(rambase, 0xff, &cpu.busCode);
     ArvissExecute(&cpu, EncodeI(0) | EncodeRs1(rs1) | (0b000 << 12) | EncodeRd(0) | OP_LOAD);
 
     // x0 <- 0
@@ -742,8 +742,8 @@ TEST_F(TestDecoder, Store_Sb)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b000 << 12) | OP_STORE);
 
     // m8(rs1 + imm_s) <- rs2[7:0]
-    uint8_t byteResult = memory.Read8(cpu.xreg[rs1] + imm_s, &cpu.mc);
-    ASSERT_EQ(bcOK, cpu.mc);
+    uint8_t byteResult = memory.Read8(cpu.xreg[rs1] + imm_s, &cpu.busCode);
+    ASSERT_EQ(bcOK, cpu.busCode);
     ASSERT_EQ(byteResult, cpu.xreg[rs2] & 0xff);
 
     // pc <- pc + 4
@@ -762,8 +762,8 @@ TEST_F(TestDecoder, Store_Sh)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b001 << 12) | OP_STORE);
 
     // m16(rs1 + imm_s) <- rs2[15:0]
-    uint16_t halfwordResult = memory.Read16(cpu.xreg[rs1] + imm_s, &cpu.mc);
-    ASSERT_EQ(bcOK, cpu.mc);
+    uint16_t halfwordResult = memory.Read16(cpu.xreg[rs1] + imm_s, &cpu.busCode);
+    ASSERT_EQ(bcOK, cpu.busCode);
     ASSERT_EQ(halfwordResult, cpu.xreg[rs2] & 0xffff);
 
     // pc <- pc + 4
@@ -782,8 +782,8 @@ TEST_F(TestDecoder, Store_Sw)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | OP_STORE);
 
     // m32(rs1 + imm_s) <- rs2[31:0]
-    uint32_t wordResult = memory.Read32(cpu.xreg[rs1] + imm_s, &cpu.mc);
-    ASSERT_EQ(bcOK, cpu.mc);
+    uint32_t wordResult = memory.Read32(cpu.xreg[rs1] + imm_s, &cpu.busCode);
+    ASSERT_EQ(bcOK, cpu.busCode);
     ASSERT_EQ(wordResult, cpu.xreg[rs2] & 0xffff);
 
     // pc <- pc + 4
@@ -1676,7 +1676,7 @@ TEST_F(TestDecoder, LoadFp_Flw)
     // Write a float.
     float expected = -1234e-6f;
     uint32_t expectedAsU32 = FloatAsU32(expected);
-    memory.Write32(cpu.xreg[rs1] + imm_i, expectedAsU32, &cpu.mc);
+    memory.Write32(cpu.xreg[rs1] + imm_i, expectedAsU32, &cpu.busCode);
 
     ArvissExecute(&cpu, EncodeI(imm_i) | EncodeRs1(rs1) | (0b010 << 12) | EncodeRd(rd) | OP_LOADFP);
 
@@ -1701,8 +1701,8 @@ TEST_F(TestDecoder, StoreFp_Fsw)
     ArvissExecute(&cpu, EncodeS(imm_s) | EncodeRs2(rs2) | EncodeRs1(rs1) | (0b010 << 12) | OP_STOREFP);
 
     // m32(rs1 + imm_s) <- rs2
-    uint32_t wordResult = memory.Read32(cpu.xreg[rs1] + imm_s, &cpu.mc);
-    ASSERT_EQ(bcOK, cpu.mc);
+    uint32_t wordResult = memory.Read32(cpu.xreg[rs1] + imm_s, &cpu.busCode);
+    ASSERT_EQ(bcOK, cpu.busCode);
 
     float resultAsFloat = U32AsFloat(wordResult);
     ASSERT_EQ(expected, resultAsFloat);
