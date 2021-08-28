@@ -9,6 +9,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 // Perform up to 1024 instructions per update.
 #define QUANTUM 1024
@@ -150,12 +151,25 @@ static void Write32(BusToken token, uint32_t addr, uint32_t word, BusCode* busCo
 
 // --- Initialization --------------------------------------------------------------------------------------------------------------
 
+static void FillN(ElfToken token, uint32_t addr, uint32_t len, uint8_t byte)
+{
+    uint8_t* target = token.t;
+    memset(target + addr, byte, len);
+}
+
+static void WriteV(ElfToken token, uint32_t addr, void* src, uint32_t len)
+{
+    uint8_t* target = token.t;
+    memcpy(target + addr, src, len);
+}
+
 static void LoadCode(Memory* memory, const char* filename)
 {
     printf("--- Loading %s\n", filename);
-    MemoryDescriptor memoryDesc[] = {{.start = ROM_START, .size = ROMSIZE, .data = memory->mem + ROM_START},
-                                     {.start = RAMBASE, .size = RAMSIZE, .data = memory->mem + RAMBASE}};
-    if (LoadElf(filename, memoryDesc, sizeof(memoryDesc) / sizeof(memoryDesc[0])) != ER_OK)
+
+    MemoryDescriptor memoryDesc[] = {{.start = ROM_START, .size = ROMSIZE}, {.start = RAMBASE, .size = RAMSIZE}};
+    ElfToken elfToken = {memory->mem};
+    if (LoadElf(filename, elfToken, FillN, WriteV, memoryDesc, sizeof(memoryDesc) / sizeof(memoryDesc[0])) != ER_OK)
     {
         printf("--- Failed to load %s\n", filename);
     }
