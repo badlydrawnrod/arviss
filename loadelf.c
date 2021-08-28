@@ -285,11 +285,12 @@ static ElfResult LoadElfPriv(const char* filename, ElfToken token, ElfFillNFn fi
                 // Load the image.
                 uint8_t buf[BUFSIZ];
                 uint32_t remaining = phdr.p_filesz;
-                size_t ofs = 0;
+                uint32_t ofs = 0;
                 while (remaining != 0)
                 {
                     const size_t readLen = remaining >= sizeof(buf) ? sizeof(buf) : remaining;
-                    size_t amountRead = fread(buf, 1, readLen, fp);
+                    // It's safe to cast to U32 here as we never read more than BUFSIZ.
+                    uint32_t amountRead = (uint32_t)fread(buf, 1, readLen, fp);
                     if (amountRead == 0)
                     {
                         break;
