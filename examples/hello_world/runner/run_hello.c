@@ -123,24 +123,6 @@ static void WriteN(BusToken token, uint32_t addr, uint8_t bytes[], uint32_t n, B
     }
 }
 
-// Need a way to pass WriteN to LoadElf(). It doesn't make sense to pass it without a token, because that's the only way that
-// LoadElf() is going to know which memory to write to in the event of multiple VMs. Also, the memory descriptor can't point to
-// actual memory any more, as that's just not going to work.
-//
-// Nothing says we can't pass in different write functions for different segments, along with the memory descriptor. Or even do it
-// the other way, and have the memory pull from LoadElf(), although that sounds complicated because you'd have to call it in the
-// first place to initiate the pull ... you might as well call it and say, "here's your data".
-//
-// So, yes, give LoadElf() some memory descriptors, each with their own memory handle and write function. As LoadElf() knows which
-// segment it is working on, it can just call the appropriate function and pass it its own handle.
-//
-// LoadElf2(filename, memoryDesc, numDesc, (MemoryWriter){ .WriteN = WriteN, .token = {&memory} });
-//
-// - Pass it memory descriptors that tell it where memory is.
-// - Pass it a token so it knows how to access the memory.
-// Q. How does it use the bus without hitting issues such as, "you can't write here" when it's trying to write to ROM?
-//
-
 static void FillN(ElfToken token, uint32_t addr, uint32_t len, uint8_t byte)
 {
     uint8_t* target = token.t;
