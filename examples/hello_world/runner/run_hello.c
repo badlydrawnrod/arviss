@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #define TTY_STATUS IOBASE
 #define TTY_DATA (TTY_STATUS + 1)
@@ -104,15 +105,63 @@ static void Write32(BusToken token, uint32_t addr, uint32_t word, BusCode* busCo
     *busCode = bcSTORE_ACCESS_FAULT;
 }
 
+static void WriteN(BusToken token, uint32_t addr, uint8_t bytes[], uint32_t n, BusCode* busCode)
+{
+    // This needs to be able to write *anywhere* in memory, not just to RAM, as it's intended for use by things like the ELF loader
+    // that are allowed to write to ROM. So, it can't be implemented by just calling Write8() n times, because that will be rejected
+    // by the ROM.
+    Memory* memory = (Memory*)(token.t);
+    uint8_t* src = bytes;
+    uint32_t dst = addr;
+    for (; dst >= membase && dst < membase + memsize && dst < addr + n; dst++, src++)
+    {
+        memory->mem[dst - membase] = *src;
+    }
+    if (dst != addr + n)
+    {
+        *busCode = bcSTORE_ACCESS_FAULT;
+    }
+}
+
+// Need a way to pass WriteN to LoadElf(). It doesn't make sense to pass it without a token, because that's the only way that
+// LoadElf() is going to know which memory to write to in the event of multiple VMs. Also, the memory descriptor can't point to
+// actual memory any more, as that's just not going to work.
+//
+// Nothing says we can't pass in different write functions for different segments, along with the memory descriptor. Or even do it
+// the other way, and have the memory pull from LoadElf(), although that sounds complicated because you'd have to call it in the
+// first place to initiate the pull ... you might as well call it and say, "here's your data".
+//
+// So, yes, give LoadElf() some memory descriptors, each with their own memory handle and write function. As LoadElf() knows which
+// segment it is working on, it can just call the appropriate function and pass it its own handle.
+//
+// LoadElf2(filename, memoryDesc, numDesc, (MemoryWriter){ .WriteN = WriteN, .token = {&memory} });
+//
+// - Pass it memory descriptors that tell it where memory is.
+// - Pass it a token so it knows how to access the memory.
+// Q. How does it use the bus without hitting issues such as, "you can't write here" when it's trying to write to ROM?
+//
+
+static void FillN(ElfToken token, uint32_t addr, uint32_t len, uint8_t byte)
+{
+    uint8_t* target = token.t;
+    memset(target + addr, byte, len);
+}
+
+static void WriteV(ElfToken token, uint32_t addr, void* src, uint32_t len)
+{
+    uint8_t* target = token.t;
+    memcpy(target + addr, src, len);
+}
+
 int main(void)
 {
     Memory memory;
     ArvissCpu cpu;
 
-    MemoryDescriptor memoryDesc[] = {{.start = ROM_START, .size = ROMSIZE, .data = memory.mem + ROM_START},
-                                     {.start = RAMBASE, .size = RAMSIZE, .data = memory.mem + RAMBASE}};
+    MemoryDescriptor memoryDesc[] = {{.start = ROM_START, .size = ROMSIZE}, {.start = RAMBASE, .size = RAMSIZE}};
     const char* filename = "../../../../examples/hello_world/arviss/bin/hello";
-    if (LoadElf(filename, memoryDesc, sizeof(memoryDesc) / sizeof(memoryDesc[0])) != ER_OK)
+    ElfToken elfToken = {&memory.mem};
+    if (LoadElf(filename, elfToken, FillN, WriteV, memoryDesc, sizeof(memoryDesc) / sizeof(memoryDesc[0])) != ER_OK)
     {
         printf("--- Failed to load %s\n", filename);
         return -1;

@@ -2,7 +2,6 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
 
 // ELF format references:
 // https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
@@ -70,7 +69,8 @@ typedef struct Elf32_Shdr
     uint32_t sh_entsize;
 } Elf32_Shdr;
 
-ElfResult LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int numDescriptors)
+ElfResult LoadElf(const char* filename, ElfToken token, ElfFillNFn fillFn, ElfWriteVFn writeFn, MemoryDescriptor* memoryDescriptors,
+                  int numDescriptors)
 {
     ElfResult er = ER_BAD_ELF;
 
@@ -264,13 +264,6 @@ ElfResult LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int
                 targetSegmentFound = true;
                 entryPointValid = entryPointValid || (header.e_entry >= m->start && header.e_entry < m->start + m->size);
 
-                // Check that the memory actually points somewhere.
-                if (!m->data)
-                {
-                    er = ER_INVALID_ARGUMENT;
-                    goto finish;
-                }
-
                 // Go to the segment's file image.
                 if (fseek(fp, phdr.p_offset, SEEK_SET) != 0)
                 {
@@ -279,11 +272,28 @@ ElfResult LoadElf(const char* filename, MemoryDescriptor* memoryDescriptors, int
                 }
 
                 // Zero the target memory.
-                void* target = (char*)m->data + (phdr.p_vaddr - m->start);
-                memset(target, 0, phdr.p_memsz);
+                uint32_t dstAddr = (phdr.p_vaddr - m->start);
+                fillFn(token, dstAddr, phdr.p_memsz, '\0');
 
                 // Load the image.
-                if (fread(target, 1, phdr.p_filesz, fp) != phdr.p_filesz)
+                uint8_t buf[BUFSIZ];
+                uint32_t remaining = phdr.p_filesz;
+                size_t ofs = 0;
+                while (remaining != 0)
+                {
+                    const size_t readLen = remaining >= sizeof(buf) ? sizeof(buf) : remaining;
+                    size_t amountRead = fread(buf, 1, readLen, fp);
+                    if (amountRead == 0)
+                    {
+                        break;
+                    }
+                    remaining -= amountRead;
+                    // Copy the buffer into the target memory.
+                    writeFn(token, dstAddr + ofs, buf, amountRead);
+                    ofs += amountRead;
+                }
+
+                if (remaining != 0)
                 {
                     er = ER_IO_FAILED;
                     goto finish;
