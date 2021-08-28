@@ -69,20 +69,27 @@ typedef struct Elf32_Shdr
     uint32_t sh_entsize;
 } Elf32_Shdr;
 
-ElfResult LoadElf(const char* filename, ElfToken token, ElfFillNFn fillFn, ElfWriteVFn writeFn, MemoryDescriptor* memoryDescriptors,
-                  int numDescriptors)
+// TODO: Check everything that we load, because we're going to execute it.
+//
+// Given that we're loading something into memory to execute it, it would be remiss of us to trust it completely. I
+// don't think that ELF has the equivalent of authenticode signing, but we still need to check the following at the very least:
+// - Check for overflows and underflows when performing arithmetic on untrusted values.
+// - Check that untrusted values are within sensible ranges, e.g., a file offset can't be outside of the file.
+
+static ElfResult LoadElfPriv(const char* filename, ElfToken token, ElfFillNFn fillFn, ElfWriteVFn writeFn,
+                             ElfSegmentDescriptor* targetSegments, int numSegments)
 {
     ElfResult er = ER_BAD_ELF;
 
     FILE* fp = NULL;
 
-    if (memoryDescriptors == NULL)
+    if (targetSegments == NULL)
     {
         er = ER_INVALID_ARGUMENT;
         goto finish;
     }
 
-    if (numDescriptors < 0)
+    if (numSegments < 0)
     {
         er = ER_INVALID_ARGUMENT;
         goto finish;
@@ -255,7 +262,7 @@ ElfResult LoadElf(const char* filename, ElfToken token, ElfFillNFn fillFn, ElfWr
         if (phdr.p_memsz != 0)
         {
             bool targetSegmentFound = false;
-            for (MemoryDescriptor* m = memoryDescriptors; m < memoryDescriptors + numDescriptors; m++)
+            for (ElfSegmentDescriptor* m = targetSegments; m < targetSegments + numSegments; m++)
             {
                 if (phdr.p_vaddr < m->start || phdr.p_vaddr + phdr.p_memsz >= m->start + m->size)
                 {
@@ -332,4 +339,9 @@ finish:
     }
 
     return er;
+}
+
+ElfResult LoadElf(const char* filename, ElfLoaderConfig* config)
+{
+    return LoadElfPriv(filename, config->token, config->fillFn, config->writeFn, config->targetSegments, config->numSegments);
 }

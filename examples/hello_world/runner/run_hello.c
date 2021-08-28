@@ -140,10 +140,15 @@ int main(void)
     Memory memory;
     ArvissCpu cpu;
 
-    MemoryDescriptor memoryDesc[] = {{.start = ROM_START, .size = ROMSIZE}, {.start = RAMBASE, .size = RAMSIZE}};
     const char* filename = "../../../../examples/hello_world/arviss/bin/hello";
-    ElfToken elfToken = {&memory.mem};
-    if (LoadElf(filename, elfToken, FillN, WriteV, memoryDesc, sizeof(memoryDesc) / sizeof(memoryDesc[0])) != ER_OK)
+
+    if (LoadElf(filename,
+                &(ElfLoaderConfig){.token = {&memory.mem},
+                                   .fillFn = FillN,
+                                   .writeFn = WriteV,
+                                   .targetSegments = (ElfSegmentDescriptor[]){{.start = ROM_START, .size = ROMSIZE},
+                                                                              {.start = RAMBASE, .size = RAMSIZE}},
+                                   .numSegments = 2}))
     {
         printf("--- Failed to load %s\n", filename);
         return -1;

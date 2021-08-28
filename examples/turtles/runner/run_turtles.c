@@ -167,9 +167,13 @@ static void LoadCode(Memory* memory, const char* filename)
 {
     printf("--- Loading %s\n", filename);
 
-    MemoryDescriptor memoryDesc[] = {{.start = ROM_START, .size = ROMSIZE}, {.start = RAMBASE, .size = RAMSIZE}};
-    ElfToken elfToken = {memory->mem};
-    if (LoadElf(filename, elfToken, FillN, WriteV, memoryDesc, sizeof(memoryDesc) / sizeof(memoryDesc[0])) != ER_OK)
+    if (LoadElf(filename,
+                &(ElfLoaderConfig){.token = {memory->mem},
+                                   .fillFn = FillN,
+                                   .writeFn = WriteV,
+                                   .targetSegments = (ElfSegmentDescriptor[]){{.start = ROM_START, .size = ROMSIZE},
+                                                                              {.start = RAMBASE, .size = RAMSIZE}},
+                                   .numSegments = 2}))
     {
         printf("--- Failed to load %s\n", filename);
     }
