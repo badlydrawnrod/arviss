@@ -105,24 +105,6 @@ static void Write32(BusToken token, uint32_t addr, uint32_t word, BusCode* busCo
     *busCode = bcSTORE_ACCESS_FAULT;
 }
 
-static void WriteN(BusToken token, uint32_t addr, uint8_t bytes[], uint32_t n, BusCode* busCode)
-{
-    // This needs to be able to write *anywhere* in memory, not just to RAM, as it's intended for use by things like the ELF loader
-    // that are allowed to write to ROM. So, it can't be implemented by just calling Write8() n times, because that will be rejected
-    // by the ROM.
-    Memory* memory = (Memory*)(token.t);
-    uint8_t* src = bytes;
-    uint32_t dst = addr;
-    for (; dst >= membase && dst < membase + memsize && dst < addr + n; dst++, src++)
-    {
-        memory->mem[dst - membase] = *src;
-    }
-    if (dst != addr + n)
-    {
-        *busCode = bcSTORE_ACCESS_FAULT;
-    }
-}
-
 static void FillN(ElfToken token, uint32_t addr, uint32_t len, uint8_t byte)
 {
     uint8_t* target = token.t;
