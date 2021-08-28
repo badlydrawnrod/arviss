@@ -76,7 +76,7 @@ typedef struct Elf32_Shdr
 // - Check for overflows and underflows when performing arithmetic on untrusted values.
 // - Check that untrusted values are within sensible ranges, e.g., a file offset can't be outside of the file.
 
-static ElfResult LoadElfPriv(const char* filename, ElfToken token, ElfFillNFn fillFn, ElfWriteVFn writeFn,
+static ElfResult LoadElfPriv(const char* filename, ElfToken token, ElfZeroMem zeroMemFn, ElfWriteMem writeMemFn,
                              ElfSegmentDescriptor* targetSegments, int numSegments)
 {
     ElfResult er = ER_BAD_ELF;
@@ -280,7 +280,7 @@ static ElfResult LoadElfPriv(const char* filename, ElfToken token, ElfFillNFn fi
 
                 // Zero the target memory.
                 uint32_t dstAddr = phdr.p_vaddr;
-                fillFn(token, dstAddr, phdr.p_memsz, '\0');
+                zeroMemFn(token, dstAddr, phdr.p_memsz);
 
                 // Load the image.
                 uint8_t buf[BUFSIZ];
@@ -296,8 +296,9 @@ static ElfResult LoadElfPriv(const char* filename, ElfToken token, ElfFillNFn fi
                         break;
                     }
                     remaining -= amountRead;
+
                     // Copy the buffer into the target memory.
-                    writeFn(token, dstAddr + ofs, buf, amountRead);
+                    writeMemFn(token, dstAddr + ofs, buf, amountRead);
                     ofs += amountRead;
                 }
 
@@ -342,7 +343,7 @@ finish:
     return er;
 }
 
-ElfResult LoadElf(const char* filename, ElfLoaderConfig* config)
+ElfResult LoadElf(const char* filename, const ElfLoaderConfig* config)
 {
-    return LoadElfPriv(filename, config->token, config->fillFn, config->writeFn, config->targetSegments, config->numSegments);
+    return LoadElfPriv(filename, config->token, config->zeroMemFn, config->writeMemFn, config->targetSegments, config->numSegments);
 }
