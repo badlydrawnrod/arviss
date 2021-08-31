@@ -1,5 +1,9 @@
 # Arviss - A Risc-V Instruction Set Simulator
 
+## Dev Diary
+I've started keeping a Dev Diary for Arviss. Here are the most recent entries:
+
+[31/8/21 - Very Angry Robots III](./dev-diary/very-angry-robots/20210831-intro.md)
 ## History
 One of the things that inspired me to write Arviss was an old game named [Robot War](https://en.wikipedia.org/wiki/RobotWar). I never actually played it, but I remember reading about it in *Byte* magazine back in the eighties, and thinking that it was the coolest thing ever. Many years later, I went on to play with [Robocode](https://robocode.sourceforge.io/). It was a lot of fun, and definitely contributed to how I learned Java. But once in a while, my brain would take me back to Robot War with the question, **"What would it take to write such a game in C and ensure that it is still fair?"**
 
