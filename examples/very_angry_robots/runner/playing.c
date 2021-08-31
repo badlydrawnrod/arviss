@@ -15,6 +15,9 @@
 #define MAX_LINES 1024
 #define LINE_THICKNESS 2
 
+#define DOOR_INDENT 40
+#define DOOR_THICKNESS 4
+
 typedef struct Wall
 {
     Vector2 start;
@@ -111,23 +114,59 @@ void DrawDoors(void)
     for (int i = 0; i < sizeof(doors) / sizeof(doors[0]); i++)
     {
         const Door* door = &doors[i];
-
         const bool isHorizontal = (int)door->start.y == (int)door->end.y;
+        const float startX = door->start.x;
+        const float startY = door->start.y;
+        const float endX = door->end.x;
+        const float endY = door->end.y;
         if (isHorizontal)
         {
-            AddLine((Vector2){door->start.x, door->start.y - 4}, (Vector2){door->end.x, door->end.y - 4}, YELLOW);
-            AddLine((Vector2){door->start.x, door->start.y + 4}, (Vector2){door->end.x, door->end.y + 4}, YELLOW);
-            AddLine((Vector2){door->start.x, door->start.y - 4}, (Vector2){door->start.x, door->start.y + 4}, YELLOW);
-            AddLine((Vector2){door->end.x, door->end.y - 4}, (Vector2){door->end.x, door->end.y + 4}, YELLOW);
+            AddLine((Vector2){startX, startY}, (Vector2){startX + DOOR_INDENT, startY}, BLUE);
+            AddLine((Vector2){endX - DOOR_INDENT, endY}, (Vector2){endX, endY}, BLUE);
+
+            AddLine((Vector2){startX + DOOR_INDENT, startY - DOOR_THICKNESS}, (Vector2){endX - DOOR_INDENT, endY - DOOR_THICKNESS},
+                    YELLOW);
+            AddLine((Vector2){startX + DOOR_INDENT, startY + DOOR_THICKNESS}, (Vector2){endX - DOOR_INDENT, endY + DOOR_THICKNESS},
+                    YELLOW);
+            AddLine((Vector2){startX + DOOR_INDENT, startY - DOOR_THICKNESS},
+                    (Vector2){startX + DOOR_INDENT, startY + DOOR_THICKNESS}, YELLOW);
+            AddLine((Vector2){endX - DOOR_INDENT, endY - DOOR_THICKNESS}, (Vector2){endX - DOOR_INDENT, endY + DOOR_THICKNESS},
+                    YELLOW);
         }
         else
         {
-            AddLine((Vector2){door->start.x - 4, door->start.y}, (Vector2){door->end.x - 4, door->end.y}, YELLOW);
-            AddLine((Vector2){door->start.x + 4, door->start.y}, (Vector2){door->end.x + 4, door->end.y}, YELLOW);
-            AddLine((Vector2){door->start.x - 4, door->start.y}, (Vector2){door->start.x + 4, door->start.y}, YELLOW);
-            AddLine((Vector2){door->end.x - 4, door->end.y}, (Vector2){door->end.x + 4, door->end.y}, YELLOW);
+            AddLine((Vector2){startX, startY}, (Vector2){startX, startY + DOOR_INDENT}, BLUE);
+            AddLine((Vector2){endX, endY - DOOR_INDENT}, (Vector2){endX, endY}, BLUE);
+
+            AddLine((Vector2){startX - DOOR_THICKNESS, startY + DOOR_INDENT}, (Vector2){endX - DOOR_THICKNESS, endY - DOOR_INDENT},
+                    YELLOW);
+            AddLine((Vector2){startX + DOOR_THICKNESS, startY + DOOR_INDENT}, (Vector2){endX + DOOR_THICKNESS, endY - DOOR_INDENT},
+                    YELLOW);
+            AddLine((Vector2){startX - DOOR_THICKNESS, startY + DOOR_INDENT},
+                    (Vector2){startX + DOOR_THICKNESS, startY + DOOR_INDENT}, YELLOW);
+            AddLine((Vector2){endX - DOOR_THICKNESS, endY - DOOR_INDENT}, (Vector2){endX + DOOR_THICKNESS, endY - DOOR_INDENT},
+                    YELLOW);
         }
     }
+}
+
+void DrawRobot(float x, float y)
+{
+    AddLine((Vector2){x, y}, (Vector2){x - 16, y}, LIME);
+    AddLine((Vector2){x - 16, y}, (Vector2){x - 8, y - 16}, LIME);
+    AddLine((Vector2){x - 8, y - 16}, (Vector2){x + 8, y - 16}, LIME);
+    AddLine((Vector2){x + 8, y - 16}, (Vector2){x + 16, y}, LIME);
+    AddLine((Vector2){x + 16, y}, (Vector2){x, y}, LIME);
+    AddLine((Vector2){x - 8, y - 6}, (Vector2){x - 4, y - 6}, RED);
+    AddLine((Vector2){x, y - 6}, (Vector2){x + 4, y - 6}, RED);
+}
+
+void DrawRobots(void)
+{
+    DrawRobot(SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
+    DrawRobot(3 * SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
+    DrawRobot(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 4);
+    DrawRobot(SCREEN_WIDTH / 2, 3 * SCREEN_HEIGHT / 4);
 }
 
 void DrawPlaying(double alpha)
@@ -140,6 +179,7 @@ void DrawPlaying(double alpha)
     BeginDrawLines();
     DrawWalls();
     DrawDoors();
+    DrawRobots();
     EndDrawLines();
     DrawFPS(4, SCREEN_HEIGHT - 20);
     EndDrawing();
