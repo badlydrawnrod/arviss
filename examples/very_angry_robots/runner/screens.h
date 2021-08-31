@@ -9,8 +9,11 @@ typedef enum ScreenId
     PLAYING
 } ScreenId;
 
+void EnterMenu(void);
 void UpdateMenu(void);
 void DrawMenu(double alpha);
+
+void EnterPlaying(void);
 void UpdatePlaying(void);
 void DrawPlaying(double alpha);
 
