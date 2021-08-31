@@ -4,6 +4,7 @@ typedef void (*ScreenEnterFn)(void);
 typedef void (*ScreenExitFn)(void);
 typedef void (*ScreenUpdateFn)(void);
 typedef void (*ScreenDrawFn)(double);
+typedef void (*ScreenCheckTriggersFn)(void);
 
 typedef struct ScreenVtbl
 {
@@ -11,10 +12,12 @@ typedef struct ScreenVtbl
     ScreenExitFn Exit;
     ScreenUpdateFn Update;
     ScreenDrawFn Draw;
+    ScreenCheckTriggersFn CheckTriggers;
 } ScreenVtbl;
 
-static ScreenVtbl screens[] = {{.Enter = EnterMenu, .Update = UpdateMenu, .Draw = DrawMenu},
-                               {.Enter = EnterPlaying, .Update = UpdatePlaying, .Draw = DrawPlaying}};
+static ScreenVtbl screens[] = {
+        {.Enter = EnterMenu, .Update = UpdateMenu, .Draw = DrawMenu, .CheckTriggers = CheckTriggersMenu},
+        {.Enter = EnterPlaying, .Update = UpdatePlaying, .Draw = DrawPlaying, .CheckTriggers = CheckTriggersPlaying}};
 static ScreenId screenId = MENU;
 static ScreenVtbl* screen = &screens[MENU];
 
@@ -50,4 +53,15 @@ void UpdateScreen(void)
 void DrawScreen(double alpha)
 {
     screen->Draw(alpha);
+}
+
+/**
+ * Called by the main loop when it's time to check edge-triggered events.
+ */
+void CheckTriggers(void)
+{
+    if (screen->CheckTriggers)
+    {
+        screen->CheckTriggers();
+    }
 }

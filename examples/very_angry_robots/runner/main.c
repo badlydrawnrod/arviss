@@ -2,6 +2,8 @@
 #define BDR_LOOP_FIXED_UPDATE_INTERVAL_SECONDS (1.0 / PHYSICS_FPS)
 #define BDR_LOOP_FIXED_UPDATE UpdateScreen
 #define BDR_LOOP_DRAW DrawScreen
+#define BDR_LOOP_CHECK_TRIGGERS CheckTriggers
+
 #define BDR_LOOP_IMPLEMENTATION
 
 #include "game_loop.h"
