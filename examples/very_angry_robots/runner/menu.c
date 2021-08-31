@@ -14,7 +14,7 @@ void DrawMenu(double alpha)
     (void)alpha;
     ClearBackground(DARKBLUE);
     BeginDrawing();
-    DrawText("Menu", 4, 4, 24, RAYWHITE);
+    DrawText("Menu", 4, 4, 20, RAYWHITE);
     DrawFPS(4, SCREEN_HEIGHT - 20);
     EndDrawing();
 }
