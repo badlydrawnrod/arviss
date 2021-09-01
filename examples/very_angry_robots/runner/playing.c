@@ -1,8 +1,7 @@
+#include "contoller.h"
 #include "raylib.h"
 #include "raymath.h"
 #include "screens.h"
-
-#include <stdio.h>
 
 #define HWALLS 5
 #define VWALLS 3
@@ -83,36 +82,41 @@ void EnterPlaying(void)
     playerPos = (Vector2){SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2};
 }
 
-void UpdatePlaying(void)
+void UpdatePlayer(void)
 {
+    // Find out what the player wants to do.
     float dx = 0.0f;
     float dy = 0.0f;
-    if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
-    {
-        dx += 1.0f;
-    }
-    if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))
-    {
-        dx -= 1.0f;
-    }
-    if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))
-    {
-        dy -= 1.0f;
-    }
-    if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))
-    {
-        dy += 1.0f;
-    }
+    const bool usingKeyboard = GetController() == ctKEYBOARD || !IsGamepadAvailable(0);
 
-    // Keep the speed the same when moving diagonally.
-    if (dx != 0.0f && dy != 0.0f)
+    if (usingKeyboard)
     {
-        const float sqrt2 = 0.7071067811865475f;
-        dx *= sqrt2;
-        dy *= sqrt2;
-    }
+        if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
+        {
+            dx += 1.0f;
+        }
+        if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))
+        {
+            dx -= 1.0f;
+        }
+        if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))
+        {
+            dy -= 1.0f;
+        }
+        if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))
+        {
+            dy += 1.0f;
+        }
 
-    if (IsGamepadAvailable(0))
+        // Keep the speed the same when moving diagonally.
+        if (dx != 0.0f && dy != 0.0f)
+        {
+            const float sqrt2 = 0.7071067811865475f;
+            dx *= sqrt2;
+            dy *= sqrt2;
+        }
+    }
+    else
     {
         const float padX = GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X);
         const float padY = GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y);
@@ -126,8 +130,20 @@ void UpdatePlaying(void)
         dy = sinf(angle) * distance;
     }
 
+    // Update its position in the world.
     playerPos.x += dx * PLAYER_SPEED;
     playerPos.y += dy * PLAYER_SPEED;
+}
+
+void UpdateRobots(void)
+{
+    // TODO: update the robots using Arviss.
+}
+
+void UpdatePlaying(void)
+{
+    UpdatePlayer();
+    UpdateRobots();
 }
 
 void BeginDrawLines(void)
@@ -228,7 +244,7 @@ void DrawRobots(void)
     DrawRobot(SCREEN_WIDTH / 2, 3 * SCREEN_HEIGHT / 4);
 }
 
-void DrawHumanoid(float x, float y)
+void DrawPlayer(float x, float y)
 {
     Color bodyColour = SKYBLUE;
     Color headColour = SKYBLUE;
@@ -263,7 +279,7 @@ void DrawPlaying(double alpha)
     DrawWalls();
     DrawDoors();
     DrawRobots();
-    DrawHumanoid(playerPos.x, playerPos.y);
+    DrawPlayer(playerPos.x, playerPos.y);
     EndDrawLines();
     DrawFPS(4, SCREEN_HEIGHT - 20);
     EndDrawing();
