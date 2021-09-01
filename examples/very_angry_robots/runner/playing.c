@@ -1,7 +1,10 @@
 #include "contoller.h"
+#include "entities.h"
 #include "raylib.h"
 #include "raymath.h"
 #include "screens.h"
+
+#include <stdint.h>
 
 #define HWALLS 5
 #define VWALLS 3
@@ -21,6 +24,45 @@
 #define DOOR_THICKNESS 4
 
 #define PLAYER_SPEED 2
+
+#define MAX_ENTITIES 256
+
+typedef uint32_t Bitmap;
+
+typedef struct StaticComponent
+{
+    Vector2 position;
+} StaticComponent;
+
+typedef struct DynamicComponent
+{
+    Vector2 position;
+    Vector2 movement;
+} DynamicComponent;
+
+static struct DynamicComponent dynamicComponents[MAX_ENTITIES];
+
+DynamicComponent* GetDynamicComponent(int id)
+{
+    return &dynamicComponents[id];
+}
+
+void SetDynamicComponent(int id, DynamicComponent* dynamicComponent)
+{
+    dynamicComponents[id] = *dynamicComponent;
+}
+
+Vector2 GetDynamicComponentPosition(int id)
+{
+    return dynamicComponents[id].position;
+}
+
+static struct
+{
+    DynamicComponent* (*Get)(int id);
+    void (*Set)(int id, DynamicComponent* dynamicComponent);
+    Vector2 (*GetPosition)(int id);
+} DynamicComponents = {.Get = GetDynamicComponent, .Set = SetDynamicComponent, .GetPosition = GetDynamicComponentPosition};
 
 typedef struct Wall
 {
@@ -77,9 +119,62 @@ static Line lines[MAX_LINES];
 static int numLines = 0;
 static Vector2 playerPos;
 
+void DrawPlayer(float x, float y);
+void DrawRobot(float x, float y);
+
+void EntityDrawPlayers(void)
+{
+    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
+    {
+        if (Entities.Is(id, bmPlayer | bmDynamic | bmDrawable))
+        {
+            Vector2 position = DynamicComponents.GetPosition(id);
+            DrawPlayer(position.x, position.y);
+        }
+    }
+}
+
+void EntityDrawRobots(void)
+{
+    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
+    {
+        if (Entities.Is(id, bmRobot | bmDynamic | bmDrawable))
+        {
+            Vector2 position = DynamicComponents.GetPosition(id);
+            DrawRobot(position.x, position.y);
+        }
+    }
+}
+
+void MakeRobot(float x, float y)
+{
+    int id = Entities.Create();
+    Entities.Set(id, bmDynamic);
+    Entities.Set(id, bmDrawable);
+    Entities.Set(id, bmRobot);
+    Entities.Set(id, bmCollidable);
+    DynamicComponents.Set(id, &(DynamicComponent){.position = {x, y}});
+}
+
+void MakePlayer(float x, float y)
+{
+    int id = Entities.Create();
+    Entities.Set(id, bmDynamic);
+    Entities.Set(id, bmDrawable);
+    Entities.Set(id, bmPlayer);
+    Entities.Set(id, bmCollidable);
+    DynamicComponents.Set(id, &(DynamicComponent){.position = {x, y}});
+}
+
 void EnterPlaying(void)
 {
     playerPos = (Vector2){SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2};
+    Entities.Reset();
+    MakePlayer(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+    MakeRobot(SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
+    MakeRobot(3 * SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
+    MakeRobot(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 4);
+    MakeRobot(SCREEN_WIDTH / 2, 3 * SCREEN_HEIGHT / 4);
 }
 
 void UpdatePlayer(void)
@@ -243,14 +338,6 @@ void DrawRobot(float x, float y)
     AddLine(x - 8, y + 4, x + 8, y + 4, DARKGREEN);
 }
 
-void DrawRobots(void)
-{
-    DrawRobot(SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
-    DrawRobot(3 * SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
-    DrawRobot(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 4);
-    DrawRobot(SCREEN_WIDTH / 2, 3 * SCREEN_HEIGHT / 4);
-}
-
 void DrawPlayer(float x, float y)
 {
     Color bodyColour = SKYBLUE;
@@ -285,8 +372,8 @@ void DrawPlaying(double alpha)
     BeginDrawLines();
     DrawWalls();
     DrawDoors();
-    DrawRobots();
-    DrawPlayer(playerPos.x, playerPos.y);
+    EntityDrawRobots();
+    EntityDrawPlayers();
     EndDrawLines();
     DrawFPS(4, SCREEN_HEIGHT - 20);
     EndDrawing();
