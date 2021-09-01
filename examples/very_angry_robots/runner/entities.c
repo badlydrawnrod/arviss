@@ -1,6 +1,6 @@
 #include "entities.h"
 
-static int numEntities = 0;
+static int numEntities = 0; // TODO: rename to maxAssignedEntity and update when necessary.
 static Entity entities[MAX_ENTITIES];
 
 void ResetEntities(void)
@@ -12,6 +12,7 @@ void ResetEntities(void)
     }
 }
 
+// TODO: rename this to MaxAssignedEntity.
 int CountEntities(void)
 {
     return numEntities;

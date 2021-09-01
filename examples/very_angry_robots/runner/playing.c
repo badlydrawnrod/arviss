@@ -1,8 +1,10 @@
-#include "contoller.h"
 #include "dynamic_components.h"
 #include "entities.h"
+#include "movement_system.h"
+#include "player_action_system.h"
 #include "raylib.h"
 #include "raymath.h"
+#include "robot_action_system.h"
 #include "screens.h"
 
 #include <stdint.h>
@@ -24,16 +26,7 @@
 #define DOOR_INDENT 40
 #define DOOR_THICKNESS 4
 
-#define PLAYER_SPEED 2
-
 #define MAX_ENTITIES 256
-
-typedef uint32_t Bitmap;
-
-typedef struct StaticComponent
-{
-    Vector2 position;
-} StaticComponent;
 
 typedef struct Wall
 {
@@ -88,7 +81,6 @@ static Door doors[] = {
 
 static Line lines[MAX_LINES];
 static int numLines = 0;
-static int playerId = -1;
 
 void DrawPlayer(float x, float y);
 void DrawRobot(float x, float y);
@@ -117,18 +109,6 @@ void EntityDrawRobots(void)
     }
 }
 
-void EntityMoveDynamics(void)
-{
-    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
-    {
-        if (Entities.Is(id, bmDynamic))
-        {
-            DynamicComponent* c = DynamicComponents.Get(id);
-            c->position = Vector2Add(c->position, c->movement);
-        }
-    }
-}
-
 void MakeRobot(float x, float y)
 {
     int id = Entities.Create();
@@ -153,84 +133,18 @@ int MakePlayer(float x, float y)
 void EnterPlaying(void)
 {
     Entities.Reset();
-    playerId = MakePlayer(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+    MakePlayer(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
     MakeRobot(SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
     MakeRobot(3 * SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
     MakeRobot(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 4);
     MakeRobot(SCREEN_WIDTH / 2, 3 * SCREEN_HEIGHT / 4);
 }
 
-void UpdatePlayer(void)
-{
-    // Find out what the player wants to do.
-    float dx = 0.0f;
-    float dy = 0.0f;
-    const bool haveGamepad = IsGamepadAvailable(0);
-    const bool usingKeyboard = GetController() == ctKEYBOARD || !haveGamepad;
-
-    const bool isLeftDPadDown = haveGamepad && IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT);
-    const bool isRightDPadDown = haveGamepad && IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_RIGHT);
-    const bool isUpDPadDown = haveGamepad && IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_UP);
-    const bool isDownDPadDown = haveGamepad && IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN);
-    const bool anyGamepadButtonDown = isLeftDPadDown || isRightDPadDown || isUpDPadDown || isDownDPadDown;
-
-    if (usingKeyboard || anyGamepadButtonDown)
-    {
-        if (isRightDPadDown || IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
-        {
-            dx += 1.0f;
-        }
-        if (isLeftDPadDown || IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))
-        {
-            dx -= 1.0f;
-        }
-        if (isUpDPadDown || IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))
-        {
-            dy -= 1.0f;
-        }
-        if (isDownDPadDown || IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))
-        {
-            dy += 1.0f;
-        }
-
-        // Keep the speed the same when moving diagonally.
-        if (dx != 0.0f && dy != 0.0f)
-        {
-            const float sqrt2 = 0.7071067811865475f;
-            dx *= sqrt2;
-            dy *= sqrt2;
-        }
-    }
-    else
-    {
-        const float padX = GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X);
-        const float padY = GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y);
-        const float angle = atan2f(padY, padX);
-        float distance = hypotf(padX, padY);
-        if (distance > 1.0f)
-        {
-            distance = 1.0f;
-        }
-        dx = cosf(angle) * distance;
-        dy = sinf(angle) * distance;
-    }
-
-    // Set its velocity.
-    DynamicComponent* c = DynamicComponents.Get(playerId);
-    c->movement.x = dx * PLAYER_SPEED;
-    c->movement.y = dy * PLAYER_SPEED;
-}
-
-void UpdateRobots(void)
-{
-    // TODO: update the robots using Arviss.
-}
-
 void UpdatePlaying(void)
 {
-    UpdatePlayer();
-    UpdateRobots();
-    EntityMoveDynamics();
+    PlayerActionSystem.Update();
+    RobotActionSystem.Update();
+    MovementSystem.Update();
 }
 
 void BeginDrawLines(void)
