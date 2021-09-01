@@ -18,6 +18,8 @@
 #define DOOR_INDENT 40
 #define DOOR_THICKNESS 4
 
+#define PLAYER_SPEED 2
+
 typedef struct Wall
 {
     Vector2 start;
@@ -71,13 +73,44 @@ static Door doors[] = {
 
 static Line lines[MAX_LINES];
 static int numLines = 0;
+static Vector2 playerPos;
 
 void EnterPlaying(void)
 {
+    playerPos = (Vector2){SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2};
 }
 
 void UpdatePlaying(void)
 {
+    float dx = 0.0f;
+    float dy = 0.0f;
+    if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
+    {
+        dx += 1.0f;
+    }
+    if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))
+    {
+        dx -= 1.0f;
+    }
+    if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))
+    {
+        dy -= 1.0f;
+    }
+    if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))
+    {
+        dy += 1.0f;
+    }
+
+    // Keep the speed the same when moving diagonally.
+    if (dx != 0.0f && dy != 0.0f)
+    {
+        const float sqrt2 = 0.7071067811865475f;
+        dx *= sqrt2;
+        dy *= sqrt2;
+    }
+
+    playerPos.x += dx * PLAYER_SPEED;
+    playerPos.y += dy * PLAYER_SPEED;
 }
 
 void BeginDrawLines(void)
@@ -213,7 +246,7 @@ void DrawPlaying(double alpha)
     DrawWalls();
     DrawDoors();
     DrawRobots();
-    DrawHumanoid(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+    DrawHumanoid(playerPos.x, playerPos.y);
     EndDrawLines();
     DrawFPS(4, SCREEN_HEIGHT - 20);
     EndDrawing();
