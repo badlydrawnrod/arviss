@@ -1,5 +1,8 @@
 #include "raylib.h"
+#include "raymath.h"
 #include "screens.h"
+
+#include <stdio.h>
 
 #define HWALLS 5
 #define VWALLS 3
@@ -107,6 +110,20 @@ void UpdatePlaying(void)
         const float sqrt2 = 0.7071067811865475f;
         dx *= sqrt2;
         dy *= sqrt2;
+    }
+
+    if (IsGamepadAvailable(0))
+    {
+        const float padX = GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X);
+        const float padY = GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y);
+        const float angle = atan2f(padY, padX);
+        float distance = hypotf(padX, padY);
+        if (distance > 1.0f)
+        {
+            distance = 1.0f;
+        }
+        dx = cosf(angle) * distance;
+        dy = sinf(angle) * distance;
     }
 
     playerPos.x += dx * PLAYER_SPEED;
