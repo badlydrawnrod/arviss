@@ -35,7 +35,6 @@ typedef struct StaticComponent
     Vector2 position;
 } StaticComponent;
 
-
 typedef struct Wall
 {
     Vector2 start;
@@ -89,7 +88,7 @@ static Door doors[] = {
 
 static Line lines[MAX_LINES];
 static int numLines = 0;
-static Vector2 playerPos;
+static int playerId = -1;
 
 void DrawPlayer(float x, float y);
 void DrawRobot(float x, float y);
@@ -118,6 +117,18 @@ void EntityDrawRobots(void)
     }
 }
 
+void EntityMoveDynamics(void)
+{
+    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
+    {
+        if (Entities.Is(id, bmDynamic))
+        {
+            DynamicComponent* c = DynamicComponents.Get(id);
+            c->position = Vector2Add(c->position, c->movement);
+        }
+    }
+}
+
 void MakeRobot(float x, float y)
 {
     int id = Entities.Create();
@@ -128,7 +139,7 @@ void MakeRobot(float x, float y)
     DynamicComponents.Set(id, &(DynamicComponent){.position = {x, y}});
 }
 
-void MakePlayer(float x, float y)
+int MakePlayer(float x, float y)
 {
     int id = Entities.Create();
     Entities.Set(id, bmDynamic);
@@ -136,13 +147,13 @@ void MakePlayer(float x, float y)
     Entities.Set(id, bmPlayer);
     Entities.Set(id, bmCollidable);
     DynamicComponents.Set(id, &(DynamicComponent){.position = {x, y}});
+    return id;
 }
 
 void EnterPlaying(void)
 {
-    playerPos = (Vector2){SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2};
     Entities.Reset();
-    MakePlayer(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+    playerId = MakePlayer(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
     MakeRobot(SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
     MakeRobot(3 * SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
     MakeRobot(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 4);
@@ -204,9 +215,10 @@ void UpdatePlayer(void)
         dy = sinf(angle) * distance;
     }
 
-    // Update its position in the world.
-    playerPos.x += dx * PLAYER_SPEED;
-    playerPos.y += dy * PLAYER_SPEED;
+    // Set its velocity.
+    DynamicComponent* c = DynamicComponents.Get(playerId);
+    c->movement.x = dx * PLAYER_SPEED;
+    c->movement.y = dy * PLAYER_SPEED;
 }
 
 void UpdateRobots(void)
@@ -218,6 +230,7 @@ void UpdatePlaying(void)
 {
     UpdatePlayer();
     UpdateRobots();
+    EntityMoveDynamics();
 }
 
 void BeginDrawLines(void)
