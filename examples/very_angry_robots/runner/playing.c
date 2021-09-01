@@ -87,23 +87,30 @@ void UpdatePlayer(void)
     // Find out what the player wants to do.
     float dx = 0.0f;
     float dy = 0.0f;
-    const bool usingKeyboard = GetController() == ctKEYBOARD || !IsGamepadAvailable(0);
+    const bool haveGamepad = IsGamepadAvailable(0);
+    const bool usingKeyboard = GetController() == ctKEYBOARD || !haveGamepad;
 
-    if (usingKeyboard)
+    const bool isLeftDPadDown = haveGamepad && IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT);
+    const bool isRightDPadDown = haveGamepad && IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_RIGHT);
+    const bool isUpDPadDown = haveGamepad && IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_UP);
+    const bool isDownDPadDown = haveGamepad && IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN);
+    const bool anyGamepadButtonDown = isLeftDPadDown || isRightDPadDown || isUpDPadDown || isDownDPadDown;
+
+    if (usingKeyboard || anyGamepadButtonDown)
     {
-        if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
+        if (isRightDPadDown || IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
         {
             dx += 1.0f;
         }
-        if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))
+        if (isLeftDPadDown || IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))
         {
             dx -= 1.0f;
         }
-        if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))
+        if (isUpDPadDown || IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))
         {
             dy -= 1.0f;
         }
-        if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))
+        if (isDownDPadDown || IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))
         {
             dy += 1.0f;
         }
