@@ -1,4 +1,5 @@
 #include "contoller.h"
+#include "dynamic_components.h"
 #include "entities.h"
 #include "raylib.h"
 #include "raymath.h"
@@ -34,35 +35,6 @@ typedef struct StaticComponent
     Vector2 position;
 } StaticComponent;
 
-typedef struct DynamicComponent
-{
-    Vector2 position;
-    Vector2 movement;
-} DynamicComponent;
-
-static struct DynamicComponent dynamicComponents[MAX_ENTITIES];
-
-DynamicComponent* GetDynamicComponent(int id)
-{
-    return &dynamicComponents[id];
-}
-
-void SetDynamicComponent(int id, DynamicComponent* dynamicComponent)
-{
-    dynamicComponents[id] = *dynamicComponent;
-}
-
-Vector2 GetDynamicComponentPosition(int id)
-{
-    return dynamicComponents[id].position;
-}
-
-static struct
-{
-    DynamicComponent* (*Get)(int id);
-    void (*Set)(int id, DynamicComponent* dynamicComponent);
-    Vector2 (*GetPosition)(int id);
-} DynamicComponents = {.Get = GetDynamicComponent, .Set = SetDynamicComponent, .GetPosition = GetDynamicComponentPosition};
 
 typedef struct Wall
 {
