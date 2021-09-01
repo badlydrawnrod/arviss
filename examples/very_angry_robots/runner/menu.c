@@ -14,7 +14,8 @@ void DrawMenu(double alpha)
     (void)alpha;
     ClearBackground(DARKBLUE);
     BeginDrawing();
-    DrawText("Menu", 4, 4, 20, RAYWHITE);
+    const int textWidth = MeasureText("Press space", 20);
+    DrawText("Press space", (SCREEN_WIDTH - textWidth) / 2, SCREEN_HEIGHT / 2, 20, RAYWHITE);
     DrawFPS(4, SCREEN_HEIGHT - 20);
     EndDrawing();
 }

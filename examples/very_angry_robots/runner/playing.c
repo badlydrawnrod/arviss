@@ -93,7 +93,17 @@ void EndDrawLines(void)
     }
 }
 
-void AddLine(Vector2 start, Vector2 end, Color color)
+void AddLine(float startX, float startY, float endX, float endY, Color color)
+{
+    lines[numLines].start.x = startX;
+    lines[numLines].start.y = startY;
+    lines[numLines].end.x = endX;
+    lines[numLines].end.y = endY;
+    lines[numLines].color = color;
+    ++numLines;
+}
+
+void AddLineV(Vector2 start, Vector2 end, Color color)
 {
     lines[numLines].start = start;
     lines[numLines].end = end;
@@ -105,7 +115,7 @@ void DrawWalls(void)
 {
     for (int i = 0; i < sizeof(walls) / sizeof(walls[0]); i++)
     {
-        AddLine(walls[i].start, walls[i].end, BLUE);
+        AddLineV(walls[i].start, walls[i].end, BLUE);
     }
 }
 
@@ -121,44 +131,43 @@ void DrawDoors(void)
         const float endY = door->end.y;
         if (isHorizontal)
         {
-            AddLine((Vector2){startX, startY}, (Vector2){startX + DOOR_INDENT, startY}, BLUE);
-            AddLine((Vector2){endX - DOOR_INDENT, endY}, (Vector2){endX, endY}, BLUE);
+            AddLine(startX, startY, startX + DOOR_INDENT, startY, BLUE);
+            AddLine(endX - DOOR_INDENT, endY, endX, endY, BLUE);
 
-            AddLine((Vector2){startX + DOOR_INDENT, startY - DOOR_THICKNESS}, (Vector2){endX - DOOR_INDENT, endY - DOOR_THICKNESS},
-                    YELLOW);
-            AddLine((Vector2){startX + DOOR_INDENT, startY + DOOR_THICKNESS}, (Vector2){endX - DOOR_INDENT, endY + DOOR_THICKNESS},
-                    YELLOW);
-            AddLine((Vector2){startX + DOOR_INDENT, startY - DOOR_THICKNESS},
-                    (Vector2){startX + DOOR_INDENT, startY + DOOR_THICKNESS}, YELLOW);
-            AddLine((Vector2){endX - DOOR_INDENT, endY - DOOR_THICKNESS}, (Vector2){endX - DOOR_INDENT, endY + DOOR_THICKNESS},
-                    YELLOW);
+            AddLine(startX + DOOR_INDENT, startY - DOOR_THICKNESS, endX - DOOR_INDENT, endY - DOOR_THICKNESS, YELLOW);
+            AddLine(startX + DOOR_INDENT, startY + DOOR_THICKNESS, endX - DOOR_INDENT, endY + DOOR_THICKNESS, YELLOW);
+            AddLine(startX + DOOR_INDENT, startY - DOOR_THICKNESS, startX + DOOR_INDENT, startY + DOOR_THICKNESS, YELLOW);
+            AddLine(endX - DOOR_INDENT, endY - DOOR_THICKNESS, endX - DOOR_INDENT, endY + DOOR_THICKNESS, YELLOW);
         }
         else
         {
-            AddLine((Vector2){startX, startY}, (Vector2){startX, startY + DOOR_INDENT}, BLUE);
-            AddLine((Vector2){endX, endY - DOOR_INDENT}, (Vector2){endX, endY}, BLUE);
+            AddLine(startX, startY, startX, startY + DOOR_INDENT, BLUE);
+            AddLine(endX, endY - DOOR_INDENT, endX, endY, BLUE);
 
-            AddLine((Vector2){startX - DOOR_THICKNESS, startY + DOOR_INDENT}, (Vector2){endX - DOOR_THICKNESS, endY - DOOR_INDENT},
-                    YELLOW);
-            AddLine((Vector2){startX + DOOR_THICKNESS, startY + DOOR_INDENT}, (Vector2){endX + DOOR_THICKNESS, endY - DOOR_INDENT},
-                    YELLOW);
-            AddLine((Vector2){startX - DOOR_THICKNESS, startY + DOOR_INDENT},
-                    (Vector2){startX + DOOR_THICKNESS, startY + DOOR_INDENT}, YELLOW);
-            AddLine((Vector2){endX - DOOR_THICKNESS, endY - DOOR_INDENT}, (Vector2){endX + DOOR_THICKNESS, endY - DOOR_INDENT},
-                    YELLOW);
+            AddLine(startX - DOOR_THICKNESS, startY + DOOR_INDENT, endX - DOOR_THICKNESS, endY - DOOR_INDENT, YELLOW);
+            AddLine(startX + DOOR_THICKNESS, startY + DOOR_INDENT, endX + DOOR_THICKNESS, endY - DOOR_INDENT, YELLOW);
+            AddLine(startX - DOOR_THICKNESS, startY + DOOR_INDENT, startX + DOOR_THICKNESS, startY + DOOR_INDENT, YELLOW);
+            AddLine(endX - DOOR_THICKNESS, endY - DOOR_INDENT, endX + DOOR_THICKNESS, endY - DOOR_INDENT, YELLOW);
         }
     }
 }
 
 void DrawRobot(float x, float y)
 {
-    AddLine((Vector2){x, y}, (Vector2){x - 16, y}, LIME);
-    AddLine((Vector2){x - 16, y}, (Vector2){x - 8, y - 16}, LIME);
-    AddLine((Vector2){x - 8, y - 16}, (Vector2){x + 8, y - 16}, LIME);
-    AddLine((Vector2){x + 8, y - 16}, (Vector2){x + 16, y}, LIME);
-    AddLine((Vector2){x + 16, y}, (Vector2){x, y}, LIME);
-    AddLine((Vector2){x - 8, y - 6}, (Vector2){x - 4, y - 6}, RED);
-    AddLine((Vector2){x, y - 6}, (Vector2){x + 4, y - 6}, RED);
+    // Upper body.
+    AddLine(x, y, x - 16, y, LIME);
+    AddLine(x - 16, y, x - 8, y - 16, LIME);
+    AddLine(x - 8, y - 16, x + 8, y - 16, LIME);
+    AddLine(x + 8, y - 16, x + 16, y, LIME);
+    AddLine(x + 16, y, x, y, LIME);
+
+    // Eyes.
+    AddLine(x - 8, y - 6, x - 4, y - 6, RED);
+    AddLine(x, y - 6, x + 4, y - 6, RED);
+
+    // Lower body.
+    AddLine(x - 12, y + 2, x + 12, y + 2, DARKGREEN);
+    AddLine(x - 8, y + 4, x + 8, y + 4, DARKGREEN);
 }
 
 void DrawRobots(void)
@@ -167,6 +176,30 @@ void DrawRobots(void)
     DrawRobot(3 * SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
     DrawRobot(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 4);
     DrawRobot(SCREEN_WIDTH / 2, 3 * SCREEN_HEIGHT / 4);
+}
+
+void DrawHumanoid(float x, float y)
+{
+    Color bodyColour = SKYBLUE;
+    Color headColour = SKYBLUE;
+    Color legColour = SKYBLUE;
+
+    // Body.
+    AddLine(x, y, x, y - 12, bodyColour);
+
+    // Arms.
+    AddLine(x, y - 12, x - 8, y, bodyColour);
+    AddLine(x, y - 12, x + 8, y, bodyColour);
+
+    // Legs.
+    AddLine(x, y, x - 8, y + 16, legColour);
+    AddLine(x, y, x + 8, y + 16, legColour);
+
+    // Head.
+    AddLine(x, y - 12, x - 6, y - 16, headColour);
+    AddLine(x, y - 12, x + 6, y - 16, headColour);
+    AddLine(x - 6, y - 16, x, y - 20, headColour);
+    AddLine(x + 6, y - 16, x, y - 20, headColour);
 }
 
 void DrawPlaying(double alpha)
@@ -180,6 +213,7 @@ void DrawPlaying(double alpha)
     DrawWalls();
     DrawDoors();
     DrawRobots();
+    DrawHumanoid(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
     EndDrawLines();
     DrawFPS(4, SCREEN_HEIGHT - 20);
     EndDrawing();
