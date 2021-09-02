@@ -1,3 +1,4 @@
+#include "components/collidable_components.h"
 #include "components/door_components.h"
 #include "components/dynamic_components.h"
 #include "components/static_components.h"
@@ -24,6 +25,7 @@ void MakeRobot(float x, float y)
     int id = Entities.Create();
     Entities.Set(id, bmDynamic | bmDrawable | bmRobot | bmCollidable);
     DynamicComponents.Set(id, &(DynamicComponent){.position = {x, y}});
+    CollidableComponents.Set(id, &(CollidableComponent){.type = ctROBOT});
 }
 
 int MakePlayer(float x, float y)
@@ -31,6 +33,7 @@ int MakePlayer(float x, float y)
     int id = Entities.Create();
     Entities.Set(id, bmDynamic | bmDrawable | bmPlayer | bmCollidable);
     DynamicComponents.Set(id, &(DynamicComponent){.position = {x, y}});
+    CollidableComponents.Set(id, &(CollidableComponent){.type = ctPLAYER});
     return id;
 }
 
@@ -40,6 +43,7 @@ int MakeWall(float x, float y, bool isVertical)
     Entities.Set(id, bmStatic | bmDrawable | bmWall | bmCollidable);
     StaticComponents.Set(id, &(StaticComponent){.position = {x, y}});
     WallComponents.Set(id, &(WallComponent){.vertical = isVertical});
+    CollidableComponents.Set(id, &(CollidableComponent){.type = isVertical ? ctVWALL : ctHWALL});
     return id;
 }
 
@@ -56,6 +60,7 @@ int MakeDoor(float x, float y, bool isVertical)
     Entities.Set(id, bmStatic | bmDrawable | bmDoor | bmCollidable);
     StaticComponents.Set(id, &(StaticComponent){.position = {x, y}});
     DoorComponents.Set(id, &(DoorComponent){.vertical = isVertical});
+    CollidableComponents.Set(id, &(CollidableComponent){.type = isVertical ? ctVDOOR : ctHDOOR});
     return id;
 }
 
