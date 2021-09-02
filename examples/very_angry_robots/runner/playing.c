@@ -4,14 +4,11 @@
 #include "components/wall_components.h"
 #include "entities.h"
 #include "raylib.h"
-#include "raymath.h"
 #include "screens.h"
 #include "systems/drawing_system.h"
 #include "systems/movement_system.h"
 #include "systems/player_action_system.h"
 #include "systems/robot_action_system.h"
-
-#include <stdint.h>
 
 #define HWALLS 5
 #define VWALLS 3
@@ -25,20 +22,14 @@
 void MakeRobot(float x, float y)
 {
     int id = Entities.Create();
-    Entities.Set(id, bmDynamic);
-    Entities.Set(id, bmDrawable);
-    Entities.Set(id, bmRobot);
-    Entities.Set(id, bmCollidable);
+    Entities.Set(id, bmDynamic | bmDrawable | bmRobot | bmCollidable);
     DynamicComponents.Set(id, &(DynamicComponent){.position = {x, y}});
 }
 
 int MakePlayer(float x, float y)
 {
     int id = Entities.Create();
-    Entities.Set(id, bmDynamic);
-    Entities.Set(id, bmDrawable);
-    Entities.Set(id, bmPlayer);
-    Entities.Set(id, bmCollidable);
+    Entities.Set(id, bmDynamic | bmDrawable | bmPlayer | bmCollidable);
     DynamicComponents.Set(id, &(DynamicComponent){.position = {x, y}});
     return id;
 }
@@ -46,9 +37,7 @@ int MakePlayer(float x, float y)
 int MakeWall(float x, float y, bool isVertical)
 {
     int id = Entities.Create();
-    Entities.Set(id, bmStatic);
-    Entities.Set(id, bmDrawable);
-    Entities.Set(id, bmWall);
+    Entities.Set(id, bmStatic | bmDrawable | bmWall | bmCollidable);
     StaticComponents.Set(id, &(StaticComponent){.position = {x, y}});
     WallComponents.Set(id, &(WallComponent){.vertical = isVertical});
     return id;
@@ -64,9 +53,7 @@ int MakeWallFromGrid(int gridX, int gridY, bool isVertical)
 int MakeDoor(float x, float y, bool isVertical)
 {
     int id = Entities.Create();
-    Entities.Set(id, bmStatic);
-    Entities.Set(id, bmDrawable);
-    Entities.Set(id, bmDoor);
+    Entities.Set(id, bmStatic | bmDrawable | bmDoor | bmCollidable);
     StaticComponents.Set(id, &(StaticComponent){.position = {x, y}});
     DoorComponents.Set(id, &(DoorComponent){.vertical = isVertical});
     return id;
