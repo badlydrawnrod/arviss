@@ -1,3 +1,4 @@
+#include "door_components.h"
 #include "dynamic_components.h"
 #include "entities.h"
 #include "movement_system.h"
@@ -19,22 +20,14 @@
 #define LEFT_BORDER ((SCREEN_WIDTH - WALL_SIZE * HWALLS) / 2)
 #define TLX LEFT_BORDER
 #define TLY TOP_BORDER
-#define TRX (LEFT_BORDER + HWALLS * WALL_SIZE)
-#define BRY (TOP_BORDER + VWALLS * WALL_SIZE)
 
 #define MAX_LINES 1024
 #define LINE_THICKNESS 2
 
-#define DOOR_INDENT 40
+#define DOOR_SIZE (WALL_SIZE - 80)
 #define DOOR_THICKNESS 4
 
 #define MAX_ENTITIES 256
-
-typedef struct Door
-{
-    Vector2 start;
-    Vector2 end;
-} Door;
 
 typedef struct Line
 {
@@ -43,17 +36,11 @@ typedef struct Line
     Color color;
 } Line;
 
-static Door doors[] = {
-        {.start = {TLX + 2 * WALL_SIZE, TLY}, .end = {TLX + 3 * WALL_SIZE, TLY}},
-        {.start = {TLX + 2 * WALL_SIZE, BRY}, .end = {TLX + 3 * WALL_SIZE, BRY}},
-        {.start = {TLX, TLY + WALL_SIZE}, {TLX, TLY + 2 * WALL_SIZE}},
-        {.start = {TRX, TLY + WALL_SIZE}, {TRX, TLY + 2 * WALL_SIZE}},
-};
-
 static Line lines[MAX_LINES];
 static int numLines = 0;
 
 void DrawWall(float x, float y, bool isVertical);
+void DrawDoor(float x, float y, bool isVertical);
 void DrawPlayer(float x, float y);
 void DrawRobot(float x, float y);
 
@@ -66,6 +53,19 @@ void EntityDrawWalls(void)
             Vector2 position = StaticComponents.GetPosition(id);
             bool isVertical = WallComponents.IsVertical(id);
             DrawWall(position.x, position.y, isVertical);
+        }
+    }
+}
+
+void EntityDrawDoors(void)
+{
+    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
+    {
+        if (Entities.Is(id, bmDoor | bmStatic | bmDrawable))
+        {
+            Vector2 position = StaticComponents.GetPosition(id);
+            bool isVertical = DoorComponents.IsVertical(id);
+            DrawDoor(position.x, position.y, isVertical);
         }
     }
 }
@@ -133,6 +133,24 @@ int MakeWallFromGrid(int gridX, int gridY, bool isVertical)
     return MakeWall(x, y, isVertical);
 }
 
+int MakeDoor(float x, float y, bool isVertical)
+{
+    int id = Entities.Create();
+    Entities.Set(id, bmStatic);
+    Entities.Set(id, bmDrawable);
+    Entities.Set(id, bmDoor);
+    StaticComponents.Set(id, &(StaticComponent){.position = {x, y}});
+    DoorComponents.Set(id, &(DoorComponent){.vertical = isVertical});
+    return id;
+}
+
+int MakeDoorFromGrid(int gridX, int gridY, bool isVertical)
+{
+    const float x = TLX + (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
+    const float y = TLY + (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
+    return MakeDoor(x, y, isVertical);
+}
+
 void EnterPlaying(void)
 {
     Entities.Reset();
@@ -164,6 +182,12 @@ void EnterPlaying(void)
     // Right walls.
     MakeWallFromGrid(5, 0, vertical);
     MakeWallFromGrid(5, 2, vertical);
+
+    // Doors.
+    MakeDoorFromGrid(2, 0, horizontal);
+    MakeDoorFromGrid(2, 3, horizontal);
+    MakeDoorFromGrid(0, 1, vertical);
+    MakeDoorFromGrid(5, 1, vertical);
 }
 
 void UpdatePlaying(void)
@@ -204,43 +228,30 @@ void AddLineV(Vector2 start, Vector2 end, Color color)
     ++numLines;
 }
 
-void DrawDoors(void)
-{
-    for (int i = 0; i < sizeof(doors) / sizeof(doors[0]); i++)
-    {
-        const Door* door = &doors[i];
-        const bool isHorizontal = (int)door->start.y == (int)door->end.y;
-        const float startX = door->start.x;
-        const float startY = door->start.y;
-        const float endX = door->end.x;
-        const float endY = door->end.y;
-        if (isHorizontal)
-        {
-            AddLine(startX, startY, startX + DOOR_INDENT, startY, BLUE);
-            AddLine(endX - DOOR_INDENT, endY, endX, endY, BLUE);
-
-            AddLine(startX + DOOR_INDENT, startY - DOOR_THICKNESS, endX - DOOR_INDENT, endY - DOOR_THICKNESS, YELLOW);
-            AddLine(startX + DOOR_INDENT, startY + DOOR_THICKNESS, endX - DOOR_INDENT, endY + DOOR_THICKNESS, YELLOW);
-            AddLine(startX + DOOR_INDENT, startY - DOOR_THICKNESS, startX + DOOR_INDENT, startY + DOOR_THICKNESS, YELLOW);
-            AddLine(endX - DOOR_INDENT, endY - DOOR_THICKNESS, endX - DOOR_INDENT, endY + DOOR_THICKNESS, YELLOW);
-        }
-        else
-        {
-            AddLine(startX, startY, startX, startY + DOOR_INDENT, BLUE);
-            AddLine(endX, endY - DOOR_INDENT, endX, endY, BLUE);
-
-            AddLine(startX - DOOR_THICKNESS, startY + DOOR_INDENT, endX - DOOR_THICKNESS, endY - DOOR_INDENT, YELLOW);
-            AddLine(startX + DOOR_THICKNESS, startY + DOOR_INDENT, endX + DOOR_THICKNESS, endY - DOOR_INDENT, YELLOW);
-            AddLine(startX - DOOR_THICKNESS, startY + DOOR_INDENT, startX + DOOR_THICKNESS, startY + DOOR_INDENT, YELLOW);
-            AddLine(endX - DOOR_THICKNESS, endY - DOOR_INDENT, endX + DOOR_THICKNESS, endY - DOOR_INDENT, YELLOW);
-        }
-    }
-}
-
 void DrawWall(float x, float y, bool isVertical)
 {
     Vector2 extents = (isVertical) ? (Vector2){0, WALL_SIZE / 2} : (Vector2){WALL_SIZE / 2, 0};
     AddLine(x - extents.x, y - extents.y, x + extents.x, y + extents.y, BLUE);
+}
+
+void DrawDoor(float x, float y, bool isVertical)
+{
+    Vector2 extents = (isVertical) ? (Vector2){DOOR_THICKNESS / 2, DOOR_SIZE / 2} : (Vector2){DOOR_SIZE / 2, DOOR_THICKNESS / 2};
+    AddLine(x - extents.x, y - extents.y, x + extents.x, y - extents.y, YELLOW);
+    AddLine(x + extents.x, y - extents.y, x + extents.x, y + extents.y, YELLOW);
+    AddLine(x + extents.x, y + extents.y, x - extents.x, y + extents.y, YELLOW);
+    AddLine(x - extents.x, y + extents.y, x - extents.x, y - extents.y, YELLOW);
+
+    if (isVertical)
+    {
+        AddLine(x, y - WALL_SIZE / 2, x, y - DOOR_SIZE / 2, BLUE);
+        AddLine(x, y + DOOR_SIZE / 2, x, y + WALL_SIZE / 2, BLUE);
+    }
+    else
+    {
+        AddLine(x - WALL_SIZE / 2, y, x - DOOR_SIZE / 2, y, BLUE);
+        AddLine(x + DOOR_SIZE / 2, y, x + WALL_SIZE / 2, y, BLUE);
+    }
 }
 
 void DrawRobot(float x, float y)
@@ -294,7 +305,7 @@ void DrawPlaying(double alpha)
     DrawText("Playing", 4, 4, 20, RAYWHITE);
     BeginDrawLines();
     EntityDrawWalls();
-    DrawDoors();
+    EntityDrawDoors();
     EntityDrawRobots();
     EntityDrawPlayers();
     EndDrawLines();

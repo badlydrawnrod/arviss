@@ -16,7 +16,8 @@ typedef enum Component
     bmWall = bmRobot << 1,
     bmDrawable = bmWall << 1,
     bmCollidable = bmDrawable << 1,
-    bmShot = bmCollidable << 1
+    bmShot = bmCollidable << 1,
+    bmDoor = bmShot << 1
 } Component;
 
 typedef struct Entity
