@@ -26,6 +26,6 @@ endif ()
 
 
 # Run Very Angry Robots III.
-add_executable(run_va_robots main.c game_loop.h screens.h screens.c menu.c playing.c contoller.h controller.c entities.c entities.h components/dynamic_components.c components/dynamic_components.h systems/movement_system.c systems/movement_system.h systems/player_action_system.c systems/player_action_system.h systems/robot_action_system.c systems/robot_action_system.h components/static_components.c components/static_components.h components/wall_components.c components/wall_components.h components/door_components.c components/door_components.h)
+add_executable(run_va_robots main.c game_loop.h screens.h screens.c menu.c playing.c contoller.h controller.c entities.c entities.h components/dynamic_components.c components/dynamic_components.h systems/movement_system.c systems/movement_system.h systems/player_action_system.c systems/player_action_system.h systems/robot_action_system.c systems/robot_action_system.h components/static_components.c components/static_components.h components/wall_components.c components/wall_components.h components/door_components.c components/door_components.h systems/drawing_system.c systems/drawing_system.h)
 target_include_directories(run_va_robots PRIVATE .)
 target_link_libraries(run_va_robots PRIVATE arviss raylib)

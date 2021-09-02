@@ -1,8 +1,5 @@
 #pragma once
 
-#include "entities.h"
-#include "raymath.h"
-
 void UpdateMovementSystem(void);
 
 static struct

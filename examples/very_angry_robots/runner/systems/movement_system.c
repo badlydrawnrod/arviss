@@ -1,6 +1,7 @@
 #include "movement_system.h"
 
 #include "components/dynamic_components.h"
+#include "entities.h"
 
 void UpdateMovementSystem(void)
 {
