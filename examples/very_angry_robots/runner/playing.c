@@ -6,6 +6,8 @@
 #include "raymath.h"
 #include "robot_action_system.h"
 #include "screens.h"
+#include "static_components.h"
+#include "wall_components.h"
 
 #include <stdint.h>
 
@@ -28,35 +30,11 @@
 
 #define MAX_ENTITIES 256
 
-typedef struct Wall
-{
-    Vector2 start;
-    Vector2 end;
-} Wall;
-
 typedef struct Door
 {
     Vector2 start;
     Vector2 end;
 } Door;
-
-typedef enum CommandType
-{
-    dcMOVE_TO,
-    dcLINE_TO,
-    dcCOLOR,
-    dcSTOP
-} CommandType;
-
-typedef struct Command
-{
-    CommandType type;
-    union
-    {
-        Vector2 target;
-        Color color;
-    };
-} Command;
 
 typedef struct Line
 {
@@ -64,13 +42,6 @@ typedef struct Line
     Vector2 end;
     Color color;
 } Line;
-
-static Wall walls[] = {
-        {.start = {TLX, TLY}, .end = {TLX + 2 * WALL_SIZE, TLY}}, {.start = {TLX + 3 * WALL_SIZE, TLY}, .end = {TRX, TLY}},
-        {.start = {TLX, BRY}, .end = {TLX + 2 * WALL_SIZE, BRY}}, {.start = {TLX + 3 * WALL_SIZE, BRY}, .end = {TRX, BRY}},
-        {.start = {TLX, TLY}, .end = {TLX, TLY + WALL_SIZE}},     {.start = {TRX, TLY}, .end = {TRX, TLY + WALL_SIZE}},
-        {.start = {TLX, TLY + 2 * WALL_SIZE}, .end = {TLX, BRY}}, {.start = {TRX, TLY + 2 * WALL_SIZE}, .end = {TRX, BRY}},
-};
 
 static Door doors[] = {
         {.start = {TLX + 2 * WALL_SIZE, TLY}, .end = {TLX + 3 * WALL_SIZE, TLY}},
@@ -82,17 +53,19 @@ static Door doors[] = {
 static Line lines[MAX_LINES];
 static int numLines = 0;
 
+void DrawWall(float x, float y, bool isVertical);
 void DrawPlayer(float x, float y);
 void DrawRobot(float x, float y);
 
-void EntityDrawPlayers(void)
+void EntityDrawWalls(void)
 {
     for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
     {
-        if (Entities.Is(id, bmPlayer | bmDynamic | bmDrawable))
+        if (Entities.Is(id, bmWall | bmStatic | bmDrawable))
         {
-            Vector2 position = DynamicComponents.GetPosition(id);
-            DrawPlayer(position.x, position.y);
+            Vector2 position = StaticComponents.GetPosition(id);
+            bool isVertical = WallComponents.IsVertical(id);
+            DrawWall(position.x, position.y, isVertical);
         }
     }
 }
@@ -105,6 +78,18 @@ void EntityDrawRobots(void)
         {
             Vector2 position = DynamicComponents.GetPosition(id);
             DrawRobot(position.x, position.y);
+        }
+    }
+}
+
+void EntityDrawPlayers(void)
+{
+    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
+    {
+        if (Entities.Is(id, bmPlayer | bmDynamic | bmDrawable))
+        {
+            Vector2 position = DynamicComponents.GetPosition(id);
+            DrawPlayer(position.x, position.y);
         }
     }
 }
@@ -130,6 +115,24 @@ int MakePlayer(float x, float y)
     return id;
 }
 
+int MakeWall(float x, float y, bool isVertical)
+{
+    int id = Entities.Create();
+    Entities.Set(id, bmStatic);
+    Entities.Set(id, bmDrawable);
+    Entities.Set(id, bmWall);
+    StaticComponents.Set(id, &(StaticComponent){.position = {x, y}});
+    WallComponents.Set(id, &(WallComponent){.vertical = isVertical});
+    return id;
+}
+
+int MakeWallFromGrid(int gridX, int gridY, bool isVertical)
+{
+    const float x = TLX + (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
+    const float y = TLY + (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
+    return MakeWall(x, y, isVertical);
+}
+
 void EnterPlaying(void)
 {
     Entities.Reset();
@@ -138,6 +141,29 @@ void EnterPlaying(void)
     MakeRobot(3 * SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
     MakeRobot(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 4);
     MakeRobot(SCREEN_WIDTH / 2, 3 * SCREEN_HEIGHT / 4);
+
+    const bool horizontal = false;
+    const bool vertical = true;
+
+    // Top walls.
+    MakeWallFromGrid(0, 0, horizontal);
+    MakeWallFromGrid(1, 0, horizontal);
+    MakeWallFromGrid(3, 0, horizontal);
+    MakeWallFromGrid(4, 0, horizontal);
+
+    // Bottom walls.
+    MakeWallFromGrid(0, 3, horizontal);
+    MakeWallFromGrid(1, 3, horizontal);
+    MakeWallFromGrid(3, 3, horizontal);
+    MakeWallFromGrid(4, 3, horizontal);
+
+    // Left walls.
+    MakeWallFromGrid(0, 0, vertical);
+    MakeWallFromGrid(0, 2, vertical);
+
+    // Right walls.
+    MakeWallFromGrid(5, 0, vertical);
+    MakeWallFromGrid(5, 2, vertical);
 }
 
 void UpdatePlaying(void)
@@ -178,14 +204,6 @@ void AddLineV(Vector2 start, Vector2 end, Color color)
     ++numLines;
 }
 
-void DrawWalls(void)
-{
-    for (int i = 0; i < sizeof(walls) / sizeof(walls[0]); i++)
-    {
-        AddLineV(walls[i].start, walls[i].end, BLUE);
-    }
-}
-
 void DrawDoors(void)
 {
     for (int i = 0; i < sizeof(doors) / sizeof(doors[0]); i++)
@@ -217,6 +235,12 @@ void DrawDoors(void)
             AddLine(endX - DOOR_THICKNESS, endY - DOOR_INDENT, endX + DOOR_THICKNESS, endY - DOOR_INDENT, YELLOW);
         }
     }
+}
+
+void DrawWall(float x, float y, bool isVertical)
+{
+    Vector2 extents = (isVertical) ? (Vector2){0, WALL_SIZE / 2} : (Vector2){WALL_SIZE / 2, 0};
+    AddLine(x - extents.x, y - extents.y, x + extents.x, y + extents.y, BLUE);
 }
 
 void DrawRobot(float x, float y)
@@ -269,7 +293,7 @@ void DrawPlaying(double alpha)
     BeginDrawing();
     DrawText("Playing", 4, 4, 20, RAYWHITE);
     BeginDrawLines();
-    DrawWalls();
+    EntityDrawWalls();
     DrawDoors();
     EntityDrawRobots();
     EntityDrawPlayers();
