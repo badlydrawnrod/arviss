@@ -1,5 +1,7 @@
 #include "static_components.h"
 
+#include "entities.h"
+
 static struct StaticComponent staticComponents[MAX_ENTITIES];
 
 StaticComponent* GetStaticComponent(int id)

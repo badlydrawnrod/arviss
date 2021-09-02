@@ -1,7 +1,6 @@
 #pragma once
 
-#include "entities.h"
-#include "raymath.h"
+#include <stdbool.h>
 
 typedef struct DoorComponent
 {

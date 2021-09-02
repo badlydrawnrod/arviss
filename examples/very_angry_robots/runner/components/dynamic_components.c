@@ -1,5 +1,7 @@
 #include "dynamic_components.h"
 
+#include "entities.h"
+
 static struct DynamicComponent dynamicComponents[MAX_ENTITIES];
 
 DynamicComponent* GetDynamicComponent(int id)

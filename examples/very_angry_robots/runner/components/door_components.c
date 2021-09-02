@@ -1,5 +1,7 @@
 #include "door_components.h"
 
+#include "entities.h"
+
 static struct DoorComponent doorComponents[MAX_ENTITIES];
 
 DoorComponent* GetDoorComponent(int id)

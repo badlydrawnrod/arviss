@@ -1,6 +1,5 @@
 #pragma once
 
-#include "entities.h"
 #include "raymath.h"
 
 typedef struct DynamicComponent
