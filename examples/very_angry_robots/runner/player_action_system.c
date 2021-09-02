@@ -1,7 +1,7 @@
 #include "player_action_system.h"
 
+#include "components/dynamic_components.h"
 #include "contoller.h"
-#include "dynamic_components.h"
 #include "raylib.h"
 
 #define PLAYER_SPEED 2

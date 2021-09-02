@@ -1,5 +1,7 @@
-#include "door_components.h"
-#include "dynamic_components.h"
+#include "components/door_components.h"
+#include "components/dynamic_components.h"
+#include "components/static_components.h"
+#include "components/wall_components.h"
 #include "entities.h"
 #include "movement_system.h"
 #include "player_action_system.h"
@@ -7,8 +9,6 @@
 #include "raymath.h"
 #include "robot_action_system.h"
 #include "screens.h"
-#include "static_components.h"
-#include "wall_components.h"
 
 #include <stdint.h>
 
