@@ -3,12 +3,12 @@
 #include "components/static_components.h"
 #include "components/wall_components.h"
 #include "entities.h"
-#include "movement_system.h"
-#include "player_action_system.h"
 #include "raylib.h"
 #include "raymath.h"
-#include "robot_action_system.h"
 #include "screens.h"
+#include "systems/movement_system.h"
+#include "systems/player_action_system.h"
+#include "systems/robot_action_system.h"
 
 #include <stdint.h>
 
