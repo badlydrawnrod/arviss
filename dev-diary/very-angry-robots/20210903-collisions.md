@@ -30,11 +30,11 @@ Player death is a more extreme example than most, but it's clear that none of th
 
 ## Events
 
-Before I go any further, I should spell out that an event is a way of describing something that has *already happened*. Events can be delivered many mechanisms, such as messages, or callbacks, but they should not be conflated with their delivery mechanism. Other things might happen as a result of an event but the event is never an instruction for those things to happen - it's simply a record of the fact that something *has* happened.
+Before I go any further, I should spell out that an event is a way of describing something that has *already happened*. Events can be delivered by many mechanisms, such as messages, or callbacks, but they should not be conflated with their delivery mechanism. Other things might happen as a result of an event, but an event is never an instruction for those things to happen - it's simply a record of the fact that something *has* happened.
 
-To illustrate, here's a table. Everything in the left column is an event - it's something that has already occurred. Everything in the right column might be an action that happens as a result of an event, but it is not an event.
+To illustrate, here's a table. Everything in the left column is an event - it's something that has already occurred. Everything in the right column might be an action that happens as a result of an event, but it is not an event itself.
 
-| Event                      | Not an event                                    |
+| Event                      | Not an Event                                    |
 | -------------------------- | ----------------------------------------------- |
 | the player has died        | kill the player                                 |
 | the game has ended         | play a death animation at the player's position |
@@ -42,9 +42,9 @@ To illustrate, here's a table. Everything in the left column is an event - it's 
 
 ## Representing Events
 
-It took a while to decide how to represent events, because I wasn't sure if I wanted an immediate response to them or not. But because I'd started down the route of implementing an [Entity Component System](https://en.wikipedia.org/wiki/Entity_component_system), I'd started to think of components in terms of database tables, such as *Positions*, *Velocities*, and so on, in which each component was accessed by its entity id. It wasn't a huge leap forward to think of adding *Events* as another "table", but this time accessed by an event id rather than entity id ... and that broke me free from thinking that everything in an ECS must be about entities.[^1]
+It took a while to decide how to represent events because I wasn't sure if I wanted an immediate response to them or not. But as I'd started down the route of implementing an [Entity Component System](https://en.wikipedia.org/wiki/Entity_component_system), I had started to think of components in terms of database tables, such as *Positions*, *Velocities*, and so on, in which each component was accessed by its entity id. It wasn't a huge leap forward to think of adding *Events* as another "table", but this time accessed by an event id rather than entity id ... and that broke me free from thinking that everything in an ECS must be about entities.[^1]
 
-An event is created by adding it to the *Events* table. Here's an example showing the creation of a collision event.
+An event is raised by adding it to the *Events* table. Here's an example showing the creation of a collision event.
 
 ```c
 if (CheckCollisionRecs(shotRect, otherRect))
@@ -87,6 +87,6 @@ This will no doubt evolve with time, but the key takeaway from this is that even
 
 ## What if we used SQLite?
 
-I don't think this is necessarily the way forward, but once you start thinking about an ECS in terms of a relational database, it isn't a huge step to considering that one could be used for prototyping. In other words, if I'd started this project with this realisation, then I could have used an in-memory instance of [SQLite](https://www.sqlite.org/index.html) to prototype the idea, and saved myself from reinventing the wheel.
+I don't think this is necessarily the way forward, but once you start thinking about an ECS in terms of a relational database, it isn't a huge step to using one for prototyping. In other words, if I'd started this project with this realisation, then I could have used an in-memory instance of [SQLite](https://www.sqlite.org/index.html) to prototype the idea, and saved myself from reinventing a few wheels.
 
 [^1]: Yes, it's in the name, but that's rather misleading.
