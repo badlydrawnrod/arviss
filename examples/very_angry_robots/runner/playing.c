@@ -8,6 +8,7 @@
 #include "screens.h"
 #include "systems/collision_system.h"
 #include "systems/drawing_system.h"
+#include "systems/event_system.h"
 #include "systems/movement_system.h"
 #include "systems/player_action_system.h"
 #include "systems/robot_action_system.h"
@@ -119,6 +120,8 @@ void UpdatePlaying(void)
     RobotActionSystem.Update();
     MovementSystem.Update();
     CollisionSystem.Update();
+
+    EventSystem.Update(); // TODO: possibly put this *before* the other systems.
 }
 
 void DrawPlaying(double alpha)

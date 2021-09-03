@@ -1,6 +1,7 @@
 #include "collision_system.h"
 
 #include "components/collidable_components.h"
+#include "components/events.h"
 #include "components/positions.h"
 #include "entities.h"
 #include "raylib.h"
@@ -53,7 +54,7 @@ static void CollidePlayer(void)
             otherRect.y += otherPos.y;
             if (CheckCollisionRecs(playerRect, otherRect))
             {
-                TraceLog(LOG_INFO, "Player hit something");
+                Events.Add(&(Event){.type = etCOLLISION, .collision = (CollisionEvent){.firstId = playerId, .secondId = id}});
             }
         }
     }
@@ -83,7 +84,7 @@ static void CollideRobot(int robotId)
             otherRect.y += otherPos.y;
             if (CheckCollisionRecs(robotRect, otherRect))
             {
-                TraceLog(LOG_INFO, "Robot hit something");
+                Events.Add(&(Event){.type = etCOLLISION, .collision = (CollisionEvent){.firstId = robotId, .secondId = id}});
             }
         }
     }
@@ -123,7 +124,7 @@ static void CollideShot(int shotId)
             otherRect.y += otherPos.y;
             if (CheckCollisionRecs(shotRect, otherRect))
             {
-                TraceLog(LOG_INFO, "Shot hit something");
+                Events.Add(&(Event){.type = etCOLLISION, .collision = (CollisionEvent){.firstId = shotId, .secondId = id}});
             }
         }
     }
