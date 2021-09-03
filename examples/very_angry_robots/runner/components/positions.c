@@ -2,19 +2,19 @@
 
 #include "entities.h"
 
-static struct Position dynamicComponents[MAX_ENTITIES];
+static struct Position positions[MAX_ENTITIES];
 
 Position* GetPosition(int id)
 {
-    return &dynamicComponents[id];
+    return &positions[id];
 }
 
-void SetPosition(int id, Position* dynamicComponent)
+void SetPosition(int id, Position* position)
 {
-    dynamicComponents[id] = *dynamicComponent;
+    positions[id] = *position;
 }
 
 Vector2 GetPositionValue(int id)
 {
-    return dynamicComponents[id].position;
+    return positions[id].position;
 }

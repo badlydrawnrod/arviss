@@ -8,7 +8,7 @@ typedef struct Position
 } Position;
 
 Position* GetPosition(int id);
-void SetPosition(int id, Position* dynamicComponent);
+void SetPosition(int id, Position* position);
 Vector2 GetPositionValue(int id);
 
 static struct
