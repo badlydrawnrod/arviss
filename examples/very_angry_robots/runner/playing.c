@@ -1,11 +1,12 @@
 #include "components/collidable_components.h"
 #include "components/door_components.h"
-#include "components/dynamic_components.h"
-#include "components/static_components.h"
+#include "components/positions.h"
+#include "components/velocities.h"
 #include "components/wall_components.h"
 #include "entities.h"
 #include "raylib.h"
 #include "screens.h"
+#include "systems/collision_system.h"
 #include "systems/drawing_system.h"
 #include "systems/movement_system.h"
 #include "systems/player_action_system.h"
@@ -23,16 +24,18 @@
 void MakeRobot(float x, float y)
 {
     int id = Entities.Create();
-    Entities.Set(id, bmDynamic | bmDrawable | bmRobot | bmCollidable);
-    DynamicComponents.Set(id, &(DynamicComponent){.position = {x, y}});
+    Entities.Set(id, bmPosition | bmVelocity | bmDrawable | bmRobot | bmCollidable);
+    Positions.Set(id, &(Position){.position = {x, y}});
+    Velocities.Set(id, &(Velocity){.velocity = {0.0f, 0.0f}});
     CollidableComponents.Set(id, &(CollidableComponent){.type = ctROBOT});
 }
 
 int MakePlayer(float x, float y)
 {
     int id = Entities.Create();
-    Entities.Set(id, bmDynamic | bmDrawable | bmPlayer | bmCollidable);
-    DynamicComponents.Set(id, &(DynamicComponent){.position = {x, y}});
+    Entities.Set(id, bmPosition | bmVelocity | bmDrawable | bmPlayer | bmCollidable);
+    Positions.Set(id, &(Position){.position = {x, y}});
+    Velocities.Set(id, &(Velocity){.velocity = {0.0f, 0.0f}});
     CollidableComponents.Set(id, &(CollidableComponent){.type = ctPLAYER});
     return id;
 }
@@ -40,8 +43,8 @@ int MakePlayer(float x, float y)
 int MakeWall(float x, float y, bool isVertical)
 {
     int id = Entities.Create();
-    Entities.Set(id, bmStatic | bmDrawable | bmWall | bmCollidable);
-    StaticComponents.Set(id, &(StaticComponent){.position = {x, y}});
+    Entities.Set(id, bmPosition | bmDrawable | bmWall | bmCollidable);
+    Positions.Set(id, &(Position){.position = {x, y}});
     WallComponents.Set(id, &(WallComponent){.vertical = isVertical});
     CollidableComponents.Set(id, &(CollidableComponent){.type = isVertical ? ctVWALL : ctHWALL});
     return id;
@@ -57,8 +60,8 @@ int MakeWallFromGrid(int gridX, int gridY, bool isVertical)
 int MakeDoor(float x, float y, bool isVertical)
 {
     int id = Entities.Create();
-    Entities.Set(id, bmStatic | bmDrawable | bmDoor | bmCollidable);
-    StaticComponents.Set(id, &(StaticComponent){.position = {x, y}});
+    Entities.Set(id, bmPosition | bmDrawable | bmDoor | bmCollidable);
+    Positions.Set(id, &(Position){.position = {x, y}});
     DoorComponents.Set(id, &(DoorComponent){.vertical = isVertical});
     CollidableComponents.Set(id, &(CollidableComponent){.type = isVertical ? ctVDOOR : ctHDOOR});
     return id;
@@ -115,6 +118,7 @@ void UpdatePlaying(void)
     PlayerActionSystem.Update();
     RobotActionSystem.Update();
     MovementSystem.Update();
+    CollisionSystem.Update();
 }
 
 void DrawPlaying(double alpha)

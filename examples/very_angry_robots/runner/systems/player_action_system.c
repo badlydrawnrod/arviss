@@ -1,6 +1,6 @@
 #include "player_action_system.h"
 
-#include "components/dynamic_components.h"
+#include "components/velocities.h"
 #include "contoller.h"
 #include "raylib.h"
 
@@ -64,9 +64,9 @@ static void UpdatePlayer(void)
     }
 
     // Set its velocity.
-    DynamicComponent* c = DynamicComponents.Get(playerId);
-    c->movement.x = dx * PLAYER_SPEED;
-    c->movement.y = dy * PLAYER_SPEED;
+    Velocity* v = Velocities.Get(playerId);
+    v->velocity.x = dx * PLAYER_SPEED;
+    v->velocity.y = dy * PLAYER_SPEED;
 }
 
 void UpdatePlayerActions(void)

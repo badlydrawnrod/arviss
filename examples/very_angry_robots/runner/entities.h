@@ -9,9 +9,9 @@ typedef uint32_t Bitmap;
 
 typedef enum Component
 {
-    bmStatic = 1,
-    bmDynamic = bmStatic << 1,
-    bmPlayer = bmDynamic << 1,
+    bmVelocity = 1,
+    bmPosition = bmVelocity << 1,
+    bmPlayer = bmPosition << 1,
     bmRobot = bmPlayer << 1,
     bmWall = bmRobot << 1,
     bmDrawable = bmWall << 1,

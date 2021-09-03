@@ -1,8 +1,7 @@
 #include "drawing_system.h"
 
 #include "components/door_components.h"
-#include "components/dynamic_components.h"
-#include "components/static_components.h"
+#include "components/positions.h"
 #include "components/wall_components.h"
 #include "entities.h"
 #include "raylib.h"
@@ -119,9 +118,9 @@ static void DrawWalls(void)
 {
     for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
     {
-        if (Entities.Is(id, bmWall | bmStatic | bmDrawable))
+        if (Entities.Is(id, bmWall | bmPosition | bmDrawable))
         {
-            Vector2 position = StaticComponents.GetPosition(id);
+            Vector2 position = Positions.GetPosition(id);
             bool isVertical = WallComponents.IsVertical(id);
             DrawWall(position.x, position.y, isVertical);
         }
@@ -132,9 +131,9 @@ static void DrawDoors(void)
 {
     for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
     {
-        if (Entities.Is(id, bmDoor | bmStatic | bmDrawable))
+        if (Entities.Is(id, bmDoor | bmPosition | bmDrawable))
         {
-            Vector2 position = StaticComponents.GetPosition(id);
+            Vector2 position = Positions.GetPosition(id);
             bool isVertical = DoorComponents.IsVertical(id);
             DrawDoor(position.x, position.y, isVertical);
         }
@@ -145,9 +144,9 @@ static void DrawRobots(void)
 {
     for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
     {
-        if (Entities.Is(id, bmRobot | bmDynamic | bmDrawable))
+        if (Entities.Is(id, bmRobot | bmPosition | bmDrawable))
         {
-            Vector2 position = DynamicComponents.GetPosition(id);
+            Vector2 position = Positions.GetPosition(id);
             DrawRobot(position.x, position.y);
         }
     }
@@ -157,9 +156,9 @@ static void DrawPlayers(void)
 {
     for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
     {
-        if (Entities.Is(id, bmPlayer | bmDynamic | bmDrawable))
+        if (Entities.Is(id, bmPlayer | bmPosition | bmDrawable))
         {
-            Vector2 position = DynamicComponents.GetPosition(id);
+            Vector2 position = Positions.GetPosition(id);
             DrawPlayer(position.x, position.y);
         }
     }
