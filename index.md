@@ -3,6 +3,8 @@
 ## Dev Diary
 I've started keeping a Dev Diary for Arviss. Here are the most recent entries:
 
+[3/9/21 - Collisions and Events in Very Angry Robots III](./dev-diary/very-angry-robots/20210903-collisions.md)
+
 [1/9/21 - Player Movement in Very Angry Robots III](./dev-diary/very-angry-robots/20210901-movement.md) 
 
 [31/8/21 - Very Angry Robots III](./dev-diary/very-angry-robots/20210831-intro.md)
