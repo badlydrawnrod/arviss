@@ -2,19 +2,30 @@
 
 #include "components/collidable_components.h"
 #include "components/positions.h"
-#include "components/velocities.h"
 #include "entities.h"
 #include "raylib.h"
 
 static int playerId = -1;
 
+#define WALL_SIZE 224
+#define WALL_THICKNESS 2
+
+#define DOOR_SIZE (WALL_SIZE - 80)
+#define DOOR_THICKNESS 2
+
+#define ROBOT_WIDTH 32
+#define ROBOT_HEIGHT 16
+
+#define PLAYER_WIDTH 32
+#define PLAYER_HEIGHT 32
+
 static Rectangle geometries[] = {
-        {.x = -8, .y = -8, .width = 16, .height = 16}, // ctROBOT
-        {.x = -8, .y = -8, .width = 16, .height = 16}, // ctPLAYER
-        {.x = -8, .y = -8, .width = 16, .height = 16}, // ctHWALL
-        {.x = -8, .y = -8, .width = 16, .height = 16}, // ctVWALL
-        {.x = -8, .y = -8, .width = 16, .height = 16}, // ctHDOOR
-        {.x = -8, .y = -8, .width = 16, .height = 16}  // ctVDOOR
+        {.x = -ROBOT_WIDTH / 2, .y = -ROBOT_HEIGHT / 2, .width = ROBOT_WIDTH, .height = ROBOT_HEIGHT},     // ctROBOT
+        {.x = -PLAYER_WIDTH / 2, .y = -PLAYER_HEIGHT / 2, .width = PLAYER_WIDTH, .height = PLAYER_HEIGHT}, // ctPLAYER
+        {.x = -WALL_SIZE / 2, .y = -WALL_THICKNESS / 2, .width = WALL_SIZE, .height = WALL_THICKNESS},     // ctHWALL
+        {.x = -WALL_THICKNESS / 2, .y = -WALL_SIZE / 2, .width = WALL_THICKNESS, .height = WALL_SIZE},     // ctVWALL
+        {.x = -WALL_SIZE / 2, .y = -WALL_THICKNESS / 2, .width = WALL_SIZE, .height = WALL_THICKNESS},     // ctHDOOR
+        {.x = -WALL_THICKNESS / 2, .y = -WALL_SIZE / 2, .width = WALL_THICKNESS, .height = WALL_SIZE},     // ctVDOOR
 };
 
 // TODO: obviously we'd want to cache some of these queries, otherwise we're going to spend our entire adult lives looping
@@ -31,16 +42,12 @@ static void CollidePlayer(void)
     for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
     {
         // TODO: how do we distinguish between player shots and robot shots?
-        // TODO: do we have to separate static and dynamic components?
-
-        // const bool shouldTest = Entities.Is(id, bmCollidable)
-        //  && (Entities.Is(id, bmWall) || Entities.Is(id, bmDoor) || Entities.Is(id, bmRobot) || Entities.Is(id,
-        //  bmShot));
-        const bool shouldTest = Entities.Is(id, bmCollidable | bmVelocity) && (Entities.Is(id, bmWall) || Entities.Is(id, bmDoor));
+        const bool shouldTest =
+                Entities.Is(id, bmCollidable | bmPosition) && (Entities.AnyOf(id, bmWall | bmDoor | bmRobot | bmShot));
         if (shouldTest)
         {
             CollidableComponent* c = CollidableComponents.Get(id);
-            Vector2 otherPos = Velocities.GetVelocity(id);
+            Vector2 otherPos = Positions.GetPosition(id);
             Rectangle otherRect = geometries[c->type];
             otherRect.x += otherPos.x;
             otherRect.y += otherPos.y;
@@ -54,18 +61,30 @@ static void CollidePlayer(void)
 
 static void CollideRobot(int robotId)
 {
+    Vector2 robotPos = Positions.GetPosition(robotId);
+    Rectangle robotRect = geometries[ctPLAYER];
+    robotRect.x += robotPos.x;
+    robotRect.y += robotPos.y;
+
     for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
     {
         if (robotId == id)
         {
             continue;
         }
-        // TODO: how do we distinguish between player shots and robot shots?
-        const bool shouldTest = Entities.Is(id, bmWall) || Entities.Is(id, bmDoor) || Entities.Is(id, bmRobot)
-                || Entities.Is(id, bmShot) || Entities.Is(id, bmPlayer);
+        const bool shouldTest =
+                Entities.Is(id, bmCollidable | bmPosition) && Entities.AnyOf(id, bmWall | bmDoor | bmRobot | bmShot);
         if (shouldTest)
         {
-            // TODO: Compare their collision geometries and emit an event if they're in collision.
+            CollidableComponent* c = CollidableComponents.Get(id);
+            Vector2 otherPos = Positions.GetPosition(id);
+            Rectangle otherRect = geometries[c->type];
+            otherRect.x += otherPos.x;
+            otherRect.y += otherPos.y;
+            if (CheckCollisionRecs(robotRect, otherRect))
+            {
+                TraceLog(LOG_INFO, "Robot hit something");
+            }
         }
     }
 }
@@ -83,16 +102,29 @@ static void CollideRobots(void)
 
 static void CollideShot(int shotId)
 {
+    Vector2 shotPos = Positions.GetPosition(shotId);
+    Rectangle shotRect = geometries[ctPLAYER];
+    shotRect.x += shotPos.x;
+    shotRect.y += shotPos.y;
+
     for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
     {
         if (shotId == id)
         {
             continue;
         }
-        const bool shouldTest = Entities.Is(id, bmWall) || Entities.Is(id, bmDoor);
+        const bool shouldTest = Entities.AnyOf(id, bmWall | bmDoor);
         if (shouldTest)
         {
-            // TODO: Compare their collision geometries and emit an event if they're in collision.
+            CollidableComponent* c = CollidableComponents.Get(id);
+            Vector2 otherPos = Positions.GetPosition(id);
+            Rectangle otherRect = geometries[c->type];
+            otherRect.x += otherPos.x;
+            otherRect.y += otherPos.y;
+            if (CheckCollisionRecs(shotRect, otherRect))
+            {
+                TraceLog(LOG_INFO, "Shot hit something");
+            }
         }
     }
 }

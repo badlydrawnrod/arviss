@@ -30,6 +30,7 @@ int CountEntities(void);
 int CreateEntity(void);
 void DestroyEntity(int id);
 bool IsEntity(int id, Component mask);
+bool AnyOfEntity(int id, Component mask);
 void ClearEntity(int id, Component mask);
 void SetEntity(int id, Component mask);
 
@@ -40,6 +41,7 @@ static struct
     int (*Create)(void);
     void (*Destroy)(int id);
     bool (*Is)(int id, Component mask);
+    bool (*AnyOf)(int id, Component mask);
     void (*Clear)(int id, Component mask);
     void (*Set)(int id, Component mask);
 } Entities = {.Reset = ResetEntities,
@@ -47,5 +49,6 @@ static struct
               .Create = CreateEntity,
               .Destroy = DestroyEntity,
               .Is = IsEntity,
+              .AnyOf = AnyOfEntity,
               .Clear = ClearEntity,
               .Set = SetEntity};

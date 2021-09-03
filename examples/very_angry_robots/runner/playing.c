@@ -26,7 +26,7 @@ void MakeRobot(float x, float y)
     int id = Entities.Create();
     Entities.Set(id, bmPosition | bmVelocity | bmDrawable | bmRobot | bmCollidable);
     Positions.Set(id, &(Position){.position = {x, y}});
-    Velocities.Set(id, &(Velocity){.velocity = {0.0f, 0.0f}});
+    Velocities.Set(id, &(Velocity){.velocity = {1.0f, 0.0f}});
     CollidableComponents.Set(id, &(CollidableComponent){.type = ctROBOT});
 }
 

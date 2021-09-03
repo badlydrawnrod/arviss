@@ -45,6 +45,11 @@ bool IsEntity(int id, Component mask)
     return (entities[id].bitmap & mask) == mask;
 }
 
+bool AnyOfEntity(int id, Component mask)
+{
+    return (entities[id].bitmap & mask) != 0;
+}
+
 void ClearEntity(int id, Component mask)
 {
     entities[id].bitmap &= ~mask;
