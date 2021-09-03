@@ -6,8 +6,6 @@
 #include "entities.h"
 #include "raylib.h"
 
-static int playerId = -1;
-
 #define WALL_SIZE 224
 #define WALL_THICKNESS 2
 
@@ -29,6 +27,8 @@ static Rectangle geometries[] = {
         {.x = -WALL_THICKNESS / 2, .y = -WALL_SIZE / 2, .width = WALL_THICKNESS, .height = WALL_SIZE},     // ctVDOOR
 };
 
+static EntityId playerId = {-1};
+
 // TODO: obviously we'd want to cache some of these queries, otherwise we're going to spend our entire adult lives looping
 //  through all of the entities. We'll also want to look at restricting things by position as there's no point in checking for
 //  collisions with something that's on the other side of the world.
@@ -40,8 +40,9 @@ static void CollidePlayer(void)
     playerRect.x += playerPos.x;
     playerRect.y += playerPos.y;
 
-    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
+    for (int i = 0, numEntities = Entities.Count(); i < numEntities; i++)
     {
+        EntityId id = {i};
         // TODO: how do we distinguish between player shots and robot shots?
         const bool shouldTest =
                 Entities.Is(id, bmCollidable | bmPosition) && (Entities.AnyOf(id, bmWall | bmDoor | bmRobot | bmShot));
@@ -60,16 +61,17 @@ static void CollidePlayer(void)
     }
 }
 
-static void CollideRobot(int robotId)
+static void CollideRobot(EntityId robotId)
 {
     Vector2 robotPos = Positions.GetPosition(robotId);
     Rectangle robotRect = geometries[ctPLAYER];
     robotRect.x += robotPos.x;
     robotRect.y += robotPos.y;
 
-    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
+    for (int i = 0, numEntities = Entities.Count(); i < numEntities; i++)
     {
-        if (robotId == id)
+        EntityId id = {i};
+        if (robotId.id == id.id)
         {
             continue;
         }
@@ -92,8 +94,9 @@ static void CollideRobot(int robotId)
 
 static void CollideRobots(void)
 {
-    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
+    for (int i = 0, numEntities = Entities.Count(); i < numEntities; i++)
     {
+        EntityId id = {i};
         if (Entities.Is(id, bmRobot))
         {
             CollideRobot(id);
@@ -101,16 +104,17 @@ static void CollideRobots(void)
     }
 }
 
-static void CollideShot(int shotId)
+static void CollideShot(EntityId shotId)
 {
     Vector2 shotPos = Positions.GetPosition(shotId);
     Rectangle shotRect = geometries[ctPLAYER];
     shotRect.x += shotPos.x;
     shotRect.y += shotPos.y;
 
-    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
+    for (int i = 0, numEntities = Entities.Count(); i < numEntities; i++)
     {
-        if (shotId == id)
+        EntityId id = {i};
+        if (shotId.id == id.id)
         {
             continue;
         }
@@ -132,8 +136,9 @@ static void CollideShot(int shotId)
 
 static void CollideShots(void)
 {
-    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
+    for (int i = 0, numEntities = Entities.Count(); i < numEntities; i++)
     {
+        EntityId id = {i};
         if (Entities.Is(id, bmShot))
         {
             CollideShot(id);
@@ -144,13 +149,13 @@ static void CollideShots(void)
 void UpdateCollisionSystem(void)
 {
     // Cache the player id.
-    if (playerId == -1)
+    if (playerId.id == -1)
     {
-        for (int id = 0; id < MAX_ENTITIES; id++)
+        for (int i = 0; i < MAX_ENTITIES; i++)
         {
-            if (Entities.Is(id, bmPlayer))
+            if (Entities.Is((EntityId){i}, bmPlayer))
             {
-                playerId = id;
+                playerId.id = i;
                 break;
             }
         }

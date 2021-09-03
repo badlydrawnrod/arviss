@@ -6,8 +6,9 @@
 
 void UpdateMovementSystem(void)
 {
-    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
+    for (int i = 0, numEntities = Entities.Count(); i < numEntities; i++)
     {
+        EntityId id = {i};
         if (Entities.Is(id, bmPosition | bmVelocity))
         {
             Position* c = Positions.Get(id);

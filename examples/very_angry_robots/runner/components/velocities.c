@@ -4,17 +4,17 @@
 
 static struct Velocity velocities[MAX_ENTITIES];
 
-Velocity* GetVelocity(int id)
+Velocity* GetVelocity(EntityId id)
 {
-    return &velocities[id];
+    return &velocities[id.id];
 }
 
-void SetVelocity(int id, Velocity* velocity)
+void SetVelocity(EntityId id, Velocity* velocity)
 {
-    velocities[id] = *velocity;
+    velocities[id.id] = *velocity;
 }
 
-Vector2 GetVelocityValue(int id)
+Vector2 GetVelocityValue(EntityId id)
 {
-    return velocities[id].velocity;
+    return velocities[id.id].velocity;
 }

@@ -31,31 +31,31 @@ int CreateEntity(void)
     return -1;
 }
 
-void DestroyEntity(int id)
+void DestroyEntity(EntityId id)
 {
-    if (entities[id].bitmap != 0)
+    if (entities[id.id].bitmap != 0)
     {
-        entities[id].bitmap = 0;
+        entities[id.id].bitmap = 0;
         --numEntities;
     }
 }
 
-bool IsEntity(int id, Component mask)
+bool IsEntity(EntityId id, Component mask)
 {
-    return (entities[id].bitmap & mask) == mask;
+    return (entities[id.id].bitmap & mask) == mask;
 }
 
-bool AnyOfEntity(int id, Component mask)
+bool AnyOfEntity(EntityId id, Component mask)
 {
-    return (entities[id].bitmap & mask) != 0;
+    return (entities[id.id].bitmap & mask) != 0;
 }
 
-void ClearEntity(int id, Component mask)
+void ClearEntity(EntityId id, Component mask)
 {
-    entities[id].bitmap &= ~mask;
+    entities[id.id].bitmap &= ~mask;
 }
 
-void SetEntity(int id, Component mask)
+void SetEntity(EntityId id, Component mask)
 {
-    entities[id].bitmap |= mask;
+    entities[id.id].bitmap |= mask;
 }

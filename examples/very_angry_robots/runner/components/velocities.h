@@ -1,5 +1,6 @@
 #pragma once
 
+#include "entities.h"
 #include "raymath.h"
 
 typedef struct Velocity
@@ -7,13 +8,13 @@ typedef struct Velocity
     Vector2 velocity;
 } Velocity;
 
-Velocity* GetVelocity(int id);
-void SetVelocity(int id, Velocity* velocity);
-Vector2 GetVelocityValue(int id);
+Velocity* GetVelocity(EntityId id);
+void SetVelocity(EntityId id, Velocity* velocity);
+Vector2 GetVelocityValue(EntityId id);
 
 static struct
 {
-    Velocity* (*Get)(int id);
-    void (*Set)(int id, Velocity* velocity);
-    Vector2 (*GetVelocity)(int id);
+    Velocity* (*Get)(EntityId id);
+    void (*Set)(EntityId id, Velocity* velocity);
+    Vector2 (*GetVelocity)(EntityId id);
 } Velocities = {.Get = GetVelocity, .Set = SetVelocity, .GetVelocity = GetVelocityValue};

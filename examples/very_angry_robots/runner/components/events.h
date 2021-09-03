@@ -1,5 +1,7 @@
 #pragma once
 
+#include "entities.h"
+
 #define MAX_EVENTS 1024
 
 typedef enum EventType
@@ -9,13 +11,13 @@ typedef enum EventType
 
 typedef struct CollisionEvent
 {
-    int firstId;
-    int secondId;
+    EntityId firstId;
+    EntityId secondId;
 } CollisionEvent;
 
 typedef struct DeathEvent
 {
-    int id;
+    EntityId id;
 } DeathEvent;
 
 typedef struct Event

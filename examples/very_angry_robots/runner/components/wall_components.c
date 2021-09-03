@@ -4,17 +4,17 @@
 
 static struct WallComponent wallComponents[MAX_ENTITIES];
 
-WallComponent* GetWallComponent(int id)
+WallComponent* GetWallComponent(EntityId id)
 {
-    return &wallComponents[id];
+    return &wallComponents[id.id];
 }
 
-void SetWallComponent(int id, WallComponent* wallComponent)
+void SetWallComponent(EntityId id, WallComponent* wallComponent)
 {
-    wallComponents[id] = *wallComponent;
+    wallComponents[id.id] = *wallComponent;
 }
 
-bool IsVerticalWallComponent(int id)
+bool IsVerticalWallComponent(EntityId id)
 {
-    return wallComponents[id].vertical;
+    return wallComponents[id.id].vertical;
 }

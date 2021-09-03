@@ -1,5 +1,7 @@
 #pragma once
 
+#include "entities.h"
+
 typedef enum CollidableType
 {
     ctROBOT,
@@ -15,11 +17,11 @@ typedef struct CollidableComponent
     CollidableType type;
 } CollidableComponent;
 
-CollidableComponent* GetCollidableComponent(int id);
-void SetCollidableComponent(int id, CollidableComponent* collidableComponent);
+CollidableComponent* GetCollidableComponent(EntityId id);
+void SetCollidableComponent(EntityId id, CollidableComponent* collidableComponent);
 
 static struct
 {
-    CollidableComponent* (*Get)(int id);
-    void (*Set)(int id, CollidableComponent* collidableComponent);
+    CollidableComponent* (*Get)(EntityId id);
+    void (*Set)(EntityId id, CollidableComponent* collidableComponent);
 } CollidableComponents = {.Get = GetCollidableComponent, .Set = SetCollidableComponent};

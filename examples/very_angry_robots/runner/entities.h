@@ -25,25 +25,30 @@ typedef struct Entity
     Bitmap bitmap;
 } Entity;
 
+typedef struct EntityId
+{
+    int id;
+} EntityId;
+
 void ResetEntities(void);
 int CountEntities(void);
 int CreateEntity(void);
-void DestroyEntity(int id);
-bool IsEntity(int id, Component mask);
-bool AnyOfEntity(int id, Component mask);
-void ClearEntity(int id, Component mask);
-void SetEntity(int id, Component mask);
+void DestroyEntity(EntityId id);
+bool IsEntity(EntityId id, Component mask);
+bool AnyOfEntity(EntityId id, Component mask);
+void ClearEntity(EntityId id, Component mask);
+void SetEntity(EntityId id, Component mask);
 
 static struct
 {
     void (*Reset)(void);
     int (*Count)(void);
     int (*Create)(void);
-    void (*Destroy)(int id);
-    bool (*Is)(int id, Component mask);
-    bool (*AnyOf)(int id, Component mask);
-    void (*Clear)(int id, Component mask);
-    void (*Set)(int id, Component mask);
+    void (*Destroy)(EntityId id);
+    bool (*Is)(EntityId id, Component mask);
+    bool (*AnyOf)(EntityId id, Component mask);
+    void (*Clear)(EntityId id, Component mask);
+    void (*Set)(EntityId id, Component mask);
 } Entities = {.Reset = ResetEntities,
               .Count = CountEntities,
               .Create = CreateEntity,

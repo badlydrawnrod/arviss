@@ -4,12 +4,12 @@
 
 static struct CollidableComponent collidableComponents[MAX_ENTITIES];
 
-CollidableComponent* GetCollidableComponent(int id)
+CollidableComponent* GetCollidableComponent(EntityId id)
 {
-    return &collidableComponents[id];
+    return &collidableComponents[id.id];
 }
 
-void SetCollidableComponent(int id, CollidableComponent* collidableComponent)
+void SetCollidableComponent(EntityId id, CollidableComponent* collidableComponent)
 {
-    collidableComponents[id] = *collidableComponent;
+    collidableComponents[id.id] = *collidableComponent;
 }

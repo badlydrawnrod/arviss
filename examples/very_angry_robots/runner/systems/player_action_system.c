@@ -2,11 +2,12 @@
 
 #include "components/velocities.h"
 #include "contoller.h"
+#include "entities.h"
 #include "raylib.h"
 
 #define PLAYER_SPEED 2
 
-static int playerId = -1;
+static EntityId playerId = {-1};
 
 static void UpdatePlayer(void)
 {
@@ -72,13 +73,13 @@ static void UpdatePlayer(void)
 void UpdatePlayerActions(void)
 {
     // Cache the player id.
-    if (playerId == -1)
+    if (playerId.id == -1)
     {
-        for (int id = 0; id < MAX_ENTITIES; id++)
+        for (int i = 0; i < MAX_ENTITIES; i++)
         {
-            if (Entities.Is(id, bmPlayer))
+            if (Entities.Is((EntityId){i}, bmPlayer))
             {
-                playerId = id;
+                playerId.id = i;
                 break;
             }
         }

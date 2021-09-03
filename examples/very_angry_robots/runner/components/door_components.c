@@ -4,17 +4,17 @@
 
 static struct DoorComponent doorComponents[MAX_ENTITIES];
 
-DoorComponent* GetDoorComponent(int id)
+DoorComponent* GetDoorComponent(EntityId id)
 {
-    return &doorComponents[id];
+    return &doorComponents[id.id];
 }
 
-void SetDoorComponent(int id, DoorComponent* doorComponent)
+void SetDoorComponent(EntityId id, DoorComponent* doorComponent)
 {
-    doorComponents[id] = *doorComponent;
+    doorComponents[id.id] = *doorComponent;
 }
 
-bool IsVerticalDoorComponent(int id)
+bool IsVerticalDoorComponent(EntityId id)
 {
-    return doorComponents[id].vertical;
+    return doorComponents[id.id].vertical;
 }

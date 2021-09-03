@@ -4,17 +4,17 @@
 
 static struct Position positions[MAX_ENTITIES];
 
-Position* GetPosition(int id)
+Position* GetPosition(EntityId id)
 {
-    return &positions[id];
+    return &positions[id.id];
 }
 
-void SetPosition(int id, Position* position)
+void SetPosition(EntityId id, Position* position)
 {
-    positions[id] = *position;
+    positions[id.id] = *position;
 }
 
-Vector2 GetPositionValue(int id)
+Vector2 GetPositionValue(EntityId id)
 {
-    return positions[id].position;
+    return positions[id.id].position;
 }

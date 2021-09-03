@@ -22,18 +22,19 @@
 #define TLX LEFT_BORDER
 #define TLY TOP_BORDER
 
-void MakeRobot(float x, float y)
+EntityId MakeRobot(float x, float y)
 {
-    int id = Entities.Create();
+    EntityId id = (EntityId){Entities.Create()};
     Entities.Set(id, bmPosition | bmVelocity | bmDrawable | bmRobot | bmCollidable);
     Positions.Set(id, &(Position){.position = {x, y}});
     Velocities.Set(id, &(Velocity){.velocity = {1.0f, 0.0f}});
     CollidableComponents.Set(id, &(CollidableComponent){.type = ctROBOT});
+    return id;
 }
 
-int MakePlayer(float x, float y)
+EntityId MakePlayer(float x, float y)
 {
-    int id = Entities.Create();
+    EntityId id = (EntityId){Entities.Create()};
     Entities.Set(id, bmPosition | bmVelocity | bmDrawable | bmPlayer | bmCollidable);
     Positions.Set(id, &(Position){.position = {x, y}});
     Velocities.Set(id, &(Velocity){.velocity = {0.0f, 0.0f}});
@@ -41,9 +42,9 @@ int MakePlayer(float x, float y)
     return id;
 }
 
-int MakeWall(float x, float y, bool isVertical)
+EntityId MakeWall(float x, float y, bool isVertical)
 {
-    int id = Entities.Create();
+    EntityId id = (EntityId){Entities.Create()};
     Entities.Set(id, bmPosition | bmDrawable | bmWall | bmCollidable);
     Positions.Set(id, &(Position){.position = {x, y}});
     WallComponents.Set(id, &(WallComponent){.vertical = isVertical});
@@ -51,16 +52,16 @@ int MakeWall(float x, float y, bool isVertical)
     return id;
 }
 
-int MakeWallFromGrid(int gridX, int gridY, bool isVertical)
+EntityId MakeWallFromGrid(int gridX, int gridY, bool isVertical)
 {
     const float x = TLX + (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
     const float y = TLY + (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
     return MakeWall(x, y, isVertical);
 }
 
-int MakeDoor(float x, float y, bool isVertical)
+EntityId MakeDoor(float x, float y, bool isVertical)
 {
-    int id = Entities.Create();
+    EntityId id = (EntityId){Entities.Create()};
     Entities.Set(id, bmPosition | bmDrawable | bmDoor | bmCollidable);
     Positions.Set(id, &(Position){.position = {x, y}});
     DoorComponents.Set(id, &(DoorComponent){.vertical = isVertical});
@@ -68,7 +69,7 @@ int MakeDoor(float x, float y, bool isVertical)
     return id;
 }
 
-int MakeDoorFromGrid(int gridX, int gridY, bool isVertical)
+EntityId MakeDoorFromGrid(int gridX, int gridY, bool isVertical)
 {
     const float x = TLX + (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
     const float y = TLY + (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);

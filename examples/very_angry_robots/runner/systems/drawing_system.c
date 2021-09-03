@@ -116,8 +116,9 @@ static void DrawPlayer(float x, float y)
 
 static void DrawWalls(void)
 {
-    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
+    for (int i = 0, numEntities = Entities.Count(); i < numEntities; i++)
     {
+        EntityId id = {i};
         if (Entities.Is(id, bmWall | bmPosition | bmDrawable))
         {
             Vector2 position = Positions.GetPosition(id);
@@ -129,8 +130,9 @@ static void DrawWalls(void)
 
 static void DrawDoors(void)
 {
-    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
+    for (int i = 0, numEntities = Entities.Count(); i < numEntities; i++)
     {
+        EntityId id = {i};
         if (Entities.Is(id, bmDoor | bmPosition | bmDrawable))
         {
             Vector2 position = Positions.GetPosition(id);
@@ -142,8 +144,9 @@ static void DrawDoors(void)
 
 static void DrawRobots(void)
 {
-    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
+    for (int i = 0, numEntities = Entities.Count(); i < numEntities; i++)
     {
+        EntityId id = {i};
         if (Entities.Is(id, bmRobot | bmPosition | bmDrawable))
         {
             Vector2 position = Positions.GetPosition(id);
@@ -154,8 +157,9 @@ static void DrawRobots(void)
 
 static void DrawPlayers(void)
 {
-    for (int id = 0, numEntities = Entities.Count(); id < numEntities; id++)
+    for (int i = 0, numEntities = Entities.Count(); i < numEntities; i++)
     {
+        EntityId id = {i};
         if (Entities.Is(id, bmPlayer | bmPosition | bmDrawable))
         {
             Vector2 position = Positions.GetPosition(id);

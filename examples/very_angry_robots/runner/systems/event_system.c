@@ -10,7 +10,7 @@ void UpdateEventSystem(void)
         Event* e = Events.Get((EventId){.id = i});
         if (e->type == etCOLLISION)
         {
-            TraceLog(LOG_INFO, "Collision between %d and %d", e->collision.firstId, e->collision.secondId);
+            TraceLog(LOG_INFO, "Collision between %d and %d", e->collision.firstId.id, e->collision.secondId.id);
         }
     }
     Events.Clear();
