@@ -5,11 +5,12 @@
 
 #define MAX_ENTITIES 256
 
-typedef uint32_t Bitmap;
+typedef uint32_t ComponentBitmap;
 
 typedef enum Component
 {
-    bmVelocity = 1,
+    bmReap = 1,
+    bmVelocity = bmReap << 1,
     bmPosition = bmVelocity << 1,
     bmPlayer = bmPosition << 1,
     bmRobot = bmPlayer << 1,
@@ -22,7 +23,7 @@ typedef enum Component
 
 typedef struct Entity
 {
-    Bitmap bitmap;
+    ComponentBitmap bitmap;
 } Entity;
 
 typedef struct EntityId
@@ -30,19 +31,21 @@ typedef struct EntityId
     int id;
 } EntityId;
 
-void ResetEntities(void);
-int CountEntities(void);
-int CreateEntity(void);
-void DestroyEntity(EntityId id);
-bool IsEntity(EntityId id, Component mask);
-bool AnyOfEntity(EntityId id, Component mask);
-void ClearEntity(EntityId id, Component mask);
-void SetEntity(EntityId id, Component mask);
+void ResetEntities(void);                      // Remove all entities.
+int CountEntity(void);                         // The current number of active entities.
+int MaxCountEntity(void);                      // What's the largest number of entities that have been active?
+int CreateEntity(void);                        // Creates a new entity.
+void DestroyEntity(EntityId id);               // Destroy this entity by removing all of its components.
+bool IsEntity(EntityId id, Component mask);    // True if this entity exactly matches a component.
+bool AnyOfEntity(EntityId id, Component mask); // True if this entity matches any of the components.
+void ClearEntity(EntityId id, Component mask); // Removes one or more components from an entity.
+void SetEntity(EntityId id, Component mask);   // Adds one of more components to an entity.
 
 static struct
 {
     void (*Reset)(void);
     int (*Count)(void);
+    int (*MaxCount)(void);
     int (*Create)(void);
     void (*Destroy)(EntityId id);
     bool (*Is)(EntityId id, Component mask);
@@ -50,7 +53,8 @@ static struct
     void (*Clear)(EntityId id, Component mask);
     void (*Set)(EntityId id, Component mask);
 } Entities = {.Reset = ResetEntities,
-              .Count = CountEntities,
+              .Count = CountEntity,
+              .MaxCount = MaxCountEntity,
               .Create = CreateEntity,
               .Destroy = DestroyEntity,
               .Is = IsEntity,

@@ -34,6 +34,15 @@ void UpdateEventSystem(void)
         {
             const CollisionEvent* c = &e->collision;
             TraceLog(LOG_INFO, "Collision between %s and %s", Identify(c->firstId), Identify(c->secondId));
+
+            // Tag the first entity for reaping, because it's always going to be the player, a robot or a shot.
+            Entities.Set(c->firstId, bmReap);
+
+            // Only remove mobile entities. We don't want to remove walls and doors (that happened).
+            if (Entities.AnyOf(c->secondId, bmRobot | bmPlayer | bmShot))
+            {
+                Entities.Set(c->secondId, bmReap);
+            }
         }
     }
     Events.Clear();

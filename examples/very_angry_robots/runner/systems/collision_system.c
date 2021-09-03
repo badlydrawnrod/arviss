@@ -40,7 +40,7 @@ static void CollidePlayer(void)
     playerRect.x += playerPos.x;
     playerRect.y += playerPos.y;
 
-    for (int i = 0, numEntities = Entities.Count(); i < numEntities; i++)
+    for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
         EntityId id = {i};
         // TODO: how do we distinguish between player shots and robot shots?
@@ -68,7 +68,7 @@ static void CollideRobot(EntityId robotId)
     robotRect.x += robotPos.x;
     robotRect.y += robotPos.y;
 
-    for (int i = 0, numEntities = Entities.Count(); i < numEntities; i++)
+    for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
         EntityId id = {i};
         if (robotId.id == id.id)
@@ -94,7 +94,7 @@ static void CollideRobot(EntityId robotId)
 
 static void CollideRobots(void)
 {
-    for (int i = 0, numEntities = Entities.Count(); i < numEntities; i++)
+    for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
         EntityId id = {i};
         if (Entities.Is(id, bmRobot))
@@ -111,7 +111,7 @@ static void CollideShot(EntityId shotId)
     shotRect.x += shotPos.x;
     shotRect.y += shotPos.y;
 
-    for (int i = 0, numEntities = Entities.Count(); i < numEntities; i++)
+    for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
         EntityId id = {i};
         if (shotId.id == id.id)
@@ -136,7 +136,7 @@ static void CollideShot(EntityId shotId)
 
 static void CollideShots(void)
 {
-    for (int i = 0, numEntities = Entities.Count(); i < numEntities; i++)
+    for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
         EntityId id = {i};
         if (Entities.Is(id, bmShot))
@@ -151,7 +151,7 @@ void UpdateCollisionSystem(void)
     // Cache the player id.
     if (playerId.id == -1)
     {
-        for (int i = 0; i < MAX_ENTITIES; i++)
+        for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
         {
             if (Entities.Is((EntityId){i}, bmPlayer))
             {

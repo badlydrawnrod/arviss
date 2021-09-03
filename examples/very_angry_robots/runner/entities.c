@@ -1,21 +1,30 @@
 #include "entities.h"
 
-static int numEntities = 0; // TODO: rename to maxAssignedEntity and update when necessary.
+#include "raylib.h"
+
+static int maxCount = 0;
+static int count = 0;
+
 static Entity entities[MAX_ENTITIES];
 
 void ResetEntities(void)
 {
-    numEntities = 0;
+    maxCount = 0;
+    count = 0;
     for (int i = 0; i < MAX_ENTITIES; i++)
     {
         entities[i].bitmap = 0;
     }
 }
 
-// TODO: rename this to MaxAssignedEntity.
-int CountEntities(void)
+int CountEntity(void)
 {
-    return numEntities;
+    return count;
+}
+
+int MaxCountEntity(void)
+{
+    return maxCount;
 }
 
 int CreateEntity(void)
@@ -24,7 +33,12 @@ int CreateEntity(void)
     {
         if (entities[id].bitmap == 0)
         {
-            ++numEntities;
+            ++count;
+            if (id == maxCount)
+            {
+                ++maxCount;
+            }
+            TraceLog(LOG_DEBUG, "CreateEntity() count = %d, maxCount = %d", count, maxCount);
             return id;
         }
     }
@@ -36,7 +50,12 @@ void DestroyEntity(EntityId id)
     if (entities[id.id].bitmap != 0)
     {
         entities[id.id].bitmap = 0;
-        --numEntities;
+        --count;
+        if (id.id == maxCount - 1)
+        {
+            --maxCount;
+        }
+        TraceLog(LOG_DEBUG, "DestroyEntity() count = %d, maxCount = %d", count, maxCount);
     }
 }
 

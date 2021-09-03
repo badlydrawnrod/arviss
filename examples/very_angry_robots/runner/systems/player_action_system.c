@@ -75,7 +75,7 @@ void UpdatePlayerActions(void)
     // Cache the player id.
     if (playerId.id == -1)
     {
-        for (int i = 0; i < MAX_ENTITIES; i++)
+        for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
         {
             if (Entities.Is((EntityId){i}, bmPlayer))
             {

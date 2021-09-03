@@ -11,6 +11,7 @@
 #include "systems/event_system.h"
 #include "systems/movement_system.h"
 #include "systems/player_action_system.h"
+#include "systems/reaper_system.h"
 #include "systems/robot_action_system.h"
 
 #define HWALLS 5
@@ -117,6 +118,8 @@ void EnterPlaying(void)
 
 void UpdatePlaying(void)
 {
+    ReaperSystem.Update();
+
     PlayerActionSystem.Update();
     RobotActionSystem.Update();
     MovementSystem.Update();
