@@ -2,7 +2,7 @@
 
 **3/9/21**
 
-In Very Angry Robot III, there are several types of entity. Some of these are mobile, such as the player, the robots, and their respective shots. Others are generally static, such as walls and doors.
+In Very Angry Robots III, there are several types of entity. Some of these are mobile, such as the player, the robots, and their respective shots. Others are generally static, such as walls and doors.
 
 ## Collision Detection
 
