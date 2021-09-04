@@ -6,9 +6,11 @@
 #include "entities.h"
 #include "raylib.h"
 #include "screens.h"
+#include "systems/collision_response_system.h"
 #include "systems/collision_system.h"
 #include "systems/drawing_system.h"
 #include "systems/event_system.h"
+#include "systems/game_status_system.h"
 #include "systems/movement_system.h"
 #include "systems/player_action_system.h"
 #include "systems/reaper_system.h"
@@ -80,6 +82,8 @@ EntityId MakeDoorFromGrid(int gridX, int gridY, bool isVertical)
 void EnterPlaying(void)
 {
     Entities.Reset();
+    GameStatusSystem.Reset();
+
     MakePlayer(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
     MakeRobot(SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
     MakeRobot(3 * SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
@@ -125,7 +129,9 @@ void UpdatePlaying(void)
     MovementSystem.Update();
     CollisionSystem.Update();
 
-    EventSystem.Update(); // TODO: possibly put this *before* the other systems.
+    CollisionResponseSystem.Update();
+    GameStatusSystem.Update();
+    EventSystem.Update();
 }
 
 void DrawPlaying(double alpha)

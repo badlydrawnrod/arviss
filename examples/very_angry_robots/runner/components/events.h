@@ -6,7 +6,8 @@
 
 typedef enum EventType
 {
-    etCOLLISION
+    etCOLLISION,
+    etPLAYER
 } EventType;
 
 typedef struct CollisionEvent
@@ -15,10 +16,16 @@ typedef struct CollisionEvent
     EntityId secondId;
 } CollisionEvent;
 
-typedef struct DeathEvent
+typedef enum PlayerEventType
 {
+    peDIED
+} PlayerEventType;
+
+typedef struct PlayerEvent
+{
+    PlayerEventType type;
     EntityId id;
-} DeathEvent;
+} PlayerEvent;
 
 typedef struct Event
 {
@@ -26,7 +33,7 @@ typedef struct Event
     union
     {
         CollisionEvent collision;
-        DeathEvent death;
+        PlayerEvent player;
     };
 } Event;
 
