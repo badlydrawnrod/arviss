@@ -28,17 +28,43 @@ static void CreateRoom(void);
 
 typedef double GameTime; // More for refactoring convenience than type safety.
 
+typedef struct TimedTrigger
+{
+    GameTime time;
+} TimedTrigger;
+
 static bool gameOver = false;
 static bool alreadyDied = false;
 static int lives = 0;
-static GameTime restartTime = 0.0;
+static TimedTrigger restartTime = {0.0};
+static TimedTrigger amnestyTime = {0.0};
 static Vector2 playerSpawnPoint;
 static EntityId playerId;
+
+static void ClearTimedTrigger(TimedTrigger* trigger)
+{
+    trigger->time = 0.0;
+}
+
+static void SetTimedTrigger(TimedTrigger* trigger, GameTime when)
+{
+    trigger->time = when;
+}
+
+static bool PollTimedTrigger(TimedTrigger* trigger, GameTime now)
+{
+    if (trigger->time > 0.0 && now >= trigger->time)
+    {
+        trigger->time = 0.0;
+        return true;
+    }
+    return false;
+}
 
 static EntityId MakeRobot(float x, float y)
 {
     EntityId id = (EntityId){Entities.Create()};
-    Entities.Set(id, bmPosition | bmVelocity | bmDrawable | bmRobot | bmCollidable);
+    Entities.Set(id, bmPosition | bmDrawable | bmRobot | bmCollidable); // No velocity to start. It isn't movable.
     Positions.Set(id, &(Position){.position = {x, y}});
     Velocities.Set(id, &(Velocity){.velocity = {1.0f, 0.0f}});
     CollidableComponents.Set(id, &(CollidableComponent){.type = ctROBOT});
@@ -142,6 +168,9 @@ static void SpawnPlayer(void)
     Entities.Set(playerId, bmDrawable | bmCollidable | bmVelocity);
 
     Events.Add(&(Event){.type = etPLAYER, .player = (PlayerEvent){.type = peSPAWNED, .id = playerId}});
+
+    SetTimedTrigger(&amnestyTime, GetTime() + 2.5);
+    TraceLog(LOG_DEBUG, "Amnesty starting");
 }
 
 static void HandleEvents(int first, int last)
@@ -160,8 +189,18 @@ static void HandleEvents(int first, int last)
             alreadyDied = true;
             --lives;
             TraceLog(LOG_INFO, "Player died. Lives reduced to %d", lives);
-            restartTime = GetTime() + 5;
+            SetTimedTrigger(&restartTime, GetTime() + 5);
             Entities.Clear(pe->id, bmDrawable | bmCollidable | bmVelocity);
+
+            // The robots should stop moving because the player has died.
+            for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
+            {
+                EntityId id = {.id = i};
+                if (Entities.Is(id, bmRobot))
+                {
+                    Entities.Clear(id, bmVelocity);
+                }
+            }
         }
         else if (pe->type == peSPAWNED)
         {
@@ -181,6 +220,8 @@ void ResetGameStatusSystem(void)
     EventSystem.Register(HandleEvents);
     alreadyDied = false;
     lives = 3;
+    ClearTimedTrigger(&restartTime);
+    ClearTimedTrigger(&amnestyTime);
     CreateRoom();
 }
 
@@ -188,9 +229,10 @@ void UpdateGameStatusSystem(void)
 {
     alreadyDied = false;
 
-    if (restartTime > 0.0 && GetTime() > restartTime)
+    const GameTime now = GetTime();
+
+    if (PollTimedTrigger(&restartTime, now))
     {
-        restartTime = 0.0;
         if (lives > 0)
         {
             SpawnPlayer();
@@ -199,6 +241,21 @@ void UpdateGameStatusSystem(void)
         {
             TraceLog(LOG_INFO, "Game Over");
             gameOver = true;
+        }
+    }
+
+    if (PollTimedTrigger(&amnestyTime, now))
+    {
+        TraceLog(LOG_DEBUG, "Amnesty over");
+
+        // The robots are allowed to move once the amnesty is over.
+        for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
+        {
+            EntityId id = {.id = i};
+            if (Entities.Is(id, bmRobot))
+            {
+                Entities.Set(id, bmVelocity);
+            }
         }
     }
 }
