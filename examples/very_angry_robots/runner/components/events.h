@@ -18,7 +18,8 @@ typedef struct CollisionEvent
 
 typedef enum PlayerEventType
 {
-    peDIED
+    peDIED,
+    peSPAWNED
 } PlayerEventType;
 
 typedef struct PlayerEvent

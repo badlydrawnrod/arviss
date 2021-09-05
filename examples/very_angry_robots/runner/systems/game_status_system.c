@@ -22,9 +22,15 @@
 #define TLX LEFT_BORDER
 #define TLY TOP_BORDER
 
+static void SpawnPlayer(void);
 static void CreateRoom(void);
 
-static int lives;
+typedef double GameTime; // More for refactoring convenience than type safety.
+
+static int lives = 0;
+static GameTime restartTime = 0.0;
+static Vector2 playerSpawnPoint;
+static EntityId playerId;
 
 void ResetGameStatusSystem(void)
 {
@@ -88,7 +94,13 @@ static EntityId MakeDoorFromGrid(int gridX, int gridY, bool isVertical)
 
 static void CreateRoom(void)
 {
-    MakePlayer(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+    TraceLog(LOG_DEBUG, "Creating room");
+
+    playerSpawnPoint = (Vector2){.x = SCREEN_WIDTH / 2, .y = SCREEN_HEIGHT / 2};
+
+    playerId = MakePlayer(playerSpawnPoint.x, playerSpawnPoint.y);
+    SpawnPlayer();
+
     MakeRobot(SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
     MakeRobot(3 * SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
     MakeRobot(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 4);
@@ -124,6 +136,17 @@ static void CreateRoom(void)
     MakeDoorFromGrid(5, 1, vertical);
 }
 
+static void SpawnPlayer(void)
+{
+    TraceLog(LOG_DEBUG, "Spawning player at (%3.1f, %3.1f)", playerSpawnPoint.x, playerSpawnPoint.y);
+    Position* p = Positions.Get(playerId);
+    p->position = playerSpawnPoint;
+
+    Entities.Set(playerId, bmDrawable | bmCollidable | bmVelocity);
+
+    Events.Add(&(Event){.type = etPLAYER, .player = (PlayerEvent){.type = peSPAWNED, .id = playerId}});
+}
+
 void UpdateGameStatusSystem(void)
 {
     bool died = false;
@@ -142,6 +165,25 @@ void UpdateGameStatusSystem(void)
             died = true;
             --lives;
             TraceLog(LOG_INFO, "Player died. Lives reduced to %d", lives);
+            restartTime = GetTime() + 5;
+            Entities.Clear(pe->id, bmDrawable | bmCollidable | bmVelocity);
+        }
+        else if (pe->type == peSPAWNED)
+        {
+            TraceLog(LOG_INFO, "Player spawned");
+        }
+    }
+
+    if (restartTime > 0.0 && GetTime() > restartTime)
+    {
+        restartTime = 0.0;
+        if (lives > 0)
+        {
+            SpawnPlayer();
+        }
+        else
+        {
+            TraceLog(LOG_INFO, "Game Over");
         }
     }
 }

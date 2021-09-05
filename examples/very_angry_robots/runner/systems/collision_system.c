@@ -35,6 +35,11 @@ static EntityId playerId = {-1};
 
 static void CollidePlayer(void)
 {
+    if (!Entities.Is(playerId, bmCollidable))
+    {
+        return;
+    }
+
     Vector2 playerPos = Positions.GetPosition(playerId);
     Rectangle playerRect = geometries[ctPLAYER];
     playerRect.x += playerPos.x;
@@ -97,7 +102,7 @@ static void CollideRobots(void)
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
         EntityId id = {i};
-        if (Entities.Is(id, bmRobot))
+        if (Entities.Is(id, bmRobot | bmCollidable))
         {
             CollideRobot(id);
         }
@@ -139,7 +144,7 @@ static void CollideShots(void)
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
         EntityId id = {i};
-        if (Entities.Is(id, bmShot))
+        if (Entities.Is(id, bmShot | bmCollidable))
         {
             CollideShot(id);
         }
