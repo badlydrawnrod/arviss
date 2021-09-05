@@ -1,8 +1,38 @@
 #include "event_system.h"
 
 #include "components/events.h"
+#include "raylib.h"
+
+#define MAX_HANDLERS 32
+
+static EventHandler handlers[MAX_HANDLERS];
+static int numHandlers = 0;
+
+void RegisterHandlerWithEventSystem(EventHandler handler)
+{
+    handlers[numHandlers] = handler;
+    ++numHandlers;
+}
+
+void ResetEventSystem(void)
+{
+    numHandlers = 0;
+}
 
 void UpdateEventSystem(void)
 {
+    int lastEvent = 0;
+
+    while (lastEvent != Events.Count())
+    {
+        int firstEvent = lastEvent;
+        lastEvent = Events.Count();
+        TraceLog(LOG_DEBUG, "Processing events from %d to %d", firstEvent, lastEvent);
+        for (int i = 0; i < numHandlers; i++)
+        {
+            handlers[i](firstEvent, lastEvent);
+        }
+    }
+
     Events.Clear();
 }

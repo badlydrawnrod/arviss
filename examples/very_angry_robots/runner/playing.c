@@ -14,6 +14,8 @@
 void EnterPlaying(void)
 {
     Entities.Reset();
+    EventSystem.Reset();
+    CollisionResponseSystem.Reset();
     GameStatusSystem.Reset();
 }
 
@@ -25,9 +27,9 @@ void UpdatePlaying(void)
     RobotActionSystem.Update();
     MovementSystem.Update();
     CollisionSystem.Update();
-
     CollisionResponseSystem.Update();
     GameStatusSystem.Update();
+
     EventSystem.Update();
 }
 

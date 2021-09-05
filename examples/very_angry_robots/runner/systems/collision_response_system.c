@@ -3,6 +3,7 @@
 #include "components/events.h"
 #include "entities.h"
 #include "raylib.h"
+#include "systems/event_system.h"
 
 static const char* Identify(EntityId id)
 {
@@ -25,9 +26,9 @@ static const char* Identify(EntityId id)
     return "*** unknown ***";
 }
 
-void UpdateCollisionResponseSystem(void)
+static void HandleEvents(int first, int last)
 {
-    for (int i = 0, numEvents = Events.Count(); i < numEvents; i++)
+    for (int i = first; i != last; i++)
     {
         const Event* e = Events.Get((EventId){.id = i});
         if (e->type != etCOLLISION)
@@ -56,4 +57,13 @@ void UpdateCollisionResponseSystem(void)
             Events.Add(&(Event){.type = etPLAYER, .player = (PlayerEvent){.type = peDIED, .id = c->firstId}});
         }
     }
+}
+
+void ResetCollisionResponseSystem(void)
+{
+    EventSystem.Register(HandleEvents);
+}
+
+void UpdateCollisionResponseSystem(void)
+{
 }

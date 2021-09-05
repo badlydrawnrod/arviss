@@ -8,6 +8,7 @@
 #include "components/wall_components.h"
 #include "entities.h"
 #include "raylib.h"
+#include "systems/event_system.h"
 
 // TODO: find a place to put these that's common (if it's still necessary).
 #define SCREEN_WIDTH 1280
@@ -27,16 +28,11 @@ static void CreateRoom(void);
 
 typedef double GameTime; // More for refactoring convenience than type safety.
 
+static bool alreadyDied = false;
 static int lives = 0;
 static GameTime restartTime = 0.0;
 static Vector2 playerSpawnPoint;
 static EntityId playerId;
-
-void ResetGameStatusSystem(void)
-{
-    lives = 3;
-    CreateRoom();
-}
 
 static EntityId MakeRobot(float x, float y)
 {
@@ -147,11 +143,9 @@ static void SpawnPlayer(void)
     Events.Add(&(Event){.type = etPLAYER, .player = (PlayerEvent){.type = peSPAWNED, .id = playerId}});
 }
 
-void UpdateGameStatusSystem(void)
+static void HandleEvents(int first, int last)
 {
-    bool died = false;
-
-    for (int i = 0, numEvents = Events.Count(); i < numEvents; i++)
+    for (int i = first; i != last; i++)
     {
         const Event* e = Events.Get((EventId){.id = i});
         if (e->type != etPLAYER)
@@ -160,9 +154,9 @@ void UpdateGameStatusSystem(void)
         }
 
         const PlayerEvent* pe = &e->player;
-        if (!died && pe->type == peDIED)
+        if (!alreadyDied && pe->type == peDIED)
         {
-            died = true;
+            alreadyDied = true;
             --lives;
             TraceLog(LOG_INFO, "Player died. Lives reduced to %d", lives);
             restartTime = GetTime() + 5;
@@ -173,6 +167,19 @@ void UpdateGameStatusSystem(void)
             TraceLog(LOG_INFO, "Player spawned");
         }
     }
+}
+
+void ResetGameStatusSystem(void)
+{
+    EventSystem.Register(HandleEvents);
+    alreadyDied = false;
+    lives = 3;
+    CreateRoom();
+}
+
+void UpdateGameStatusSystem(void)
+{
+    alreadyDied = false;
 
     if (restartTime > 0.0 && GetTime() > restartTime)
     {
