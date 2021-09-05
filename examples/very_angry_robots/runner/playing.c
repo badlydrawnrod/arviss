@@ -1,4 +1,3 @@
-#include "components/collidable_components.h"
 #include "raylib.h"
 #include "screens.h"
 #include "systems/collision_response_system.h"
@@ -31,6 +30,11 @@ void UpdatePlaying(void)
     GameStatusSystem.Update();
 
     EventSystem.Update();
+
+    if (GameStatusSystem.IsGameOver())
+    {
+        SwitchTo(MENU);
+    }
 }
 
 void DrawPlaying(double alpha)
@@ -47,7 +51,7 @@ void DrawPlaying(double alpha)
 
 void CheckTriggersPlaying(void)
 {
-    if (IsKeyPressed(KEY_SPACE))
+    if (IsKeyPressed(KEY_ESCAPE))
     {
         SwitchTo(MENU);
     }

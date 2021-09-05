@@ -28,6 +28,7 @@ static void CreateRoom(void);
 
 typedef double GameTime; // More for refactoring convenience than type safety.
 
+static bool gameOver = false;
 static bool alreadyDied = false;
 static int lives = 0;
 static GameTime restartTime = 0.0;
@@ -169,8 +170,14 @@ static void HandleEvents(int first, int last)
     }
 }
 
+bool IsGameOverGameStatusSystem(void)
+{
+    return gameOver;
+}
+
 void ResetGameStatusSystem(void)
 {
+    gameOver = false;
     EventSystem.Register(HandleEvents);
     alreadyDied = false;
     lives = 3;
@@ -191,6 +198,7 @@ void UpdateGameStatusSystem(void)
         else
         {
             TraceLog(LOG_INFO, "Game Over");
+            gameOver = true;
         }
     }
 }
