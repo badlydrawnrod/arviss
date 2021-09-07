@@ -3,6 +3,7 @@
 #include "components/collidable_components.h"
 #include "components/door_components.h"
 #include "components/events.h"
+#include "components/player_status.h"
 #include "components/positions.h"
 #include "components/velocities.h"
 #include "components/wall_components.h"
@@ -35,7 +36,6 @@ typedef struct TimedTrigger
 
 static bool gameOver = false;
 static bool alreadyDied = false;
-static int lives = 0;
 static TimedTrigger restartTime = {0.0};
 static TimedTrigger amnestyTime = {0.0};
 static Vector2 playerSpawnPoint;
@@ -77,6 +77,7 @@ static EntityId MakePlayer(float x, float y)
     Entities.Set(id, bmPosition | bmVelocity | bmDrawable | bmPlayer | bmCollidable);
     Positions.Set(id, &(Position){.position = {x, y}});
     Velocities.Set(id, &(Velocity){.velocity = {0.0f, 0.0f}});
+    PlayerStatuses.Set(id, &(PlayerStatus){.lives = 3, .score = 0});
     CollidableComponents.Set(id, &(CollidableComponent){.type = ctPLAYER});
     return id;
 }
@@ -187,8 +188,9 @@ static void HandleEvents(int first, int last)
         if (!alreadyDied && pe->type == peDIED)
         {
             alreadyDied = true;
-            --lives;
-            TraceLog(LOG_INFO, "Player died. Lives reduced to %d", lives);
+            PlayerStatus* p = PlayerStatuses.Get(playerId);
+            --p->lives;
+            TraceLog(LOG_INFO, "Player died. Lives reduced to %d", p->lives);
             SetTimedTrigger(&restartTime, GetTime() + 5);
             Entities.Clear(pe->id, bmDrawable | bmCollidable | bmVelocity);
 
@@ -219,7 +221,6 @@ void ResetGameStatusSystem(void)
     gameOver = false;
     EventSystem.Register(HandleEvents);
     alreadyDied = false;
-    lives = 3;
     ClearTimedTrigger(&restartTime);
     ClearTimedTrigger(&amnestyTime);
     CreateRoom();
@@ -233,7 +234,8 @@ void UpdateGameStatusSystem(void)
 
     if (PollTimedTrigger(&restartTime, now))
     {
-        if (lives > 0)
+        PlayerStatus* p = PlayerStatuses.Get(playerId);
+        if (p->lives > 0)
         {
             SpawnPlayer();
         }

@@ -1,6 +1,7 @@
 #include "drawing_system.h"
 
 #include "components/door_components.h"
+#include "components/player_status.h"
 #include "components/positions.h"
 #include "components/wall_components.h"
 #include "entities.h"
@@ -168,6 +169,20 @@ static void DrawPlayers(void)
     }
 }
 
+void DrawHud(void)
+{
+    for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
+    {
+        EntityId id = {i};
+        if (Entities.Is(id, bmPlayer))
+        {
+            PlayerStatus* p = PlayerStatuses.Get(id);
+            DrawText(TextFormat("Score: %d", p->score), 96, 4, 20, SKYBLUE);
+            DrawText(TextFormat("Lives: %d", p->lives), GetScreenWidth() - 192, 4, 20, SKYBLUE);
+        }
+    }
+}
+
 void UpdateDrawingSystem(void)
 {
     BeginDrawLines();
@@ -176,4 +191,5 @@ void UpdateDrawingSystem(void)
     DrawRobots();
     DrawPlayers();
     EndDrawLines();
+    DrawHud();
 }
