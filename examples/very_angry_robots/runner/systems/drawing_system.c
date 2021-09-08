@@ -10,9 +10,9 @@
 #define MAX_LINES 1024
 #define LINE_THICKNESS 2
 
+#define WALL_SIZE 224
 #define DOOR_SIZE (WALL_SIZE - 80)
 #define DOOR_THICKNESS 4
-#define WALL_SIZE 224
 
 typedef struct Line
 {
@@ -169,7 +169,23 @@ static void DrawPlayers(void)
     }
 }
 
-void DrawHud(void)
+static void DrawRoom(void)
+{
+    const float roomX = ((float)GetScreenWidth() - 5.0f * WALL_SIZE) / 2.0f;
+    const float roomY = 28.0f;
+    const Camera2D camera = {.zoom = 1.0f, .offset = {roomX, roomY}};
+
+    BeginMode2D(camera);
+    BeginDrawLines();
+    DrawWalls();
+    DrawDoors();
+    DrawRobots();
+    DrawPlayers();
+    EndDrawLines();
+    EndMode2D();
+}
+
+static void DrawHud(void)
 {
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
@@ -185,11 +201,6 @@ void DrawHud(void)
 
 void UpdateDrawingSystem(void)
 {
-    BeginDrawLines();
-    DrawWalls();
-    DrawDoors();
-    DrawRobots();
-    DrawPlayers();
-    EndDrawLines();
+    DrawRoom();
     DrawHud();
 }

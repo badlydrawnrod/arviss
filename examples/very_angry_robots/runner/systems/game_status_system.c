@@ -12,18 +12,11 @@
 #include "systems/event_system.h"
 #include "timed_triggers.h"
 
-// TODO: find a place to put these that's common (if it's still necessary).
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 720
-
 #define HWALLS 5
 #define VWALLS 3
 #define WALL_SIZE 224
-#define BORDER ((SCREEN_HEIGHT - WALL_SIZE * VWALLS) / 4)
-#define TOP_BORDER (BORDER * 3)
-#define LEFT_BORDER ((SCREEN_WIDTH - WALL_SIZE * HWALLS) / 2)
-#define TLX LEFT_BORDER
-#define TLY TOP_BORDER
+#define ARENA_WIDTH (HWALLS * WALL_SIZE)
+#define ARENA_HEIGHT (VWALLS * WALL_SIZE)
 
 static void SpawnPlayer(void);
 static void CreateRoom(void);
@@ -68,8 +61,8 @@ static EntityId MakeWall(float x, float y, bool isVertical)
 
 static EntityId MakeWallFromGrid(int gridX, int gridY, bool isVertical)
 {
-    const float x = TLX + (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
-    const float y = TLY + (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
+    const float x = (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
+    const float y = (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
     return MakeWall(x, y, isVertical);
 }
 
@@ -85,8 +78,8 @@ static EntityId MakeDoor(float x, float y, bool isVertical)
 
 static EntityId MakeDoorFromGrid(int gridX, int gridY, bool isVertical)
 {
-    const float x = TLX + (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
-    const float y = TLY + (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
+    const float x = (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
+    const float y = (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
     return MakeDoor(x, y, isVertical);
 }
 
@@ -94,15 +87,15 @@ static void CreateRoom(void)
 {
     TraceLog(LOG_DEBUG, "Creating room");
 
-    playerSpawnPoint = (Vector2){.x = SCREEN_WIDTH / 2, .y = SCREEN_HEIGHT / 2};
+    playerSpawnPoint = (Vector2){.x = ARENA_WIDTH / 2, .y = ARENA_HEIGHT / 2};
 
     playerId = MakePlayer(playerSpawnPoint.x, playerSpawnPoint.y);
     SpawnPlayer();
 
-    MakeRobot(SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
-    MakeRobot(3 * SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2);
-    MakeRobot(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 4);
-    MakeRobot(SCREEN_WIDTH / 2, 3 * SCREEN_HEIGHT / 4);
+    MakeRobot(ARENA_WIDTH / 4, ARENA_HEIGHT / 2);
+    MakeRobot(3 * ARENA_WIDTH / 4, ARENA_HEIGHT / 2);
+    MakeRobot(ARENA_WIDTH / 2, ARENA_HEIGHT / 4);
+    MakeRobot(ARENA_WIDTH / 2, 3 * ARENA_HEIGHT / 4);
 
     const bool horizontal = false;
     const bool vertical = true;
