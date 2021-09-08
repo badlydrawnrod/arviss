@@ -1,9 +1,9 @@
 #include "drawing_system.h"
 
-#include "components/door_components.h"
+#include "components/doors.h"
 #include "components/player_status.h"
 #include "components/positions.h"
-#include "components/wall_components.h"
+#include "components/walls.h"
 #include "entities.h"
 #include "raylib.h"
 
@@ -123,7 +123,7 @@ static void DrawWalls(void)
         if (Entities.Is(id, bmWall | bmPosition | bmDrawable))
         {
             Vector2 position = Positions.GetPosition(id);
-            bool isVertical = WallComponents.IsVertical(id);
+            bool isVertical = Walls.IsVertical(id);
             DrawWall(position.x, position.y, isVertical);
         }
     }
@@ -137,7 +137,7 @@ static void DrawDoors(void)
         if (Entities.Is(id, bmDoor | bmPosition | bmDrawable))
         {
             Vector2 position = Positions.GetPosition(id);
-            bool isVertical = DoorComponents.IsVertical(id);
+            bool isVertical = Doors.IsVertical(id);
             DrawDoor(position.x, position.y, isVertical);
         }
     }

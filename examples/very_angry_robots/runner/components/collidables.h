@@ -1,0 +1,27 @@
+#pragma once
+
+#include "entities.h"
+
+typedef enum CollidableType
+{
+    ctROBOT,
+    ctPLAYER,
+    ctHWALL,
+    ctVWALL,
+    ctHDOOR,
+    ctVDOOR
+} CollidableType;
+
+typedef struct Collidable
+{
+    CollidableType type;
+} Collidable;
+
+Collidable* GetCollidable(EntityId id);
+void SetCollidable(EntityId id, Collidable* collidable);
+
+static struct
+{
+    Collidable* (*Get)(EntityId id);
+    void (*Set)(EntityId id, Collidable* collidable);
+} Collidables = {.Get = GetCollidable, .Set = SetCollidable};

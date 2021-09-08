@@ -1,6 +1,6 @@
 #include "collision_system.h"
 
-#include "components/collidable_components.h"
+#include "components/collidables.h"
 #include "components/events.h"
 #include "components/positions.h"
 #include "entities.h"
@@ -53,7 +53,7 @@ static void CollidePlayer(void)
                 Entities.Is(id, bmCollidable | bmPosition) && (Entities.AnyOf(id, bmWall | bmDoor | bmRobot | bmShot));
         if (shouldTest)
         {
-            CollidableComponent* c = CollidableComponents.Get(id);
+            Collidable* c = Collidables.Get(id);
             Vector2 otherPos = Positions.GetPosition(id);
             Rectangle otherRect = geometries[c->type];
             otherRect.x += otherPos.x;
@@ -84,7 +84,7 @@ static void CollideRobot(EntityId robotId)
                 Entities.Is(id, bmCollidable | bmPosition) && Entities.AnyOf(id, bmWall | bmDoor | bmRobot | bmShot);
         if (shouldTest)
         {
-            CollidableComponent* c = CollidableComponents.Get(id);
+            Collidable* c = Collidables.Get(id);
             Vector2 otherPos = Positions.GetPosition(id);
             Rectangle otherRect = geometries[c->type];
             otherRect.x += otherPos.x;
@@ -126,7 +126,7 @@ static void CollideShot(EntityId shotId)
         const bool shouldTest = Entities.AnyOf(id, bmWall | bmDoor);
         if (shouldTest)
         {
-            CollidableComponent* c = CollidableComponents.Get(id);
+            Collidable* c = Collidables.Get(id);
             Vector2 otherPos = Positions.GetPosition(id);
             Rectangle otherRect = geometries[c->type];
             otherRect.x += otherPos.x;

@@ -1,12 +1,12 @@
 #include "game_status_system.h"
 
-#include "components/collidable_components.h"
-#include "components/door_components.h"
+#include "components/collidables.h"
+#include "components/doors.h"
 #include "components/events.h"
 #include "components/player_status.h"
 #include "components/positions.h"
 #include "components/velocities.h"
-#include "components/wall_components.h"
+#include "components/walls.h"
 #include "entities.h"
 #include "raylib.h"
 #include "systems/event_system.h"
@@ -41,7 +41,7 @@ static EntityId MakeRobot(float x, float y)
     Entities.Set(id, bmPosition | bmDrawable | bmRobot | bmCollidable); // No velocity to start. It isn't movable.
     Positions.Set(id, &(Position){.position = {x, y}});
     Velocities.Set(id, &(Velocity){.velocity = {1.0f, 0.0f}});
-    CollidableComponents.Set(id, &(CollidableComponent){.type = ctROBOT});
+    Collidables.Set(id, &(Collidable){.type = ctROBOT});
     return id;
 }
 
@@ -52,7 +52,7 @@ static EntityId MakePlayer(float x, float y)
     Positions.Set(id, &(Position){.position = {x, y}});
     Velocities.Set(id, &(Velocity){.velocity = {0.0f, 0.0f}});
     PlayerStatuses.Set(id, &(PlayerStatus){.lives = 3, .score = 0});
-    CollidableComponents.Set(id, &(CollidableComponent){.type = ctPLAYER});
+    Collidables.Set(id, &(Collidable){.type = ctPLAYER});
     return id;
 }
 
@@ -61,8 +61,8 @@ static EntityId MakeWall(float x, float y, bool isVertical)
     EntityId id = (EntityId){Entities.Create()};
     Entities.Set(id, bmPosition | bmDrawable | bmWall | bmCollidable);
     Positions.Set(id, &(Position){.position = {x, y}});
-    WallComponents.Set(id, &(WallComponent){.vertical = isVertical});
-    CollidableComponents.Set(id, &(CollidableComponent){.type = isVertical ? ctVWALL : ctHWALL});
+    Walls.Set(id, &(Wall){.vertical = isVertical});
+    Collidables.Set(id, &(Collidable){.type = isVertical ? ctVWALL : ctHWALL});
     return id;
 }
 
@@ -78,8 +78,8 @@ static EntityId MakeDoor(float x, float y, bool isVertical)
     EntityId id = (EntityId){Entities.Create()};
     Entities.Set(id, bmPosition | bmDrawable | bmDoor | bmCollidable);
     Positions.Set(id, &(Position){.position = {x, y}});
-    DoorComponents.Set(id, &(DoorComponent){.vertical = isVertical});
-    CollidableComponents.Set(id, &(CollidableComponent){.type = isVertical ? ctVDOOR : ctHDOOR});
+    Doors.Set(id, &(Door){.vertical = isVertical});
+    Collidables.Set(id, &(Collidable){.type = isVertical ? ctVDOOR : ctHDOOR});
     return id;
 }
 
