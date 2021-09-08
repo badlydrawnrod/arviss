@@ -10,6 +10,7 @@
 #include "entities.h"
 #include "raylib.h"
 #include "systems/event_system.h"
+#include "timed_triggers.h"
 
 // TODO: find a place to put these that's common (if it's still necessary).
 #define SCREEN_WIDTH 1280
@@ -27,39 +28,12 @@
 static void SpawnPlayer(void);
 static void CreateRoom(void);
 
-typedef double GameTime; // More for refactoring convenience than type safety.
-
-typedef struct TimedTrigger
-{
-    GameTime time;
-} TimedTrigger;
-
 static bool gameOver = false;
 static bool alreadyDied = false;
 static TimedTrigger restartTime = {0.0};
 static TimedTrigger amnestyTime = {0.0};
 static Vector2 playerSpawnPoint;
 static EntityId playerId;
-
-static void ClearTimedTrigger(TimedTrigger* trigger)
-{
-    trigger->time = 0.0;
-}
-
-static void SetTimedTrigger(TimedTrigger* trigger, GameTime when)
-{
-    trigger->time = when;
-}
-
-static bool PollTimedTrigger(TimedTrigger* trigger, GameTime now)
-{
-    if (trigger->time > 0.0 && now >= trigger->time)
-    {
-        trigger->time = 0.0;
-        return true;
-    }
-    return false;
-}
 
 static EntityId MakeRobot(float x, float y)
 {
