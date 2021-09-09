@@ -18,8 +18,15 @@
 #define ARENA_WIDTH (HWALLS * WALL_SIZE)
 #define ARENA_HEIGHT (VWALLS * WALL_SIZE)
 
-static void SpawnPlayer(void);
-static void CreateRoom(void);
+typedef enum Entrance
+{
+    fromTOP,
+    fromBOTTOM,
+    fromLEFT,
+    fromRIGHT
+} Entrance;
+
+static void SpawnPlayer(Vector2 spawnPoint);
 
 static bool gameOver = false;
 static bool alreadyDied = false;
@@ -83,22 +90,41 @@ static EntityId MakeDoorFromGrid(int gridX, int gridY, bool isVertical)
     return MakeDoor(x, y, isVertical);
 }
 
-static void CreateRoom(void)
+static void CreateRoom(Entrance entrance)
 {
     TraceLog(LOG_DEBUG, "Creating room");
 
-    playerSpawnPoint = (Vector2){.x = ARENA_WIDTH / 2, .y = ARENA_HEIGHT / 2};
+    const bool horizontal = false;
+    const bool vertical = true;
 
-    playerId = MakePlayer(playerSpawnPoint.x, playerSpawnPoint.y);
-    SpawnPlayer();
+    // The player's spawn point is based on the door they entered through.
+    const float xDisp = 32.0f;
+    const float yDisp = 32.0f;
+    switch (entrance)
+    {
+    case fromTOP:
+        playerSpawnPoint = (Vector2){.x = ARENA_WIDTH / 2, .y = yDisp};
+        MakeDoorFromGrid(2, 0, horizontal);
+        break;
+    case fromBOTTOM:
+        playerSpawnPoint = (Vector2){.x = ARENA_WIDTH / 2, .y = ARENA_HEIGHT - yDisp};
+        MakeDoorFromGrid(2, 3, horizontal);
+        break;
+    case fromLEFT:
+        playerSpawnPoint = (Vector2){.x = xDisp, .y = ARENA_HEIGHT / 2};
+        MakeDoorFromGrid(0, 1, vertical);
+        break;
+    case fromRIGHT:
+        playerSpawnPoint = (Vector2){.x = ARENA_WIDTH - xDisp, .y = ARENA_HEIGHT / 2};
+        MakeDoorFromGrid(5, 1, vertical);
+        break;
+    }
+    SpawnPlayer(playerSpawnPoint);
 
     MakeRobot(ARENA_WIDTH / 4, ARENA_HEIGHT / 2);
     MakeRobot(3 * ARENA_WIDTH / 4, ARENA_HEIGHT / 2);
     MakeRobot(ARENA_WIDTH / 2, ARENA_HEIGHT / 4);
     MakeRobot(ARENA_WIDTH / 2, 3 * ARENA_HEIGHT / 4);
-
-    const bool horizontal = false;
-    const bool vertical = true;
 
     // Top walls.
     MakeWallFromGrid(0, 0, horizontal);
@@ -119,19 +145,13 @@ static void CreateRoom(void)
     // Right walls.
     MakeWallFromGrid(5, 0, vertical);
     MakeWallFromGrid(5, 2, vertical);
-
-    // Doors.
-    MakeDoorFromGrid(2, 0, horizontal);
-    MakeDoorFromGrid(2, 3, horizontal);
-    MakeDoorFromGrid(0, 1, vertical);
-    MakeDoorFromGrid(5, 1, vertical);
 }
 
-static void SpawnPlayer(void)
+static void SpawnPlayer(Vector2 spawnPoint)
 {
-    TraceLog(LOG_DEBUG, "Spawning player at (%3.1f, %3.1f)", playerSpawnPoint.x, playerSpawnPoint.y);
+    TraceLog(LOG_DEBUG, "Spawning player at (%3.1f, %3.1f)", spawnPoint.x, spawnPoint.y);
     Position* p = Positions.Get(playerId);
-    p->position = playerSpawnPoint;
+    p->position = spawnPoint;
 
     Entities.Set(playerId, bmDrawable | bmCollidable | bmVelocity);
 
@@ -190,7 +210,8 @@ void ResetGameStatusSystem(void)
     alreadyDied = false;
     ClearTimedTrigger(&restartTime);
     ClearTimedTrigger(&amnestyTime);
-    CreateRoom();
+    playerId = MakePlayer(0.0f, 0.0f);
+    CreateRoom(fromRIGHT);
 }
 
 void UpdateGameStatusSystem(void)
@@ -204,7 +225,7 @@ void UpdateGameStatusSystem(void)
         PlayerStatus* p = PlayerStatuses.Get(playerId);
         if (p->lives > 0)
         {
-            SpawnPlayer();
+            SpawnPlayer(playerSpawnPoint);
         }
         else
         {
