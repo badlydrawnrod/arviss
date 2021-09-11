@@ -1,8 +1,10 @@
 #include "collision_response_system.h"
 
 #include "components/collidables.h"
+#include "components/doors.h"
 #include "components/events.h"
 #include "entities.h"
+#include "entrance.h"
 #include "raylib.h"
 #include "systems/event_system.h"
 
@@ -22,7 +24,8 @@ static const char* Identify(EntityId id)
     }
     else if (Entities.Is(id, bmDoor))
     {
-        return "door";
+        const Collidable* c = Collidables.Get(id);
+        return c->isTrigger ? "exit" : "door";
     }
     return "*** unknown ***";
 }
@@ -55,11 +58,16 @@ static void HandleEvents(int first, int last)
         // Handle collisions with the player.
         if (Entities.Is(c->firstId, bmPlayer))
         {
-            Collidable* collidable = Collidables.Get(c->secondId);
+            const Collidable* collidable = Collidables.Get(c->secondId);
             if (!collidable->isTrigger)
             {
                 // The player has died because they hit something that wasn't a mere trigger.
                 Events.Add(&(Event){.type = etPLAYER, .player = (PlayerEvent){.type = peDIED, .id = c->firstId}});
+            }
+            else if (Entities.Is(c->secondId, bmDoor))
+            {
+                const Door* door = Doors.Get(c->secondId);
+                Events.Add(&(Event){.type = etDOOR, .door = (DoorEvent){.type = deExit, .entrance = door->leadsTo}});
             }
         }
     }

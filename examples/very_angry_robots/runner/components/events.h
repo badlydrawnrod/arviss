@@ -1,13 +1,15 @@
 #pragma once
 
 #include "entities.h"
+#include "entrance.h"
 
 #define MAX_EVENTS 1024
 
 typedef enum EventType
 {
     etCOLLISION,
-    etPLAYER
+    etPLAYER,
+    etDOOR
 } EventType;
 
 typedef struct CollisionEvent
@@ -33,14 +35,6 @@ typedef enum DoorEventType
     deEnter,
     deExit
 } DoorEventType;
-
-typedef enum Entrance
-{
-    fromTOP,
-    fromBOTTOM,
-    fromLEFT,
-    fromRIGHT
-} Entrance;
 
 typedef struct DoorEvent
 {

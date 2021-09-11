@@ -65,38 +65,41 @@ static EntityId MakeWallFromGrid(int gridX, int gridY, bool isVertical)
     return MakeWall(x, y, isVertical);
 }
 
-static EntityId MakeExit(float x, float y, bool isVertical)
+static EntityId MakeExit(float x, float y, bool isVertical, Entrance entrance)
 {
+    // An exit is an invisible door.
     EntityId id = (EntityId){Entities.Create()};
-    Entities.Set(id, bmPosition | bmWall | bmCollidable);
+    Entities.Set(id, bmPosition | bmDoor | bmCollidable);
     Positions.Set(id, &(Position){.position = {x, y}});
-    Walls.Set(id, &(Wall){.vertical = isVertical});
+    Doors.Set(id, &(Door){.vertical = isVertical, .leadsTo = entrance});
+
+    // It shares the same collision characteristics as a wall.
     Collidables.Set(id, &(Collidable){.type = isVertical ? ctVWALL : ctHWALL, .isTrigger = true});
     return id;
 }
 
-static EntityId MakeExitFromGrid(int gridX, int gridY, bool isVertical)
+static EntityId MakeExitFromGrid(int gridX, int gridY, bool isVertical, Entrance entrance)
 {
     const float x = (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
     const float y = (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
-    return MakeExit(x, y, isVertical);
+    return MakeExit(x, y, isVertical, entrance);
 }
 
-static EntityId MakeDoor(float x, float y, bool isVertical)
+static EntityId MakeDoor(float x, float y, bool isVertical, Entrance entrance)
 {
     EntityId id = (EntityId){Entities.Create()};
     Entities.Set(id, bmPosition | bmDrawable | bmDoor | bmCollidable);
     Positions.Set(id, &(Position){.position = {x, y}});
-    Doors.Set(id, &(Door){.vertical = isVertical});
+    Doors.Set(id, &(Door){.vertical = isVertical, .leadsTo = entrance});
     Collidables.Set(id, &(Collidable){.type = isVertical ? ctVDOOR : ctHDOOR});
     return id;
 }
 
-static EntityId MakeDoorFromGrid(int gridX, int gridY, bool isVertical)
+static EntityId MakeDoorFromGrid(int gridX, int gridY, bool isVertical, Entrance entrance)
 {
     const float x = (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
     const float y = (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
-    return MakeDoor(x, y, isVertical);
+    return MakeDoor(x, y, isVertical, entrance);
 }
 
 static void CreateRoom(Entrance entrance)
@@ -113,31 +116,31 @@ static void CreateRoom(Entrance entrance)
     {
     case fromTOP:
         playerSpawnPoint = (Vector2){.x = ARENA_WIDTH / 2, .y = yDisp};
-        MakeDoorFromGrid(2, 0, horizontal);
-        MakeExitFromGrid(2, 3, horizontal);
-        MakeExitFromGrid(0, 1, vertical);
-        MakeExitFromGrid(5, 1, vertical);
+        MakeDoorFromGrid(2, 0, horizontal, fromBOTTOM);
+        MakeExitFromGrid(2, 3, horizontal, fromTOP);
+        MakeExitFromGrid(0, 1, vertical, fromRIGHT);
+        MakeExitFromGrid(5, 1, vertical, fromLEFT);
         break;
     case fromBOTTOM:
         playerSpawnPoint = (Vector2){.x = ARENA_WIDTH / 2, .y = ARENA_HEIGHT - yDisp};
-        MakeExitFromGrid(2, 0, horizontal);
-        MakeDoorFromGrid(2, 3, horizontal);
-        MakeExitFromGrid(0, 1, vertical);
-        MakeExitFromGrid(5, 1, vertical);
+        MakeExitFromGrid(2, 0, horizontal, fromBOTTOM);
+        MakeDoorFromGrid(2, 3, horizontal, fromTOP);
+        MakeExitFromGrid(0, 1, vertical, fromRIGHT);
+        MakeExitFromGrid(5, 1, vertical, fromLEFT);
         break;
     case fromLEFT:
         playerSpawnPoint = (Vector2){.x = xDisp, .y = ARENA_HEIGHT / 2};
-        MakeExitFromGrid(2, 0, horizontal);
-        MakeExitFromGrid(2, 3, horizontal);
-        MakeDoorFromGrid(0, 1, vertical);
-        MakeExitFromGrid(5, 1, vertical);
+        MakeExitFromGrid(2, 0, horizontal, fromBOTTOM);
+        MakeExitFromGrid(2, 3, horizontal, fromTOP);
+        MakeDoorFromGrid(0, 1, vertical, fromRIGHT);
+        MakeExitFromGrid(5, 1, vertical, fromLEFT);
         break;
     case fromRIGHT:
         playerSpawnPoint = (Vector2){.x = ARENA_WIDTH - xDisp, .y = ARENA_HEIGHT / 2};
-        MakeExitFromGrid(2, 0, horizontal);
-        MakeExitFromGrid(2, 3, horizontal);
-        MakeExitFromGrid(0, 1, vertical);
-        MakeDoorFromGrid(5, 1, vertical);
+        MakeExitFromGrid(2, 0, horizontal, fromBOTTOM);
+        MakeExitFromGrid(2, 3, horizontal, fromTOP);
+        MakeExitFromGrid(0, 1, vertical, fromRIGHT);
+        MakeDoorFromGrid(5, 1, vertical, fromLEFT);
         break;
     }
     SpawnPlayer(playerSpawnPoint);

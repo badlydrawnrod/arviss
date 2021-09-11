@@ -1,12 +1,14 @@
 #pragma once
 
 #include "entities.h"
+#include "entrance.h"
 
 #include <stdbool.h>
 
 typedef struct Door
 {
     bool vertical;
+    Entrance leadsTo; // This door leads to an entrance from the given direction.
 } Door;
 
 Door* GetDoor(EntityId id);
