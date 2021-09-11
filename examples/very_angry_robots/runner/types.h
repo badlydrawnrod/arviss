@@ -9,3 +9,5 @@ typedef enum Entrance
 } Entrance;
 
 typedef int RoomId;
+
+typedef double GameTime; // More for refactoring convenience than type safety.

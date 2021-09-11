@@ -252,7 +252,7 @@ static void HandleEvents(int first, int last)
             {
                 nextRoomId = currentRoomId + 1;
                 CreateRoom(de->entrance, nextRoomId);
-                transitionEndTime = GetTime() + 5;
+                transitionEndTime = GetTime() + 0.5;
                 entrance = de->entrance;
             }
             break;
@@ -320,8 +320,10 @@ void UpdateGameStatusSystem(void)
         {
             transitionEndTime = 0.0;
             DestroyRoom(currentRoomId);
+            Events.Add(&(Event){
+                    .type = etDOOR,
+                    .door = (DoorEvent){.type = deENTER, .entrance = entrance, .entering = nextRoomId, .exiting = currentRoomId}});
             currentRoomId = nextRoomId;
-            Events.Add(&(Event){.type = etDOOR, .door = (DoorEvent){.type = deENTER, .entrance = entrance}});
             SpawnPlayer(playerSpawnPoint);
         }
     }

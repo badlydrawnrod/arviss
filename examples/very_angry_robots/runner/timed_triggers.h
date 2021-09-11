@@ -1,7 +1,5 @@
 #pragma once
 
-typedef double GameTime; // More for refactoring convenience than type safety.
-
 typedef struct TimedTrigger
 {
     GameTime time;

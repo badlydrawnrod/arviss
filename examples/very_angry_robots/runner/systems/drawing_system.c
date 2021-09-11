@@ -2,12 +2,14 @@
 
 #include "components/doors.h"
 #include "components/events.h"
+#include "components/owners.h"
 #include "components/player_status.h"
 #include "components/positions.h"
 #include "components/walls.h"
 #include "entities.h"
 #include "raylib.h"
 #include "systems/event_system.h"
+#include "types.h"
 
 #define MAX_LINES 1024
 #define LINE_THICKNESS 2
@@ -15,6 +17,8 @@
 #define WALL_SIZE 224
 #define DOOR_SIZE (WALL_SIZE - 80)
 #define DOOR_THICKNESS 4
+#define HWALLS 5
+#define VWALLS 3
 
 typedef struct Line
 {
@@ -25,6 +29,10 @@ typedef struct Line
 
 static Line lines[MAX_LINES];
 static int numLines = 0;
+static RoomId nextRoom;
+static RoomId currentRoom;
+static Vector2 secondCamera;
+static GameTime exitTime;
 
 static void BeginDrawLines(void)
 {
@@ -117,43 +125,55 @@ static void DrawPlayer(float x, float y)
     AddLine(x + 6, y - 16, x, y - 20, headColour);
 }
 
-static void DrawWalls(void)
+static void DrawWalls(RoomId roomId)
 {
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
         EntityId id = {i};
         if (Entities.Is(id, bmWall | bmPosition | bmDrawable))
         {
-            Vector2 position = Positions.GetPosition(id);
-            bool isVertical = Walls.IsVertical(id);
-            DrawWall(position.x, position.y, isVertical);
+            const Owner* owner = Owners.Get(id);
+            if (owner->roomId == roomId)
+            {
+                Vector2 position = Positions.GetPosition(id);
+                bool isVertical = Walls.IsVertical(id);
+                DrawWall(position.x, position.y, isVertical);
+            }
         }
     }
 }
 
-static void DrawDoors(void)
+static void DrawDoors(RoomId roomId)
 {
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
         EntityId id = {i};
         if (Entities.Is(id, bmDoor | bmPosition | bmDrawable))
         {
-            Vector2 position = Positions.GetPosition(id);
-            bool isVertical = Doors.IsVertical(id);
-            DrawDoor(position.x, position.y, isVertical);
+            const Owner* owner = Owners.Get(id);
+            if (owner->roomId == roomId)
+            {
+                Vector2 position = Positions.GetPosition(id);
+                bool isVertical = Doors.IsVertical(id);
+                DrawDoor(position.x, position.y, isVertical);
+            }
         }
     }
 }
 
-static void DrawRobots(void)
+static void DrawRobots(RoomId roomId)
 {
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
         EntityId id = {i};
         if (Entities.Is(id, bmRobot | bmPosition | bmDrawable))
         {
-            Vector2 position = Positions.GetPosition(id);
-            DrawRobot(position.x, position.y);
+            const Owner* owner = Owners.Get(id);
+            if (owner->roomId == roomId)
+            {
+                Vector2 position = Positions.GetPosition(id);
+                DrawRobot(position.x, position.y);
+            }
         }
     }
 }
@@ -175,16 +195,48 @@ static void DrawRoom(void)
 {
     const float roomX = ((float)GetScreenWidth() - 5.0f * WALL_SIZE) / 2.0f;
     const float roomY = 28.0f;
-    const Camera2D camera = {.zoom = 1.0f, .offset = {roomX, roomY}};
 
-    BeginMode2D(camera);
-    BeginDrawLines();
-    DrawWalls();
-    DrawDoors();
-    DrawRobots();
-    DrawPlayers();
-    EndDrawLines();
-    EndMode2D();
+    if (currentRoom == nextRoom)
+    {
+        const Camera2D camera = {.zoom = 1.0f, .offset = {roomX, roomY}};
+        BeginMode2D(camera);
+        BeginDrawLines();
+        DrawWalls(currentRoom);
+        DrawDoors(currentRoom);
+        DrawRobots(currentRoom);
+        DrawPlayers();
+        EndDrawLines();
+        EndMode2D();
+    }
+    else
+    {
+        float alpha = (float)((GetTime() - exitTime) / 0.5);
+        if (alpha > 1.0f)
+        {
+            alpha = 1.0f;
+        }
+
+        const Camera2D camera = {.zoom = 1.0f,
+                                 .offset = (Vector2){.x = roomX - secondCamera.x * alpha, .y = roomY - secondCamera.y * alpha}};
+        BeginMode2D(camera);
+        BeginDrawLines();
+        DrawWalls(currentRoom);
+        DrawDoors(currentRoom);
+        DrawRobots(currentRoom);
+        EndDrawLines();
+        EndMode2D();
+
+        const Camera2D camera2 = {.zoom = 1.0f,
+                                  .offset = (Vector2){.x = roomX + secondCamera.x - secondCamera.x * alpha,
+                                                      .y = roomY + secondCamera.y - secondCamera.y * alpha}};
+        BeginMode2D(camera2);
+        BeginDrawLines();
+        DrawWalls(nextRoom);
+        DrawDoors(nextRoom);
+        DrawRobots(nextRoom);
+        EndDrawLines();
+        EndMode2D();
+    }
 }
 
 static void DrawHud(void)
@@ -209,8 +261,32 @@ static void HandleEvents(int first, int last)
         if (e->type == etDOOR)
         {
             DoorEvent* de = &e->door;
-            // TODO: if exiting, start a transition.
-            // TODO: if entering, finish the transition (or ignore it - the transition will probably be done anyway).
+            // If exiting, start a transition.
+            if (de->type == deEXIT)
+            {
+                exitTime = GetTime();
+                switch (de->entrance)
+                {
+                case fromLEFT:
+                    secondCamera = (Vector2){WALL_SIZE * HWALLS, 0.0f};
+                    break;
+                case fromRIGHT:
+                    secondCamera = (Vector2){-WALL_SIZE * HWALLS, 0.0f};
+                    break;
+                case fromTOP:
+                    secondCamera = (Vector2){0.0f, WALL_SIZE * VWALLS};
+                    break;
+                case fromBOTTOM:
+                    secondCamera = (Vector2){0.0f, -WALL_SIZE * VWALLS};
+                    break;
+                }
+                nextRoom = de->entering;
+                currentRoom = de->exiting;
+            }
+            else if (de->type == deENTER)
+            {
+                currentRoom = nextRoom;
+            }
         }
     }
 }
@@ -218,6 +294,9 @@ static void HandleEvents(int first, int last)
 void ResetDrawingSystem(void)
 {
     EventSystem.Register(HandleEvents);
+    nextRoom = 0;
+    currentRoom = 0;
+    secondCamera = Vector2Zero();
 }
 
 void UpdateDrawingSystem(void)
