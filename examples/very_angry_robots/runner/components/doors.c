@@ -2,19 +2,19 @@
 
 #include "entities.h"
 
-static struct Door doorComponents[MAX_ENTITIES];
+static struct Door doors[MAX_ENTITIES];
 
 Door* GetDoor(EntityId id)
 {
-    return &doorComponents[id.id];
+    return &doors[id.id];
 }
 
 void SetDoor(EntityId id, Door* door)
 {
-    doorComponents[id.id] = *door;
+    doors[id.id] = *door;
 }
 
 bool IsVerticalDoor(EntityId id)
 {
-    return doorComponents[id.id].vertical;
+    return doors[id.id].vertical;
 }

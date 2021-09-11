@@ -3,6 +3,7 @@
 #include "components/collidables.h"
 #include "components/doors.h"
 #include "components/events.h"
+#include "components/owners.h"
 #include "components/player_status.h"
 #include "components/positions.h"
 #include "components/velocities.h"
@@ -24,16 +25,21 @@ static bool gameOver = false;
 static bool alreadyDied = false;
 static TimedTrigger restartTime = {0.0};
 static TimedTrigger amnestyTime = {0.0};
+static GameTime transitionEndTime = 0.0;
+static Entrance entrance;
 static Vector2 playerSpawnPoint;
 static EntityId playerId;
+static RoomId currentRoomId;
+static RoomId nextRoomId;
 
-static EntityId MakeRobot(float x, float y)
+static EntityId MakeRobot(RoomId owner, float x, float y)
 {
     EntityId id = (EntityId){Entities.Create()};
-    Entities.Set(id, bmPosition | bmDrawable | bmRobot | bmCollidable); // No velocity to start. It isn't movable.
+    Entities.Set(id, bmPosition | bmDrawable | bmRobot | bmCollidable | bmOwned); // No velocity to start. It isn't movable.
     Positions.Set(id, &(Position){.position = {x, y}});
     Velocities.Set(id, &(Velocity){.velocity = {1.0f, 0.0f}});
     Collidables.Set(id, &(Collidable){.type = ctROBOT});
+    Owners.Set(id, &(Owner){.roomId = owner});
     return id;
 }
 
@@ -48,61 +54,80 @@ static EntityId MakePlayer(float x, float y)
     return id;
 }
 
-static EntityId MakeWall(float x, float y, bool isVertical)
+static EntityId MakeWall(RoomId owner, float x, float y, bool isVertical)
 {
     EntityId id = (EntityId){Entities.Create()};
-    Entities.Set(id, bmPosition | bmDrawable | bmWall | bmCollidable);
+    Entities.Set(id, bmPosition | bmDrawable | bmWall | bmCollidable | bmOwned);
     Positions.Set(id, &(Position){.position = {x, y}});
     Walls.Set(id, &(Wall){.vertical = isVertical});
     Collidables.Set(id, &(Collidable){.type = isVertical ? ctVWALL : ctHWALL});
+    Owners.Set(id, &(Owner){.roomId = owner});
     return id;
 }
 
-static EntityId MakeWallFromGrid(int gridX, int gridY, bool isVertical)
+static EntityId MakeWallFromGrid(RoomId owner, int gridX, int gridY, bool isVertical)
 {
     const float x = (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
     const float y = (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
-    return MakeWall(x, y, isVertical);
+    return MakeWall(owner, x, y, isVertical);
 }
 
-static EntityId MakeExit(float x, float y, bool isVertical, Entrance entrance)
+static EntityId MakeExit(RoomId owner, float x, float y, bool isVertical, Entrance entrance)
 {
     // An exit is an invisible door.
     EntityId id = (EntityId){Entities.Create()};
-    Entities.Set(id, bmPosition | bmDoor | bmCollidable);
+    Entities.Set(id, bmPosition | bmDoor | bmCollidable | bmOwned);
     Positions.Set(id, &(Position){.position = {x, y}});
     Doors.Set(id, &(Door){.vertical = isVertical, .leadsTo = entrance});
 
     // It shares the same collision characteristics as a wall.
     Collidables.Set(id, &(Collidable){.type = isVertical ? ctVWALL : ctHWALL, .isTrigger = true});
+    Owners.Set(id, &(Owner){.roomId = owner});
     return id;
 }
 
-static EntityId MakeExitFromGrid(int gridX, int gridY, bool isVertical, Entrance entrance)
+static EntityId MakeExitFromGrid(RoomId owner, int gridX, int gridY, bool isVertical, Entrance entrance)
 {
     const float x = (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
     const float y = (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
-    return MakeExit(x, y, isVertical, entrance);
+    return MakeExit(owner, x, y, isVertical, entrance);
 }
 
-static EntityId MakeDoor(float x, float y, bool isVertical, Entrance entrance)
+static EntityId MakeDoor(RoomId owner, float x, float y, bool isVertical, Entrance entrance)
 {
     EntityId id = (EntityId){Entities.Create()};
-    Entities.Set(id, bmPosition | bmDrawable | bmDoor | bmCollidable);
+    Entities.Set(id, bmPosition | bmDrawable | bmDoor | bmCollidable | bmOwned);
     Positions.Set(id, &(Position){.position = {x, y}});
     Doors.Set(id, &(Door){.vertical = isVertical, .leadsTo = entrance});
     Collidables.Set(id, &(Collidable){.type = isVertical ? ctVDOOR : ctHDOOR});
+    Owners.Set(id, &(Owner){.roomId = owner});
     return id;
 }
 
-static EntityId MakeDoorFromGrid(int gridX, int gridY, bool isVertical, Entrance entrance)
+static EntityId MakeDoorFromGrid(RoomId owner, int gridX, int gridY, bool isVertical, Entrance entrance)
 {
     const float x = (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
     const float y = (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
-    return MakeDoor(x, y, isVertical, entrance);
+    return MakeDoor(owner, x, y, isVertical, entrance);
 }
 
-static void CreateRoom(Entrance entrance)
+static void DestroyRoom(RoomId roomId)
+{
+    for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
+    {
+        EntityId id = {.id = i};
+        if (Entities.Is(id, bmOwned))
+        {
+            Owner* owner = Owners.Get(id);
+            if (owner->roomId == roomId)
+            {
+                Entities.Set(id, bmReap);
+            }
+        }
+    }
+}
+
+static void CreateRoom(Entrance entrance, RoomId roomId)
 {
     TraceLog(LOG_DEBUG, "Creating room");
 
@@ -116,59 +141,58 @@ static void CreateRoom(Entrance entrance)
     {
     case fromTOP:
         playerSpawnPoint = (Vector2){.x = ARENA_WIDTH / 2, .y = yDisp};
-        MakeDoorFromGrid(2, 0, horizontal, fromBOTTOM);
-        MakeExitFromGrid(2, 3, horizontal, fromTOP);
-        MakeExitFromGrid(0, 1, vertical, fromRIGHT);
-        MakeExitFromGrid(5, 1, vertical, fromLEFT);
+        MakeDoorFromGrid(roomId, 2, 0, horizontal, fromBOTTOM);
+        MakeExitFromGrid(roomId, 2, 3, horizontal, fromTOP);
+        MakeExitFromGrid(roomId, 0, 1, vertical, fromRIGHT);
+        MakeExitFromGrid(roomId, 5, 1, vertical, fromLEFT);
         break;
     case fromBOTTOM:
         playerSpawnPoint = (Vector2){.x = ARENA_WIDTH / 2, .y = ARENA_HEIGHT - yDisp};
-        MakeExitFromGrid(2, 0, horizontal, fromBOTTOM);
-        MakeDoorFromGrid(2, 3, horizontal, fromTOP);
-        MakeExitFromGrid(0, 1, vertical, fromRIGHT);
-        MakeExitFromGrid(5, 1, vertical, fromLEFT);
+        MakeExitFromGrid(roomId, 2, 0, horizontal, fromBOTTOM);
+        MakeDoorFromGrid(roomId, 2, 3, horizontal, fromTOP);
+        MakeExitFromGrid(roomId, 0, 1, vertical, fromRIGHT);
+        MakeExitFromGrid(roomId, 5, 1, vertical, fromLEFT);
         break;
     case fromLEFT:
         playerSpawnPoint = (Vector2){.x = xDisp, .y = ARENA_HEIGHT / 2};
-        MakeExitFromGrid(2, 0, horizontal, fromBOTTOM);
-        MakeExitFromGrid(2, 3, horizontal, fromTOP);
-        MakeDoorFromGrid(0, 1, vertical, fromRIGHT);
-        MakeExitFromGrid(5, 1, vertical, fromLEFT);
+        MakeExitFromGrid(roomId, 2, 0, horizontal, fromBOTTOM);
+        MakeExitFromGrid(roomId, 2, 3, horizontal, fromTOP);
+        MakeDoorFromGrid(roomId, 0, 1, vertical, fromRIGHT);
+        MakeExitFromGrid(roomId, 5, 1, vertical, fromLEFT);
         break;
     case fromRIGHT:
         playerSpawnPoint = (Vector2){.x = ARENA_WIDTH - xDisp, .y = ARENA_HEIGHT / 2};
-        MakeExitFromGrid(2, 0, horizontal, fromBOTTOM);
-        MakeExitFromGrid(2, 3, horizontal, fromTOP);
-        MakeExitFromGrid(0, 1, vertical, fromRIGHT);
-        MakeDoorFromGrid(5, 1, vertical, fromLEFT);
+        MakeExitFromGrid(roomId, 2, 0, horizontal, fromBOTTOM);
+        MakeExitFromGrid(roomId, 2, 3, horizontal, fromTOP);
+        MakeExitFromGrid(roomId, 0, 1, vertical, fromRIGHT);
+        MakeDoorFromGrid(roomId, 5, 1, vertical, fromLEFT);
         break;
     }
-    SpawnPlayer(playerSpawnPoint);
 
-    MakeRobot(ARENA_WIDTH / 4, ARENA_HEIGHT / 2);
-    MakeRobot(3 * ARENA_WIDTH / 4, ARENA_HEIGHT / 2);
-    MakeRobot(ARENA_WIDTH / 2, ARENA_HEIGHT / 4);
-    MakeRobot(ARENA_WIDTH / 2, 3 * ARENA_HEIGHT / 4);
+    MakeRobot(roomId, ARENA_WIDTH / 4, ARENA_HEIGHT / 2);
+    MakeRobot(roomId, 3 * ARENA_WIDTH / 4, ARENA_HEIGHT / 2);
+    MakeRobot(roomId, ARENA_WIDTH / 2, ARENA_HEIGHT / 4);
+    MakeRobot(roomId, ARENA_WIDTH / 2, 3 * ARENA_HEIGHT / 4);
 
     // Top walls.
-    MakeWallFromGrid(0, 0, horizontal);
-    MakeWallFromGrid(1, 0, horizontal);
-    MakeWallFromGrid(3, 0, horizontal);
-    MakeWallFromGrid(4, 0, horizontal);
+    MakeWallFromGrid(roomId, 0, 0, horizontal);
+    MakeWallFromGrid(roomId, 1, 0, horizontal);
+    MakeWallFromGrid(roomId, 3, 0, horizontal);
+    MakeWallFromGrid(roomId, 4, 0, horizontal);
 
     // Bottom walls.
-    MakeWallFromGrid(0, 3, horizontal);
-    MakeWallFromGrid(1, 3, horizontal);
-    MakeWallFromGrid(3, 3, horizontal);
-    MakeWallFromGrid(4, 3, horizontal);
+    MakeWallFromGrid(roomId, 0, 3, horizontal);
+    MakeWallFromGrid(roomId, 1, 3, horizontal);
+    MakeWallFromGrid(roomId, 3, 3, horizontal);
+    MakeWallFromGrid(roomId, 4, 3, horizontal);
 
     // Left walls.
-    MakeWallFromGrid(0, 0, vertical);
-    MakeWallFromGrid(0, 2, vertical);
+    MakeWallFromGrid(roomId, 0, 0, vertical);
+    MakeWallFromGrid(roomId, 0, 2, vertical);
 
     // Right walls.
-    MakeWallFromGrid(5, 0, vertical);
-    MakeWallFromGrid(5, 2, vertical);
+    MakeWallFromGrid(roomId, 5, 0, vertical);
+    MakeWallFromGrid(roomId, 5, 2, vertical);
 }
 
 static void SpawnPlayer(Vector2 spawnPoint)
@@ -190,34 +214,49 @@ static void HandleEvents(int first, int last)
     for (int i = first; i != last; i++)
     {
         const Event* e = Events.Get((EventId){.id = i});
-        if (e->type != etPLAYER)
-        {
-            continue;
-        }
 
-        const PlayerEvent* pe = &e->player;
-        if (!alreadyDied && pe->type == peDIED)
+        switch (e->type)
         {
-            alreadyDied = true;
-            PlayerStatus* p = PlayerStatuses.Get(playerId);
-            --p->lives;
-            TraceLog(LOG_INFO, "Player died. Lives reduced to %d", p->lives);
-            SetTimedTrigger(&restartTime, GetTime() + 5);
-            Entities.Clear(pe->id, bmDrawable | bmCollidable | bmVelocity);
-
-            // The robots should stop moving because the player has died.
-            for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
+        case etPLAYER: {
+            const PlayerEvent* pe = &e->player;
+            if (!alreadyDied && pe->type == peDIED)
             {
-                EntityId id = {.id = i};
-                if (Entities.Is(id, bmRobot))
+                alreadyDied = true;
+                PlayerStatus* p = PlayerStatuses.Get(playerId);
+                --p->lives;
+                TraceLog(LOG_INFO, "Player died. Lives reduced to %d", p->lives);
+                SetTimedTrigger(&restartTime, GetTime() + 5);
+                Entities.Clear(pe->id, bmDrawable | bmCollidable | bmVelocity);
+
+                // The robots should stop moving because the player has died.
+                for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
                 {
-                    Entities.Clear(id, bmVelocity);
+                    EntityId id = {.id = i};
+                    if (Entities.Is(id, bmRobot))
+                    {
+                        Entities.Clear(id, bmVelocity);
+                    }
                 }
             }
+            else if (pe->type == peSPAWNED)
+            {
+                TraceLog(LOG_INFO, "Player spawned");
+            }
+
+            break;
         }
-        else if (pe->type == peSPAWNED)
-        {
-            TraceLog(LOG_INFO, "Player spawned");
+        case etDOOR: {
+            const DoorEvent* de = &e->door;
+            TraceLog(LOG_INFO, "Door event: %s", de->type == deENTER ? "enter" : "exit");
+            if (de->type == deEXIT)
+            {
+                nextRoomId = currentRoomId + 1;
+                CreateRoom(de->entrance, nextRoomId);
+                transitionEndTime = GetTime() + 5;
+                entrance = de->entrance;
+            }
+            break;
+        }
         }
     }
 }
@@ -235,7 +274,9 @@ void ResetGameStatusSystem(void)
     ClearTimedTrigger(&restartTime);
     ClearTimedTrigger(&amnestyTime);
     playerId = MakePlayer(0.0f, 0.0f);
-    CreateRoom(fromBOTTOM);
+    currentRoomId = 0;
+    CreateRoom(fromBOTTOM, currentRoomId);
+    SpawnPlayer(playerSpawnPoint);
 }
 
 void UpdateGameStatusSystem(void)
@@ -270,6 +311,18 @@ void UpdateGameStatusSystem(void)
             {
                 Entities.Set(id, bmVelocity);
             }
+        }
+    }
+
+    if (transitionEndTime > 0.0)
+    {
+        if (now >= transitionEndTime)
+        {
+            transitionEndTime = 0.0;
+            DestroyRoom(currentRoomId);
+            currentRoomId = nextRoomId;
+            Events.Add(&(Event){.type = etDOOR, .door = (DoorEvent){.type = deENTER, .entrance = entrance}});
+            SpawnPlayer(playerSpawnPoint);
         }
     }
 }

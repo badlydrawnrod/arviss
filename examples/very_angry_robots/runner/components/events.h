@@ -32,8 +32,8 @@ typedef struct PlayerEvent
 
 typedef enum DoorEventType
 {
-    deEnter,
-    deExit
+    deENTER,
+    deEXIT
 } DoorEventType;
 
 typedef struct DoorEvent

@@ -14,6 +14,8 @@ void EnterPlaying(void)
 {
     Entities.Reset();
     EventSystem.Reset();
+    MovementSystem.Reset();
+    CollisionSystem.Reset();
     CollisionResponseSystem.Reset();
     GameStatusSystem.Reset();
 }

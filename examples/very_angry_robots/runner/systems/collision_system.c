@@ -5,6 +5,7 @@
 #include "components/positions.h"
 #include "entities.h"
 #include "raylib.h"
+#include "systems/event_system.h"
 
 #define WALL_SIZE 224
 #define WALL_THICKNESS 2
@@ -27,6 +28,7 @@ static Rectangle geometries[] = {
         {.x = -WALL_THICKNESS / 2, .y = -WALL_SIZE / 2, .width = WALL_THICKNESS, .height = WALL_SIZE},     // ctVDOOR
 };
 
+static bool isEnabled = true;
 static EntityId playerId = {-1};
 
 // TODO: obviously we'd want to cache some of these queries, otherwise we're going to spend our entire adult lives looping
@@ -151,6 +153,25 @@ static void CollideShots(void)
     }
 }
 
+static void HandleEvents(int first, int last)
+{
+    for (int i = first; i != last; i++)
+    {
+        const Event* e = Events.Get((EventId){.id = i});
+        if (e->type == etDOOR)
+        {
+            const DoorEvent* de = &e->door;
+            isEnabled = de->type == deENTER;
+        }
+    }
+}
+
+void ResetCollisionSystem(void)
+{
+    isEnabled = true;
+    EventSystem.Register(HandleEvents);
+}
+
 void UpdateCollisionSystem(void)
 {
     // Cache the player id.
@@ -164,6 +185,11 @@ void UpdateCollisionSystem(void)
                 break;
             }
         }
+    }
+
+    if (!isEnabled)
+    {
+        return;
     }
 
     CollidePlayer();

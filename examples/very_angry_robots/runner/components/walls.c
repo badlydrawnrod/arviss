@@ -2,19 +2,19 @@
 
 #include "entities.h"
 
-static struct Wall wallComponents[MAX_ENTITIES];
+static struct Wall walls[MAX_ENTITIES];
 
 Wall* GetWall(EntityId id)
 {
-    return &wallComponents[id.id];
+    return &walls[id.id];
 }
 
 void SetWall(EntityId id, Wall* wall)
 {
-    wallComponents[id.id] = *wall;
+    walls[id.id] = *wall;
 }
 
 bool IsVerticalWall(EntityId id)
 {
-    return wallComponents[id.id].vertical;
+    return walls[id.id].vertical;
 }

@@ -67,7 +67,7 @@ static void HandleEvents(int first, int last)
             else if (Entities.Is(c->secondId, bmDoor))
             {
                 const Door* door = Doors.Get(c->secondId);
-                Events.Add(&(Event){.type = etDOOR, .door = (DoorEvent){.type = deExit, .entrance = door->leadsTo}});
+                Events.Add(&(Event){.type = etDOOR, .door = (DoorEvent){.type = deEXIT, .entrance = door->leadsTo}});
             }
         }
     }

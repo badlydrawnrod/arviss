@@ -1,8 +1,10 @@
 #pragma once
 
+void ResetCollisionSystem(void);
 void UpdateCollisionSystem(void);
 
 static struct
 {
+    void (*Reset)(void);
     void (*Update)(void);
-} CollisionSystem = {.Update = UpdateCollisionSystem};
+} CollisionSystem = {.Reset = ResetCollisionSystem, .Update = UpdateCollisionSystem};
