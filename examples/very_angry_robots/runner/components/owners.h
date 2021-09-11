@@ -1,11 +1,9 @@
 #pragma once
 
 #include "entities.h"
-#include "entrance.h"
+#include "types.h"
 
 #include <stdbool.h>
-
-typedef int RoomId;
 
 typedef struct Owner
 {

@@ -1,8 +1,10 @@
 #pragma once
 
+void ResetDrawingSystem(void);
 void UpdateDrawingSystem(void);
 
 static struct
 {
+    void (*Reset)(void);
     void (*Update)(void);
-} DrawingSystem = {.Update = UpdateDrawingSystem};
+} DrawingSystem = {.Reset = ResetDrawingSystem, .Update = UpdateDrawingSystem};

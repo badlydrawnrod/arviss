@@ -1,7 +1,7 @@
 #pragma once
 
 #include "entities.h"
-#include "entrance.h"
+#include "types.h"
 
 #define MAX_EVENTS 1024
 
@@ -40,6 +40,8 @@ typedef struct DoorEvent
 {
     DoorEventType type;
     Entrance entrance; // Which entrance is the door?
+    RoomId exiting;    // The room that is being exited.
+    RoomId entering;   // The room that is being entered.
 } DoorEvent;
 
 typedef struct Event

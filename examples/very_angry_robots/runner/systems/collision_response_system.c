@@ -3,10 +3,11 @@
 #include "components/collidables.h"
 #include "components/doors.h"
 #include "components/events.h"
+#include "components/owners.h"
 #include "entities.h"
-#include "entrance.h"
 #include "raylib.h"
 #include "systems/event_system.h"
+#include "types.h"
 
 static const char* Identify(EntityId id)
 {
@@ -66,8 +67,13 @@ static void HandleEvents(int first, int last)
             }
             else if (Entities.Is(c->secondId, bmDoor))
             {
+                const Owner* owner = Owners.Get(c->secondId);
                 const Door* door = Doors.Get(c->secondId);
-                Events.Add(&(Event){.type = etDOOR, .door = (DoorEvent){.type = deEXIT, .entrance = door->leadsTo}});
+                Events.Add(&(Event){.type = etDOOR,
+                                    .door = (DoorEvent){.type = deEXIT,
+                                                        .entrance = door->leadsTo,
+                                                        .exiting = owner->roomId,
+                                                        .entering = owner->roomId + 1}}); // TODO: better way of assigning ids.
             }
         }
     }

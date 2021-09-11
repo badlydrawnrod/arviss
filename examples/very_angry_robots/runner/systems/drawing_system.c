@@ -1,11 +1,13 @@
 #include "drawing_system.h"
 
 #include "components/doors.h"
+#include "components/events.h"
 #include "components/player_status.h"
 #include "components/positions.h"
 #include "components/walls.h"
 #include "entities.h"
 #include "raylib.h"
+#include "systems/event_system.h"
 
 #define MAX_LINES 1024
 #define LINE_THICKNESS 2
@@ -197,6 +199,25 @@ static void DrawHud(void)
             DrawText(TextFormat("Lives: %d", p->lives), GetScreenWidth() - 192, 4, 20, SKYBLUE);
         }
     }
+}
+
+static void HandleEvents(int first, int last)
+{
+    for (int i = first; i != last; i++)
+    {
+        const Event* e = Events.Get((EventId){.id = i});
+        if (e->type == etDOOR)
+        {
+            DoorEvent* de = &e->door;
+            // TODO: if exiting, start a transition.
+            // TODO: if entering, finish the transition (or ignore it - the transition will probably be done anyway).
+        }
+    }
+}
+
+void ResetDrawingSystem(void)
+{
+    EventSystem.Register(HandleEvents);
 }
 
 void UpdateDrawingSystem(void)

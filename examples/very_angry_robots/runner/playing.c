@@ -13,11 +13,12 @@
 void EnterPlaying(void)
 {
     Entities.Reset();
-    EventSystem.Reset();
+    EventSystem.Reset(); // Reset this first, because many of the other systems register with it.
     MovementSystem.Reset();
     CollisionSystem.Reset();
     CollisionResponseSystem.Reset();
     GameStatusSystem.Reset();
+    DrawingSystem.Reset();
 }
 
 void UpdatePlaying(void)

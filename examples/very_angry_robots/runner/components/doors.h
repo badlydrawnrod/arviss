@@ -1,7 +1,7 @@
 #pragma once
 
 #include "entities.h"
-#include "entrance.h"
+#include "types.h"
 
 #include <stdbool.h>
 

@@ -7,3 +7,5 @@ typedef enum Entrance
     fromLEFT,
     fromRIGHT
 } Entrance;
+
+typedef int RoomId;
