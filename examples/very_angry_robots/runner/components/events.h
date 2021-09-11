@@ -28,6 +28,26 @@ typedef struct PlayerEvent
     EntityId id;
 } PlayerEvent;
 
+typedef enum DoorEventType
+{
+    deEnter,
+    deExit
+} DoorEventType;
+
+typedef enum Entrance
+{
+    fromTOP,
+    fromBOTTOM,
+    fromLEFT,
+    fromRIGHT
+} Entrance;
+
+typedef struct DoorEvent
+{
+    DoorEventType type;
+    Entrance entrance; // Which entrance is the door?
+} DoorEvent;
+
 typedef struct Event
 {
     EventType type;
@@ -35,6 +55,7 @@ typedef struct Event
     {
         CollisionEvent collision;
         PlayerEvent player;
+        DoorEvent door;
     };
 } Event;
 

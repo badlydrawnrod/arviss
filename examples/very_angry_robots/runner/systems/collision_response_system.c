@@ -1,5 +1,6 @@
 #include "collision_response_system.h"
 
+#include "components/collidables.h"
 #include "components/events.h"
 #include "entities.h"
 #include "raylib.h"
@@ -51,10 +52,15 @@ static void HandleEvents(int first, int last)
             Entities.Set(c->secondId, bmReap);
         }
 
-        // If the first entity was the player then the player has died.
+        // Handle collisions with the player.
         if (Entities.Is(c->firstId, bmPlayer))
         {
-            Events.Add(&(Event){.type = etPLAYER, .player = (PlayerEvent){.type = peDIED, .id = c->firstId}});
+            Collidable* collidable = Collidables.Get(c->secondId);
+            if (!collidable->isTrigger)
+            {
+                // The player has died because they hit something that wasn't a mere trigger.
+                Events.Add(&(Event){.type = etPLAYER, .player = (PlayerEvent){.type = peDIED, .id = c->firstId}});
+            }
         }
     }
 }

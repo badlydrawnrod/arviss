@@ -2,6 +2,8 @@
 
 #include "entities.h"
 
+#include <stdbool.h>
+
 typedef enum CollidableType
 {
     ctROBOT,
@@ -15,6 +17,7 @@ typedef enum CollidableType
 typedef struct Collidable
 {
     CollidableType type;
+    bool isTrigger;
 } Collidable;
 
 Collidable* GetCollidable(EntityId id);

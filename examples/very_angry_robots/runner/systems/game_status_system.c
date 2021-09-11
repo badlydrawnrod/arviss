@@ -18,14 +18,6 @@
 #define ARENA_WIDTH (HWALLS * WALL_SIZE)
 #define ARENA_HEIGHT (VWALLS * WALL_SIZE)
 
-typedef enum Entrance
-{
-    fromTOP,
-    fromBOTTOM,
-    fromLEFT,
-    fromRIGHT
-} Entrance;
-
 static void SpawnPlayer(Vector2 spawnPoint);
 
 static bool gameOver = false;
@@ -73,6 +65,23 @@ static EntityId MakeWallFromGrid(int gridX, int gridY, bool isVertical)
     return MakeWall(x, y, isVertical);
 }
 
+static EntityId MakeExit(float x, float y, bool isVertical)
+{
+    EntityId id = (EntityId){Entities.Create()};
+    Entities.Set(id, bmPosition | bmWall | bmCollidable);
+    Positions.Set(id, &(Position){.position = {x, y}});
+    Walls.Set(id, &(Wall){.vertical = isVertical});
+    Collidables.Set(id, &(Collidable){.type = isVertical ? ctVWALL : ctHWALL, .isTrigger = true});
+    return id;
+}
+
+static EntityId MakeExitFromGrid(int gridX, int gridY, bool isVertical)
+{
+    const float x = (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
+    const float y = (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
+    return MakeExit(x, y, isVertical);
+}
+
 static EntityId MakeDoor(float x, float y, bool isVertical)
 {
     EntityId id = (EntityId){Entities.Create()};
@@ -105,17 +114,29 @@ static void CreateRoom(Entrance entrance)
     case fromTOP:
         playerSpawnPoint = (Vector2){.x = ARENA_WIDTH / 2, .y = yDisp};
         MakeDoorFromGrid(2, 0, horizontal);
+        MakeExitFromGrid(2, 3, horizontal);
+        MakeExitFromGrid(0, 1, vertical);
+        MakeExitFromGrid(5, 1, vertical);
         break;
     case fromBOTTOM:
         playerSpawnPoint = (Vector2){.x = ARENA_WIDTH / 2, .y = ARENA_HEIGHT - yDisp};
+        MakeExitFromGrid(2, 0, horizontal);
         MakeDoorFromGrid(2, 3, horizontal);
+        MakeExitFromGrid(0, 1, vertical);
+        MakeExitFromGrid(5, 1, vertical);
         break;
     case fromLEFT:
         playerSpawnPoint = (Vector2){.x = xDisp, .y = ARENA_HEIGHT / 2};
+        MakeExitFromGrid(2, 0, horizontal);
+        MakeExitFromGrid(2, 3, horizontal);
         MakeDoorFromGrid(0, 1, vertical);
+        MakeExitFromGrid(5, 1, vertical);
         break;
     case fromRIGHT:
         playerSpawnPoint = (Vector2){.x = ARENA_WIDTH - xDisp, .y = ARENA_HEIGHT / 2};
+        MakeExitFromGrid(2, 0, horizontal);
+        MakeExitFromGrid(2, 3, horizontal);
+        MakeExitFromGrid(0, 1, vertical);
         MakeDoorFromGrid(5, 1, vertical);
         break;
     }
@@ -211,7 +232,7 @@ void ResetGameStatusSystem(void)
     ClearTimedTrigger(&restartTime);
     ClearTimedTrigger(&amnestyTime);
     playerId = MakePlayer(0.0f, 0.0f);
-    CreateRoom(fromRIGHT);
+    CreateRoom(fromBOTTOM);
 }
 
 void UpdateGameStatusSystem(void)
