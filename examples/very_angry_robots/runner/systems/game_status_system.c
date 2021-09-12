@@ -250,9 +250,10 @@ static void HandleEvents(int first, int last)
             TraceLog(LOG_INFO, "Door event: %s", de->type == deENTER ? "enter" : "exit");
             if (de->type == deEXIT)
             {
+                const GameTime transitionTime = 0.5;
                 nextRoomId = currentRoomId + 1;
                 CreateRoom(de->entrance, nextRoomId);
-                transitionEndTime = GetTime() + 0.5;
+                transitionEndTime = GetTime() + transitionTime;
                 entrance = de->entrance;
             }
             break;

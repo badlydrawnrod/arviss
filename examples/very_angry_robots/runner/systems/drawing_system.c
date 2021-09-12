@@ -191,51 +191,44 @@ static void DrawPlayers(void)
     }
 }
 
+static void DrawRoomById(RoomId roomId, Camera2D camera)
+{
+    BeginMode2D(camera);
+    BeginDrawLines();
+    DrawWalls(roomId);
+    if (currentRoom == nextRoom)
+    {
+        DrawDoors(roomId);
+    }
+    DrawRobots(roomId);
+    DrawPlayers();
+    EndDrawLines();
+    EndMode2D();
+}
+
 static void DrawRoom(void)
 {
     const float roomX = ((float)GetScreenWidth() - 5.0f * WALL_SIZE) / 2.0f;
     const float roomY = 28.0f;
+    Vector2 room = {roomX, roomY};
 
     if (currentRoom == nextRoom)
     {
-        const Camera2D camera = {.zoom = 1.0f, .offset = {roomX, roomY}};
-        BeginMode2D(camera);
-        BeginDrawLines();
-        DrawWalls(currentRoom);
-        DrawDoors(currentRoom);
-        DrawRobots(currentRoom);
-        DrawPlayers();
-        EndDrawLines();
-        EndMode2D();
+        DrawRoomById(currentRoom, (Camera2D){.zoom = 1.0f, .offset = room});
     }
     else
     {
-        float alpha = (float)((GetTime() - exitTime) / 0.5);
+        // We're transitioning between two rooms, so draw both of them relative to how far we are into the transition.
+        const GameTime transitionTime = 0.5;
+        float alpha = (float)((GetTime() - exitTime) / transitionTime);
         if (alpha > 1.0f)
         {
             alpha = 1.0f;
         }
 
-        const Camera2D camera = {.zoom = 1.0f,
-                                 .offset = (Vector2){.x = roomX - secondCamera.x * alpha, .y = roomY - secondCamera.y * alpha}};
-        BeginMode2D(camera);
-        BeginDrawLines();
-        DrawWalls(currentRoom);
-        DrawDoors(currentRoom);
-        DrawRobots(currentRoom);
-        EndDrawLines();
-        EndMode2D();
-
-        const Camera2D camera2 = {.zoom = 1.0f,
-                                  .offset = (Vector2){.x = roomX + secondCamera.x - secondCamera.x * alpha,
-                                                      .y = roomY + secondCamera.y - secondCamera.y * alpha}};
-        BeginMode2D(camera2);
-        BeginDrawLines();
-        DrawWalls(nextRoom);
-        DrawDoors(nextRoom);
-        DrawRobots(nextRoom);
-        EndDrawLines();
-        EndMode2D();
+        Vector2 disp = Vector2Scale(secondCamera, alpha);
+        DrawRoomById(currentRoom, (Camera2D){.zoom = 1.0f, .offset = Vector2Subtract(room, disp)});
+        DrawRoomById(nextRoom, (Camera2D){.zoom = 1.0f, .offset = Vector2Add(room, Vector2Subtract(secondCamera, disp))});
     }
 }
 
