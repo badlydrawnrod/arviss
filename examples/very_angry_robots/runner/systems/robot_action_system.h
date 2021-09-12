@@ -1,8 +1,10 @@
 #include "entities.h"
 
+void ResetRobotActions(void);
 void UpdateRobotActions(void);
 
 static struct
 {
+    void (*Reset)(void);
     void (*Update)(void);
-} RobotActionSystem = {.Update = UpdateRobotActions};
+} RobotActionSystem = {.Reset = ResetRobotActions, .Update = UpdateRobotActions};

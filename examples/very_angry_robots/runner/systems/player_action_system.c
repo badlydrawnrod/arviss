@@ -1,12 +1,15 @@
 #include "player_action_system.h"
 
+#include "components/events.h"
 #include "components/velocities.h"
 #include "contoller.h"
 #include "entities.h"
 #include "raylib.h"
+#include "systems/event_system.h"
 
 #define PLAYER_SPEED 2
 
+static bool isEnabled = true;
 static EntityId playerId = {-1};
 
 static void UpdatePlayer(void)
@@ -70,6 +73,25 @@ static void UpdatePlayer(void)
     v->velocity.y = dy * PLAYER_SPEED;
 }
 
+static void HandleEvents(int first, int last)
+{
+    for (int i = first; i != last; i++)
+    {
+        const Event* e = Events.Get((EventId){.id = i});
+        if (e->type == etDOOR)
+        {
+            const DoorEvent* de = &e->door;
+            isEnabled = de->type == deENTER;
+        }
+    }
+}
+
+void ResetPlayerActions(void)
+{
+    isEnabled = true;
+    EventSystem.Register(HandleEvents);
+}
+
 void UpdatePlayerActions(void)
 {
     // Cache the player id.
@@ -83,6 +105,11 @@ void UpdatePlayerActions(void)
                 break;
             }
         }
+    }
+
+    if (!isEnabled)
+    {
+        return;
     }
 
     UpdatePlayer();

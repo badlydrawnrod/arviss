@@ -14,6 +14,8 @@ void EnterPlaying(void)
 {
     Entities.Reset();
     EventSystem.Reset(); // Reset this first, because many of the other systems register with it.
+    PlayerActionSystem.Reset();
+    RobotActionSystem.Reset();
     MovementSystem.Reset();
     CollisionSystem.Reset();
     CollisionResponseSystem.Reset();

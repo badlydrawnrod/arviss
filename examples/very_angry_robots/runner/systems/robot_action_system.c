@@ -1,6 +1,33 @@
 #include "robot_action_system.h"
 
+#include "components/events.h"
+#include "systems/event_system.h"
+
+static bool isEnabled = true;
+
+static void HandleEvents(int first, int last)
+{
+    for (int i = first; i != last; i++)
+    {
+        const Event* e = Events.Get((EventId){.id = i});
+        if (e->type == etDOOR)
+        {
+            const DoorEvent* de = &e->door;
+            isEnabled = de->type == deENTER;
+        }
+    }
+}
+
+void ResetRobotActions(void)
+{
+    isEnabled = true;
+    EventSystem.Register(HandleEvents);
+}
+
 void UpdateRobotActions(void)
 {
-    // TODO: update the robots using Arviss.
+    if (!isEnabled)
+    {
+        return;
+    }
 }

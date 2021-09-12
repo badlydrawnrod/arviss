@@ -2,9 +2,11 @@
 
 #include "entities.h"
 
+void ResetPlayerActions(void);
 void UpdatePlayerActions(void);
 
 static struct
 {
+    void (*Reset)(void);
     void (*Update)(void);
-} PlayerActionSystem = {.Update = UpdatePlayerActions};
+} PlayerActionSystem = {.Reset = ResetPlayerActions, .Update = UpdatePlayerActions};
