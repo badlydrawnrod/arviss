@@ -1,7 +1,7 @@
 #include "event_system.h"
 
-#include "components/events.h"
 #include "raylib.h"
+#include "tables/events.h"
 
 #define MAX_HANDLERS 32
 

@@ -1,7 +1,7 @@
 #include "robot_action_system.h"
 
-#include "components/events.h"
 #include "systems/event_system.h"
+#include "tables/events.h"
 
 static bool isEnabled = true;
 

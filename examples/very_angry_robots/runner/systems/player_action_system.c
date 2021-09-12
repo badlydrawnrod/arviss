@@ -1,11 +1,11 @@
 #include "player_action_system.h"
 
-#include "components/events.h"
-#include "components/velocities.h"
 #include "contoller.h"
 #include "entities.h"
 #include "raylib.h"
 #include "systems/event_system.h"
+#include "tables/events.h"
+#include "tables/velocities.h"
 
 #define PLAYER_SPEED 2
 

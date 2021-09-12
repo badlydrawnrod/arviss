@@ -1,10 +1,10 @@
 #include "movement_system.h"
 
-#include "components/events.h"
-#include "components/positions.h"
-#include "components/velocities.h"
 #include "entities.h"
 #include "systems/event_system.h"
+#include "tables/events.h"
+#include "tables/positions.h"
+#include "tables/velocities.h"
 
 static bool isEnabled = true;
 
@@ -15,7 +15,7 @@ static void HandleEvents(int first, int last)
         const Event* e = Events.Get((EventId){.id = i});
         if (e->type == etDOOR)
         {
-            DoorEvent* de = &e->door;
+            const DoorEvent* de = &e->door;
             isEnabled = de->type == deENTER;
         }
     }

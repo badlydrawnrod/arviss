@@ -1,11 +1,11 @@
 #include "collision_system.h"
 
-#include "components/collidables.h"
-#include "components/events.h"
-#include "components/positions.h"
 #include "entities.h"
 #include "raylib.h"
 #include "systems/event_system.h"
+#include "tables/collidables.h"
+#include "tables/events.h"
+#include "tables/positions.h"
 
 #define WALL_SIZE 224
 #define WALL_THICKNESS 2

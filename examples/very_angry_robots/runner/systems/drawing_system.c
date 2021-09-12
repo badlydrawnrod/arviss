@@ -1,14 +1,14 @@
 #include "drawing_system.h"
 
-#include "components/doors.h"
-#include "components/events.h"
-#include "components/owners.h"
-#include "components/player_status.h"
-#include "components/positions.h"
-#include "components/walls.h"
 #include "entities.h"
 #include "raylib.h"
 #include "systems/event_system.h"
+#include "tables/doors.h"
+#include "tables/events.h"
+#include "tables/owners.h"
+#include "tables/player_status.h"
+#include "tables/positions.h"
+#include "tables/walls.h"
 #include "types.h"
 
 #define MAX_LINES 1024
@@ -253,7 +253,7 @@ static void HandleEvents(int first, int last)
         const Event* e = Events.Get((EventId){.id = i});
         if (e->type == etDOOR)
         {
-            DoorEvent* de = &e->door;
+            const DoorEvent* de = &e->door;
             // If exiting, start a transition.
             if (de->type == deEXIT)
             {

@@ -1,12 +1,12 @@
 #include "collision_response_system.h"
 
-#include "components/collidables.h"
-#include "components/doors.h"
-#include "components/events.h"
-#include "components/owners.h"
 #include "entities.h"
 #include "raylib.h"
 #include "systems/event_system.h"
+#include "tables/collidables.h"
+#include "tables/doors.h"
+#include "tables/events.h"
+#include "tables/owners.h"
 #include "types.h"
 
 static const char* Identify(EntityId id)
