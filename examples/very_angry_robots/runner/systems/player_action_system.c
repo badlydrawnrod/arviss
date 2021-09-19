@@ -12,7 +12,7 @@
 static bool isEnabled = true;
 static EntityId playerId = {-1};
 
-static void UpdatePlayer(void)
+static Vector2 GetPlayerMovement(void)
 {
     // Find out what the player wants to do.
     float dx = 0.0f;
@@ -67,10 +67,17 @@ static void UpdatePlayer(void)
         dy = sinf(angle) * distance;
     }
 
+    return (Vector2){dx, dy};
+}
+
+static void UpdatePlayer(void)
+{
+    // How does the player want to move?
+    const Vector2 movement = GetPlayerMovement();
+
     // Set its velocity.
     Velocity* v = Velocities.Get(playerId);
-    v->velocity.x = dx * PLAYER_SPEED;
-    v->velocity.y = dy * PLAYER_SPEED;
+    v->velocity = Vector2Scale(movement, PLAYER_SPEED);
 }
 
 static void HandleEvents(int first, int last)
