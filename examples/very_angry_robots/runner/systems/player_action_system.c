@@ -1,10 +1,11 @@
 #include "player_action_system.h"
 
-#include "contoller.h"
+#include "controller.h"
 #include "entities.h"
 #include "raylib.h"
 #include "systems/event_system.h"
 #include "tables/events.h"
+#include "tables/positions.h"
 #include "tables/velocities.h"
 
 #define PLAYER_SPEED 2
@@ -28,6 +29,7 @@ static Vector2 GetPlayerMovement(void)
 
     if (usingKeyboard || anyGamepadButtonDown)
     {
+        // Move with the keyboard or the dpad.
         if (isRightDPadDown || IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
         {
             dx += 1.0f;
@@ -55,6 +57,7 @@ static Vector2 GetPlayerMovement(void)
     }
     else
     {
+        // Move with the left stick.
         const float padX = GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X);
         const float padY = GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y);
         const float angle = atan2f(padY, padX);
@@ -63,11 +66,44 @@ static Vector2 GetPlayerMovement(void)
         {
             distance = 1.0f;
         }
-        dx = cosf(angle) * distance;
-        dy = sinf(angle) * distance;
+        return (Vector2){cosf(angle) * distance, sinf(angle) * distance};
     }
 
     return (Vector2){dx, dy};
+}
+
+static Vector2 GetPlayerAim(void)
+{
+    const bool haveGamepad = IsGamepadAvailable(0);
+    const bool usingMouseAim = GetController() == ctKEYBOARD || !haveGamepad;
+    if (usingMouseAim)
+    {
+        // Aim with the mouse.
+        const Vector2 mouseScreenPos = GetMousePosition();
+        Camera2D camera = {.zoom = 1.0f}; // TODO: We need to find the camera from somewhere.
+        const Vector2 mousePos = GetScreenToWorld2D(mouseScreenPos, camera);
+        const Position* p = Positions.Get(playerId);
+        const Vector2 playerPos = p->position;
+        const Vector2 difference = Vector2Subtract(mousePos, playerPos);
+        const float angle = atan2f(difference.y, difference.x);
+        return (Vector2){cosf(angle), sinf(angle)};
+    }
+    else
+    {
+        // Aim using the right stick.
+        const float padX = GetGamepadAxisMovement(0, GAMEPAD_AXIS_RIGHT_X);
+        const float padY = GetGamepadAxisMovement(0, GAMEPAD_AXIS_RIGHT_Y);
+        float distance = hypotf(padX, padY);
+
+        // If we're in the dead-zone for aiming then just return the zero vector.,
+        if (distance < 0.1f)
+        {
+            return (Vector2){0.0f, 0.0f};
+        }
+
+        const float angle = atan2f(padY, padX);
+        return (Vector2){cosf(angle), sinf(angle)};
+    }
 }
 
 static void UpdatePlayer(void)
@@ -78,6 +114,10 @@ static void UpdatePlayer(void)
     // Set its velocity.
     Velocity* v = Velocities.Get(playerId);
     v->velocity = Vector2Scale(movement, PLAYER_SPEED);
+
+    // Get the player's aim.
+    const Vector2 aim = GetPlayerAim();
+    TraceLog(LOG_DEBUG, "Aim (%0.3f, %0.3f)", aim.x, aim.y);
 }
 
 static void HandleEvents(int first, int last)

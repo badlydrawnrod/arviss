@@ -1,4 +1,4 @@
-#include "contoller.h"
+#include "controller.h"
 
 static ControllerType controllerType = ctKEYBOARD;
 

@@ -1,4 +1,4 @@
-#include "contoller.h"
+#include "controller.h"
 #include "raylib.h"
 #include "screens.h"
 
