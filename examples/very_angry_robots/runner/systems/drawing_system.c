@@ -188,8 +188,13 @@ static void DrawPlayers(void)
         {
             Vector2 position = Positions.GetPosition(id);
             DrawPlayer(position.x, position.y);
+
             Vector2 aim = Aims.GetAim(id);
-            DrawLineV(position, Vector2Add(position, Vector2Scale(aim, 256.0f)), BROWN);
+            if (aim.x != 0.0f || aim.y != 0.0f)
+            {
+                const Vector2 centre = Vector2Add(position, Vector2Scale(aim, 96.0f));
+                DrawCircleLines(centre.x, centre.y, 8.0f, SKYBLUE);
+            }
         }
     }
 }
