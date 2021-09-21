@@ -72,6 +72,8 @@ static Vector2 GetPlayerMovement(void)
     return (Vector2){dx, dy};
 }
 
+#define WALL_SIZE 224
+
 static Vector2 GetPlayerAim(void)
 {
     const bool haveGamepad = IsGamepadAvailable(0);
@@ -80,8 +82,15 @@ static Vector2 GetPlayerAim(void)
     {
         // Aim with the mouse.
         const Vector2 mouseScreenPos = GetMousePosition();
-        Camera2D camera = {.zoom = 1.0f}; // TODO: We need to find the camera from somewhere.
+
+        // Where is the mouse in room coordinates?
+        // TODO: find a common home for this.
+        const float roomX = ((float)GetScreenWidth() - 5.0f * WALL_SIZE) / 2.0f;
+        const float roomY = 28.0f;
+        Vector2 room = {roomX, roomY};
+        Camera2D camera = {.zoom = 1.0f, .offset = room};
         const Vector2 mousePos = GetScreenToWorld2D(mouseScreenPos, camera);
+
         const Position* p = Positions.Get(playerId);
         const Vector2 playerPos = p->position;
         const Vector2 difference = Vector2Subtract(mousePos, playerPos);
