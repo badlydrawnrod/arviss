@@ -3,6 +3,7 @@
 #include "entities.h"
 #include "raylib.h"
 #include "systems/event_system.h"
+#include "tables/aims.h"
 #include "tables/doors.h"
 #include "tables/events.h"
 #include "tables/owners.h"
@@ -187,6 +188,8 @@ static void DrawPlayers(void)
         {
             Vector2 position = Positions.GetPosition(id);
             DrawPlayer(position.x, position.y);
+            Vector2 aim = Aims.GetAim(id);
+            DrawLineV(position, Vector2Add(position, Vector2Scale(aim, 256.0f)), BROWN);
         }
     }
 }

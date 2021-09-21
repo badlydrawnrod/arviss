@@ -3,6 +3,7 @@
 #include "entities.h"
 #include "raylib.h"
 #include "systems/event_system.h"
+#include "tables/aims.h"
 #include "tables/collidables.h"
 #include "tables/doors.h"
 #include "tables/events.h"
@@ -51,6 +52,7 @@ static EntityId MakePlayer(float x, float y)
     Velocities.Set(id, &(Velocity){.velocity = {0.0f, 0.0f}});
     PlayerStatuses.Set(id, &(PlayerStatus){.lives = 3, .score = 0});
     Collidables.Set(id, &(Collidable){.type = ctPLAYER});
+    Aims.Set(id, &(Aim){.aim = {0.0f, 0.0f}});
     return id;
 }
 

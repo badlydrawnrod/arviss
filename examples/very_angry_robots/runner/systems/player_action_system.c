@@ -4,6 +4,7 @@
 #include "entities.h"
 #include "raylib.h"
 #include "systems/event_system.h"
+#include "tables/aims.h"
 #include "tables/events.h"
 #include "tables/positions.h"
 #include "tables/velocities.h"
@@ -117,16 +118,15 @@ static Vector2 GetPlayerAim(void)
 
 static void UpdatePlayer(void)
 {
-    // How does the player want to move?
+    // Find out how the player wants to move and set its velocity.
     const Vector2 movement = GetPlayerMovement();
-
-    // Set its velocity.
     Velocity* v = Velocities.Get(playerId);
     v->velocity = Vector2Scale(movement, PLAYER_SPEED);
 
-    // Get the player's aim.
+    // Find out where the player wants to aim and set its direction.
     const Vector2 aim = GetPlayerAim();
-    TraceLog(LOG_DEBUG, "Aim (%0.3f, %0.3f)", aim.x, aim.y);
+    Aim* a = Aims.Get(playerId);
+    a->aim = aim;
 }
 
 static void HandleEvents(int first, int last)
