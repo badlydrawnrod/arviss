@@ -7,6 +7,7 @@
 #include "systems/game_status_system.h"
 #include "systems/movement_system.h"
 #include "systems/player_action_system.h"
+#include "systems/player_controller_system.h"
 #include "systems/reaper_system.h"
 #include "systems/robot_action_system.h"
 
@@ -14,6 +15,7 @@ void EnterPlaying(void)
 {
     Entities.Reset();
     EventSystem.Reset(); // Reset this first, because many of the other systems register with it.
+    PlayerControllerSystem.Reset();
     PlayerActionSystem.Reset();
     RobotActionSystem.Reset();
     MovementSystem.Reset();
@@ -27,6 +29,7 @@ void UpdatePlaying(void)
 {
     ReaperSystem.Update();
 
+    PlayerControllerSystem.Update();
     PlayerActionSystem.Update();
     RobotActionSystem.Update();
     MovementSystem.Update();
@@ -60,4 +63,5 @@ void CheckTriggersPlaying(void)
     {
         SwitchTo(MENU);
     }
+    PlayerControllerSystem.HandleTriggers();
 }
