@@ -5,16 +5,16 @@
 
 #include <stdbool.h>
 
-typedef struct Owner
+typedef struct Room
 {
     RoomId roomId; // Which room owns this entity?
-} Owner;
+} Room;
 
-Owner* GetOwner(EntityId id);
-void SetOwner(EntityId id, Owner* owner);
+Room* GetOwner(EntityId id);
+void SetOwner(EntityId id, Room* owner);
 
 static struct
 {
-    Owner* (*Get)(EntityId id);
-    void (*Set)(EntityId id, Owner* owner);
+    Room* (*Get)(EntityId id);
+    void (*Set)(EntityId id, Room* owner);
 } Owners = {.Get = GetOwner, .Set = SetOwner};

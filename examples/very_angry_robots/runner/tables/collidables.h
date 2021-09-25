@@ -8,6 +8,7 @@ typedef enum CollidableType
 {
     ctROBOT,
     ctPLAYER,
+    ctSHOT,
     ctHWALL,
     ctVWALL,
     ctHDOOR,

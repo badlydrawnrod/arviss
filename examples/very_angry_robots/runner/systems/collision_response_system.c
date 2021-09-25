@@ -6,7 +6,7 @@
 #include "tables/collidables.h"
 #include "tables/doors.h"
 #include "tables/events.h"
-#include "tables/owners.h"
+#include "tables/rooms.h"
 #include "types.h"
 
 static const char* Identify(EntityId id)
@@ -18,6 +18,10 @@ static const char* Identify(EntityId id)
     else if (Entities.Is(id, bmRobot))
     {
         return "robot";
+    }
+    else if (Entities.Is(id, bmShot))
+    {
+        return "shot";
     }
     else if (Entities.Is(id, bmWall))
     {
@@ -67,7 +71,7 @@ static void HandleEvents(int first, int last)
             }
             else if (Entities.Is(c->secondId, bmDoor))
             {
-                const Owner* owner = Owners.Get(c->secondId);
+                const Room* owner = Owners.Get(c->secondId);
                 const Door* door = Doors.Get(c->secondId);
                 Events.Add(&(Event){.type = etDOOR,
                                     .door = (DoorEvent){.type = deEXIT,

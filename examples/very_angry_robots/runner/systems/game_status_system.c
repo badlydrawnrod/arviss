@@ -7,10 +7,10 @@
 #include "tables/collidables.h"
 #include "tables/doors.h"
 #include "tables/events.h"
-#include "tables/owners.h"
 #include "tables/player_controls.h"
 #include "tables/player_status.h"
 #include "tables/positions.h"
+#include "tables/rooms.h"
 #include "tables/velocities.h"
 #include "tables/walls.h"
 #include "timed_triggers.h"
@@ -41,7 +41,7 @@ static EntityId MakeRobot(RoomId owner, float x, float y)
     Positions.Set(id, &(Position){.position = {x, y}});
     Velocities.Set(id, &(Velocity){.velocity = {1.0f, 0.0f}});
     Collidables.Set(id, &(Collidable){.type = ctROBOT});
-    Owners.Set(id, &(Owner){.roomId = owner});
+    Owners.Set(id, &(Room){.roomId = owner});
     return id;
 }
 
@@ -66,7 +66,7 @@ static EntityId MakeWall(RoomId owner, float x, float y, bool isVertical)
     Positions.Set(id, &(Position){.position = {x, y}});
     Walls.Set(id, &(Wall){.vertical = isVertical});
     Collidables.Set(id, &(Collidable){.type = isVertical ? ctVWALL : ctHWALL});
-    Owners.Set(id, &(Owner){.roomId = owner});
+    Owners.Set(id, &(Room){.roomId = owner});
     return id;
 }
 
@@ -87,7 +87,7 @@ static EntityId MakeExit(RoomId owner, float x, float y, bool isVertical, Entran
 
     // It shares the same collision characteristics as a wall.
     Collidables.Set(id, &(Collidable){.type = isVertical ? ctVWALL : ctHWALL, .isTrigger = true});
-    Owners.Set(id, &(Owner){.roomId = owner});
+    Owners.Set(id, &(Room){.roomId = owner});
     return id;
 }
 
@@ -105,7 +105,7 @@ static EntityId MakeDoor(RoomId owner, float x, float y, bool isVertical, Entran
     Positions.Set(id, &(Position){.position = {x, y}});
     Doors.Set(id, &(Door){.vertical = isVertical, .leadsTo = entrance});
     Collidables.Set(id, &(Collidable){.type = isVertical ? ctVDOOR : ctHDOOR});
-    Owners.Set(id, &(Owner){.roomId = owner});
+    Owners.Set(id, &(Room){.roomId = owner});
     return id;
 }
 
@@ -123,7 +123,7 @@ static void DestroyRoom(RoomId roomId)
         EntityId id = {.id = i};
         if (Entities.Is(id, bmOwned))
         {
-            Owner* owner = Owners.Get(id);
+            Room* owner = Owners.Get(id);
             if (owner->roomId == roomId)
             {
                 Entities.Set(id, bmReap);

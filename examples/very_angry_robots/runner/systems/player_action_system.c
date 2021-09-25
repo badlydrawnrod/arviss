@@ -8,7 +8,12 @@
 #include "tables/player_controls.h"
 #include "tables/velocities.h"
 
+#include <tables/collidables.h>
+#include <tables/player_status.h>
+#include <tables/positions.h>
+
 #define PLAYER_SPEED 2
+#define SHOT_SPEED 8
 
 static bool isEnabled = true;
 static EntityId playerId = {-1};
@@ -33,6 +38,20 @@ static inline bool GetPlayerFire()
     return shouldFire;
 }
 
+static EntityId MakeShot(Vector2 position, Vector2 aim, EntityId owner)
+{
+    // TODO: if an entity has an owner, e.g., a shot was fired by a robot, then we need to make sure that the shot doesn't collide
+    //  with the robot that fired it. We also need to make sure that if the robot dies, and another entity comes into being, then
+    //  it mustn't have the same entity id.
+    EntityId id = (EntityId){Entities.Create()};
+    Entities.Set(id, bmPosition | bmVelocity | bmDrawable | bmShot | bmCollidable);
+    Positions.Set(id, &(Position){.position = position});
+    Velocities.Set(id, &(Velocity){.velocity = Vector2Scale(aim, SHOT_SPEED)});
+    Collidables.Set(id, &(Collidable){.type = ctSHOT});
+    //    Owners.Set(id, owner);
+    return id;
+}
+
 static void UpdatePlayer(void)
 {
     // Find out how the player wants to move and set its velocity.
@@ -49,7 +68,9 @@ static void UpdatePlayer(void)
     bool isFiring = GetPlayerFire();
     if (isFiring)
     {
-        TraceLog(LOG_DEBUG, "TODO: player fires a shot in the direction that they're aimin");
+        TraceLog(LOG_DEBUG, "TODO: player fires a shot in the direction that they're aiming");
+        Position* p = Positions.Get(playerId);
+        MakeShot(p->position, aim, playerId);
     }
 }
 

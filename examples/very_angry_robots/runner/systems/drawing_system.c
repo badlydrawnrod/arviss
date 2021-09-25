@@ -6,9 +6,9 @@
 #include "tables/aims.h"
 #include "tables/doors.h"
 #include "tables/events.h"
-#include "tables/owners.h"
 #include "tables/player_status.h"
 #include "tables/positions.h"
+#include "tables/rooms.h"
 #include "tables/walls.h"
 #include "types.h"
 
@@ -133,7 +133,7 @@ static void DrawWalls(RoomId roomId)
         EntityId id = {i};
         if (Entities.Is(id, bmWall | bmPosition | bmDrawable))
         {
-            const Owner* owner = Owners.Get(id);
+            const Room* owner = Owners.Get(id);
             if (owner->roomId == roomId)
             {
                 Vector2 position = Positions.GetPosition(id);
@@ -151,7 +151,7 @@ static void DrawDoors(RoomId roomId)
         EntityId id = {i};
         if (Entities.Is(id, bmDoor | bmPosition | bmDrawable))
         {
-            const Owner* owner = Owners.Get(id);
+            const Room* owner = Owners.Get(id);
             if (owner->roomId == roomId)
             {
                 Vector2 position = Positions.GetPosition(id);
@@ -169,7 +169,7 @@ static void DrawRobots(RoomId roomId)
         EntityId id = {i};
         if (Entities.Is(id, bmRobot | bmPosition | bmDrawable))
         {
-            const Owner* owner = Owners.Get(id);
+            const Room* owner = Owners.Get(id);
             if (owner->roomId == roomId)
             {
                 Vector2 position = Positions.GetPosition(id);

@@ -19,9 +19,13 @@
 #define PLAYER_WIDTH 32
 #define PLAYER_HEIGHT 32
 
+#define SHOT_WIDTH 4
+#define SHOT_HEIGHT 4
+
 static Rectangle geometries[] = {
         {.x = -ROBOT_WIDTH / 2, .y = -ROBOT_HEIGHT / 2, .width = ROBOT_WIDTH, .height = ROBOT_HEIGHT},     // ctROBOT
         {.x = -PLAYER_WIDTH / 2, .y = -PLAYER_HEIGHT / 2, .width = PLAYER_WIDTH, .height = PLAYER_HEIGHT}, // ctPLAYER
+        {.x = -SHOT_WIDTH / 2, .y = -SHOT_HEIGHT / 2, .width = SHOT_WIDTH, .height = SHOT_HEIGHT},         // ctSHOT
         {.x = -WALL_SIZE / 2, .y = -WALL_THICKNESS / 2, .width = WALL_SIZE, .height = WALL_THICKNESS},     // ctHWALL
         {.x = -WALL_THICKNESS / 2, .y = -WALL_SIZE / 2, .width = WALL_THICKNESS, .height = WALL_SIZE},     // ctVWALL
         {.x = -WALL_SIZE / 2, .y = -WALL_THICKNESS / 2, .width = WALL_SIZE, .height = WALL_THICKNESS},     // ctHDOOR
@@ -53,6 +57,10 @@ static void CollidePlayer(void)
         // TODO: how do we distinguish between player shots and robot shots?
         const bool shouldTest =
                 Entities.Is(id, bmCollidable | bmPosition) && (Entities.AnyOf(id, bmWall | bmDoor | bmRobot | bmShot));
+
+        // TODO: the player shouldn't collide with its own shots. One way of doing this is to have a separate category of player
+        //  shots, but we're going to have the same issue with robots, so perhaps solving the problem in the same way would be
+        //  preferable.
         if (shouldTest)
         {
             Collidable* c = Collidables.Get(id);
@@ -114,7 +122,7 @@ static void CollideRobots(void)
 static void CollideShot(EntityId shotId)
 {
     Vector2 shotPos = Positions.GetPosition(shotId);
-    Rectangle shotRect = geometries[ctPLAYER];
+    Rectangle shotRect = geometries[ctSHOT];
     shotRect.x += shotPos.x;
     shotRect.y += shotPos.y;
 
