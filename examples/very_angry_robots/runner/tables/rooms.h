@@ -10,11 +10,11 @@ typedef struct Room
     RoomId roomId; // Which room owns this entity?
 } Room;
 
-Room* GetOwner(EntityId id);
-void SetOwner(EntityId id, Room* owner);
+Room* GetRoom(EntityId id);
+void SetRoom(EntityId id, Room* room);
 
 static struct
 {
     Room* (*Get)(EntityId id);
-    void (*Set)(EntityId id, Room* owner);
-} Owners = {.Get = GetOwner, .Set = SetOwner};
+    void (*Set)(EntityId id, Room* room);
+} Owners = {.Get = GetRoom, .Set = SetRoom};

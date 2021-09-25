@@ -2,14 +2,14 @@
 
 #include "entities.h"
 
-static struct Room owners[MAX_ENTITIES];
+static struct Room rooms[MAX_ENTITIES];
 
-Room* GetOwner(EntityId id)
+Room* GetRoom(EntityId id)
 {
-    return &owners[id.id];
+    return &rooms[id.id];
 }
 
-void SetOwner(EntityId id, Room* owner)
+void SetRoom(EntityId id, Room* room)
 {
-    owners[id.id] = *owner;
+    rooms[id.id] = *room;
 }

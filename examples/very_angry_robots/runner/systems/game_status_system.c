@@ -37,7 +37,7 @@ static RoomId nextRoomId;
 static EntityId MakeRobot(RoomId owner, float x, float y)
 {
     EntityId id = (EntityId){Entities.Create()};
-    Entities.Set(id, bmPosition | bmDrawable | bmRobot | bmCollidable | bmOwned); // No velocity to start. It isn't movable.
+    Entities.Set(id, bmPosition | bmDrawable | bmRobot | bmCollidable | bmInRoom); // No velocity to start. It isn't movable.
     Positions.Set(id, &(Position){.position = {x, y}});
     Velocities.Set(id, &(Velocity){.velocity = {1.0f, 0.0f}});
     Collidables.Set(id, &(Collidable){.type = ctROBOT});
@@ -62,7 +62,7 @@ static EntityId MakePlayer(float x, float y)
 static EntityId MakeWall(RoomId owner, float x, float y, bool isVertical)
 {
     EntityId id = (EntityId){Entities.Create()};
-    Entities.Set(id, bmPosition | bmDrawable | bmWall | bmCollidable | bmOwned);
+    Entities.Set(id, bmPosition | bmDrawable | bmWall | bmCollidable | bmInRoom);
     Positions.Set(id, &(Position){.position = {x, y}});
     Walls.Set(id, &(Wall){.vertical = isVertical});
     Collidables.Set(id, &(Collidable){.type = isVertical ? ctVWALL : ctHWALL});
@@ -81,7 +81,7 @@ static EntityId MakeExit(RoomId owner, float x, float y, bool isVertical, Entran
 {
     // An exit is an invisible door.
     EntityId id = (EntityId){Entities.Create()};
-    Entities.Set(id, bmPosition | bmDoor | bmCollidable | bmOwned);
+    Entities.Set(id, bmPosition | bmDoor | bmCollidable | bmInRoom);
     Positions.Set(id, &(Position){.position = {x, y}});
     Doors.Set(id, &(Door){.vertical = isVertical, .leadsTo = entrance});
 
@@ -101,7 +101,7 @@ static EntityId MakeExitFromGrid(RoomId owner, int gridX, int gridY, bool isVert
 static EntityId MakeDoor(RoomId owner, float x, float y, bool isVertical, Entrance entrance)
 {
     EntityId id = (EntityId){Entities.Create()};
-    Entities.Set(id, bmPosition | bmDrawable | bmDoor | bmCollidable | bmOwned);
+    Entities.Set(id, bmPosition | bmDrawable | bmDoor | bmCollidable | bmInRoom);
     Positions.Set(id, &(Position){.position = {x, y}});
     Doors.Set(id, &(Door){.vertical = isVertical, .leadsTo = entrance});
     Collidables.Set(id, &(Collidable){.type = isVertical ? ctVDOOR : ctHDOOR});
@@ -121,7 +121,7 @@ static void DestroyRoom(RoomId roomId)
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
         EntityId id = {.id = i};
-        if (Entities.Is(id, bmOwned))
+        if (Entities.Is(id, bmInRoom))
         {
             Room* owner = Owners.Get(id);
             if (owner->roomId == roomId)

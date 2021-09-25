@@ -5,6 +5,7 @@
 #include "systems/event_system.h"
 #include "tables/collidables.h"
 #include "tables/events.h"
+#include "tables/owners.h"
 #include "tables/positions.h"
 
 #define WALL_SIZE 224
@@ -55,12 +56,20 @@ static void CollidePlayer(void)
     {
         EntityId id = {i};
         // TODO: how do we distinguish between player shots and robot shots?
-        const bool shouldTest =
-                Entities.Is(id, bmCollidable | bmPosition) && (Entities.AnyOf(id, bmWall | bmDoor | bmRobot | bmShot));
+        bool shouldTest = Entities.Is(id, bmCollidable | bmPosition) && (Entities.AnyOf(id, bmWall | bmDoor | bmRobot | bmShot));
 
         // TODO: the player shouldn't collide with its own shots. One way of doing this is to have a separate category of player
         //  shots, but we're going to have the same issue with robots, so perhaps solving the problem in the same way would be
         //  preferable.
+        if (Entities.Is(id, bmOwned | bmShot))
+        {
+            Owner* owner = Owners.Get(id);
+            if (owner->ownerId.id == playerId.id)
+            {
+                // The player shouldn't collide with their own shots.
+                shouldTest = false;
+            }
+        }
         if (shouldTest)
         {
             Collidable* c = Collidables.Get(id);

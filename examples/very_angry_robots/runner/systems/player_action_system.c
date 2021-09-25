@@ -4,13 +4,13 @@
 #include "raylib.h"
 #include "systems/event_system.h"
 #include "tables/aims.h"
+#include "tables/collidables.h"
 #include "tables/events.h"
+#include "tables/owners.h"
 #include "tables/player_controls.h"
+#include "tables/player_status.h"
+#include "tables/positions.h"
 #include "tables/velocities.h"
-
-#include <tables/collidables.h>
-#include <tables/player_status.h>
-#include <tables/positions.h>
 
 #define PLAYER_SPEED 2
 #define SHOT_SPEED 8
@@ -44,11 +44,11 @@ static EntityId MakeShot(Vector2 position, Vector2 aim, EntityId owner)
     //  with the robot that fired it. We also need to make sure that if the robot dies, and another entity comes into being, then
     //  it mustn't have the same entity id.
     EntityId id = (EntityId){Entities.Create()};
-    Entities.Set(id, bmPosition | bmVelocity | bmDrawable | bmShot | bmCollidable);
+    Entities.Set(id, bmPosition | bmVelocity | bmDrawable | bmShot | bmCollidable | bmOwned);
     Positions.Set(id, &(Position){.position = position});
     Velocities.Set(id, &(Velocity){.velocity = Vector2Scale(aim, SHOT_SPEED)});
     Collidables.Set(id, &(Collidable){.type = ctSHOT});
-    //    Owners.Set(id, owner);
+    Owners.Set(id, &(Owner){.ownerId = owner});
     return id;
 }
 
