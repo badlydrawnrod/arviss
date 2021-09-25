@@ -9,6 +9,7 @@
 #include "tables/player_status.h"
 #include "tables/positions.h"
 #include "tables/rooms.h"
+#include "tables/velocities.h"
 #include "tables/walls.h"
 #include "types.h"
 
@@ -58,6 +59,11 @@ static void AddLine(float startX, float startY, float endX, float endY, Color co
     ++numLines;
 }
 
+static inline void AddLineV(Vector2 start, Vector2 end, Color color)
+{
+    AddLine(start.x, start.y, end.x, end.y, color);
+}
+
 static void DrawWall(float x, float y, bool isVertical)
 {
     Vector2 extents = (isVertical) ? (Vector2){0, WALL_SIZE / 2} : (Vector2){WALL_SIZE / 2, 0};
@@ -104,9 +110,9 @@ static void DrawRobot(float x, float y)
 
 static void DrawPlayer(float x, float y)
 {
-    Color bodyColour = SKYBLUE;
-    Color headColour = SKYBLUE;
-    Color legColour = SKYBLUE;
+    const Color bodyColour = SKYBLUE;
+    const Color headColour = SKYBLUE;
+    const Color legColour = SKYBLUE;
 
     // Body.
     AddLine(x, y, x, y - 12, bodyColour);
@@ -124,6 +130,17 @@ static void DrawPlayer(float x, float y)
     AddLine(x, y - 12, x + 6, y - 16, headColour);
     AddLine(x - 6, y - 16, x, y - 20, headColour);
     AddLine(x + 6, y - 16, x, y - 20, headColour);
+}
+
+static void DrawShot(Vector2 position, Vector2 velocity)
+{
+    const Color shotColour = RED;
+
+    const Vector2 shotLength = Vector2Scale(velocity, 1.5f);
+    const Vector2 behind = Vector2Subtract(position, shotLength);
+    const Vector2 ahead = Vector2Add(position, shotLength);
+
+    AddLineV(behind, ahead, shotColour);
 }
 
 static void DrawWalls(RoomId roomId)
@@ -199,6 +216,20 @@ static void DrawPlayers(void)
     }
 }
 
+static void DrawShots(void)
+{
+    for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
+    {
+        EntityId id = {i};
+        if (Entities.Is(id, bmShot | bmPosition | bmDrawable | bmVelocity))
+        {
+            Vector2 position = Positions.GetPosition(id);
+            Vector2 velocity = Velocities.GetVelocity(id);
+            DrawShot(position, velocity);
+        }
+    }
+}
+
 static void DrawRoomById(RoomId roomId, Camera2D camera)
 {
     BeginMode2D(camera);
@@ -210,6 +241,7 @@ static void DrawRoomById(RoomId roomId, Camera2D camera)
     }
     DrawRobots(roomId);
     DrawPlayers();
+    DrawShots();
     EndDrawLines();
     EndMode2D();
 }
