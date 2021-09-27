@@ -35,6 +35,7 @@ static Rectangle geometries[] = {
 
 static bool isEnabled = true;
 static EntityId playerId = {-1};
+static int pass = 0;
 
 // TODO: obviously we'd want to cache some of these queries, otherwise we're going to spend our entire adult lives looping
 //  through all of the entities. We'll also want to look at restricting things by position as there's no point in checking for
@@ -79,7 +80,8 @@ static void CollidePlayer(void)
             otherRect.y += otherPos.y;
             if (CheckCollisionRecs(playerRect, otherRect))
             {
-                Events.Add(&(Event){.type = etCOLLISION, .collision = (CollisionEvent){.firstId = playerId, .secondId = id}});
+                Events.Add(&(Event){.type = etCOLLISION,
+                                    .collision = (CollisionEvent){.pass = pass, .firstId = playerId, .secondId = id}});
             }
         }
     }
@@ -110,7 +112,8 @@ static void CollideRobot(EntityId robotId)
             otherRect.y += otherPos.y;
             if (CheckCollisionRecs(robotRect, otherRect))
             {
-                Events.Add(&(Event){.type = etCOLLISION, .collision = (CollisionEvent){.firstId = robotId, .secondId = id}});
+                Events.Add(&(Event){.type = etCOLLISION,
+                                    .collision = (CollisionEvent){.pass = pass, .firstId = robotId, .secondId = id}});
             }
         }
     }
@@ -152,7 +155,8 @@ static void CollideShot(EntityId shotId)
             otherRect.y += otherPos.y;
             if (CheckCollisionRecs(shotRect, otherRect))
             {
-                Events.Add(&(Event){.type = etCOLLISION, .collision = (CollisionEvent){.firstId = shotId, .secondId = id}});
+                Events.Add(&(Event){.type = etCOLLISION,
+                                    .collision = (CollisionEvent){.pass = pass, .firstId = shotId, .secondId = id}});
             }
         }
     }
@@ -189,7 +193,7 @@ void ResetCollisionSystem(void)
     EventSystem.Register(HandleEvents);
 }
 
-void UpdateCollisionSystem(void)
+void UpdateCollisionSystem(int currentPass)
 {
     // Cache the player id.
     if (playerId.id == -1)
@@ -208,6 +212,8 @@ void UpdateCollisionSystem(void)
     {
         return;
     }
+
+    pass = currentPass;
 
     CollidePlayer();
     CollideRobots();

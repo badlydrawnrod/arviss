@@ -11,6 +11,9 @@
 #include "systems/reaper_system.h"
 #include "systems/robot_action_system.h"
 
+// TODO: this needs to be in _one_ place.
+#define NUM_PHYSICS_STEPS 8
+
 void EnterPlaying(void)
 {
     Entities.Reset();
@@ -32,8 +35,11 @@ void UpdatePlaying(void)
     PlayerControllerSystem.Update();
     PlayerActionSystem.Update();
     RobotActionSystem.Update();
-    MovementSystem.Update();
-    CollisionSystem.Update();
+    for (int pass = 0; pass < NUM_PHYSICS_STEPS; pass++)
+    {
+        MovementSystem.Update();
+        CollisionSystem.Update(pass);
+    }
     CollisionResponseSystem.Update();
     GameStatusSystem.Update();
 

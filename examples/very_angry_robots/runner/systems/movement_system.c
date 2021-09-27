@@ -6,6 +6,10 @@
 #include "tables/positions.h"
 #include "tables/velocities.h"
 
+// TODO: this needs to be in _one_ place.
+#define NUM_PHYSICS_STEPS 8
+#define ALPHA (1.0f / NUM_PHYSICS_STEPS)
+
 static bool isEnabled = true;
 
 static void HandleEvents(int first, int last)
@@ -41,7 +45,7 @@ void UpdateMovementSystem(void)
         {
             Position* c = Positions.Get(id);
             Velocity* v = Velocities.Get(id);
-            c->position = Vector2Add(c->position, v->velocity);
+            c->position = Vector2Add(c->position, Vector2Scale(v->velocity, ALPHA));
         }
     }
 }

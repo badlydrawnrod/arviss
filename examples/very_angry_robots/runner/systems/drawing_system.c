@@ -136,11 +136,10 @@ static void DrawShot(Vector2 position, Vector2 velocity)
 {
     const Color shotColour = RED;
 
-    const Vector2 shotLength = Vector2Scale(velocity, 1.5f);
+    const Vector2 shotLength = Vector2Scale(velocity, 3.0f);
     const Vector2 behind = Vector2Subtract(position, shotLength);
-    const Vector2 ahead = Vector2Add(position, shotLength);
 
-    AddLineV(behind, ahead, shotColour);
+    AddLineV(behind, position, shotColour);
 }
 
 static void DrawWalls(RoomId roomId)

@@ -7,6 +7,7 @@
 
 typedef enum EventType
 {
+    etCANCELLED,
     etCOLLISION,
     etPLAYER,
     etDOOR
@@ -14,6 +15,7 @@ typedef enum EventType
 
 typedef struct CollisionEvent
 {
+    int pass;
     EntityId firstId;
     EntityId secondId;
 } CollisionEvent;
