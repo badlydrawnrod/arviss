@@ -141,7 +141,7 @@ static void HandleEvents(int first, int last)
             }
             else if (Entities.Is(c->secondId, bmDoor))
             {
-                const Room* owner = Owners.Get(c->secondId);
+                const Room* owner = Rooms.Get(c->secondId);
                 const Door* door = Doors.Get(c->secondId);
                 Events.Add(&(Event){.type = etDOOR,
                                     .door = (DoorEvent){.type = deEXIT,

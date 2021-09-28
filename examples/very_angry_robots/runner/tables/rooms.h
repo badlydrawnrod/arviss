@@ -17,4 +17,4 @@ static struct
 {
     Room* (*Get)(EntityId id);
     void (*Set)(EntityId id, Room* room);
-} Owners = {.Get = GetRoom, .Set = SetRoom};
+} Rooms = {.Get = GetRoom, .Set = SetRoom};

@@ -149,7 +149,7 @@ static void DrawWalls(RoomId roomId)
         EntityId id = {i};
         if (Entities.Is(id, bmWall | bmPosition | bmDrawable))
         {
-            const Room* owner = Owners.Get(id);
+            const Room* owner = Rooms.Get(id);
             if (owner->roomId == roomId)
             {
                 Vector2 position = Positions.GetPosition(id);
@@ -167,7 +167,7 @@ static void DrawDoors(RoomId roomId)
         EntityId id = {i};
         if (Entities.Is(id, bmDoor | bmPosition | bmDrawable))
         {
-            const Room* owner = Owners.Get(id);
+            const Room* owner = Rooms.Get(id);
             if (owner->roomId == roomId)
             {
                 Vector2 position = Positions.GetPosition(id);
@@ -185,7 +185,7 @@ static void DrawRobots(RoomId roomId)
         EntityId id = {i};
         if (Entities.Is(id, bmRobot | bmPosition | bmDrawable))
         {
-            const Room* owner = Owners.Get(id);
+            const Room* owner = Rooms.Get(id);
             if (owner->roomId == roomId)
             {
                 Vector2 position = Positions.GetPosition(id);

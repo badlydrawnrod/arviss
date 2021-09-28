@@ -1,6 +1,7 @@
 #include "player_action_system.h"
 
 #include "entities.h"
+#include "factory.h"
 #include "raylib.h"
 #include "systems/event_system.h"
 #include "tables/aims.h"
@@ -36,20 +37,6 @@ static inline bool GetPlayerFire()
     const bool shouldFire = control->fire;
     control->fire = false;
     return shouldFire;
-}
-
-static EntityId MakeShot(Vector2 position, Vector2 aim, EntityId owner)
-{
-    // TODO: if an entity has an owner, e.g., a shot was fired by a robot, then we need to make sure that the shot doesn't collide
-    //  with the robot that fired it. We also need to make sure that if the robot dies, and another entity comes into being, then
-    //  it mustn't have the same entity id.
-    EntityId id = (EntityId){Entities.Create()};
-    Entities.Set(id, bmPosition | bmVelocity | bmDrawable | bmShot | bmCollidable | bmOwned);
-    Positions.Set(id, &(Position){.position = position});
-    Velocities.Set(id, &(Velocity){.velocity = Vector2Scale(aim, SHOT_SPEED)});
-    Collidables.Set(id, &(Collidable){.type = ctSHOT});
-    Owners.Set(id, &(Owner){.ownerId = owner});
-    return id;
 }
 
 static void UpdatePlayer(void)
