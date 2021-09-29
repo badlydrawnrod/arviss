@@ -6,7 +6,6 @@
 #include "tables/collidables.h"
 #include "tables/doors.h"
 #include "tables/owners.h"
-#include "tables/player_controls.h"
 #include "tables/player_status.h"
 #include "tables/positions.h"
 #include "tables/rooms.h"
@@ -48,8 +47,6 @@ EntityId MakePlayer(float x, float y)
     Velocities.Set(id, &(Velocity){.velocity = {0.0f, 0.0f}});
     PlayerStatuses.Set(id, &(PlayerStatus){.lives = 3, .score = 0});
     Collidables.Set(id, &(Collidable){.type = ctPLAYER});
-    // TODO: here we have things set without a corresponding bit in the entity. This should probably change.
-    PlayerControls.Set(id, &(PlayerControl){.movement = {0.0f, 0.0f}, .aim = {0.0f, 0.0f}, .fire = false});
     Aims.Set(id, &(Aim){.aim = {0.0f, 0.0f}});
     return id;
 }

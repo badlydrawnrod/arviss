@@ -9,7 +9,6 @@
 #include "tables/collidables.h"
 #include "tables/events.h"
 #include "tables/owners.h"
-#include "tables/player_controls.h"
 #include "tables/player_status.h"
 #include "tables/positions.h"
 #include "tables/velocities.h"
