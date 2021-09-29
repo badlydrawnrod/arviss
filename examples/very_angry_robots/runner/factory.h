@@ -5,8 +5,6 @@
 #include "tables/rooms.h"
 
 EntityId MakeShot(Vector2 position, Vector2 aim, EntityId owner);
-
-EntityId MakeShot(Vector2 position, Vector2 aim, EntityId owner);
 EntityId MakeRobot(RoomId owner, float x, float y);
 EntityId MakePlayer(float x, float y);
 EntityId MakeWall(RoomId owner, float x, float y, bool isVertical);

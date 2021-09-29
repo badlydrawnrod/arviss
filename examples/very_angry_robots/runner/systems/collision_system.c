@@ -56,12 +56,9 @@ static void CollidePlayer(void)
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
         EntityId id = {i};
-        // TODO: how do we distinguish between player shots and robot shots?
         bool shouldTest = Entities.Is(id, bmCollidable | bmPosition) && (Entities.AnyOf(id, bmWall | bmDoor | bmRobot | bmShot));
 
-        // TODO: the player shouldn't collide with its own shots. One way of doing this is to have a separate category of player
-        //  shots, but we're going to have the same issue with robots, so perhaps solving the problem in the same way would be
-        //  preferable.
+        // The player shouldn't collide with their own shots.
         if (Entities.Is(id, bmOwned | bmShot))
         {
             Owner* owner = Owners.Get(id);
@@ -101,8 +98,18 @@ static void CollideRobot(EntityId robotId)
         {
             continue;
         }
-        const bool shouldTest =
-                Entities.Is(id, bmCollidable | bmPosition) && Entities.AnyOf(id, bmWall | bmDoor | bmRobot | bmShot);
+        bool shouldTest = Entities.Is(id, bmCollidable | bmPosition) && Entities.AnyOf(id, bmWall | bmDoor | bmRobot | bmShot);
+
+        // The robot shouldn't collide with their own shots.
+        if (Entities.Is(id, bmOwned | bmShot))
+        {
+            Owner* owner = Owners.Get(id);
+            if (owner->ownerId.id == robotId.id)
+            {
+                // The robot shouldn't collide with their own shots.
+                shouldTest = false;
+            }
+        }
         if (shouldTest)
         {
             Collidable* c = Collidables.Get(id);
