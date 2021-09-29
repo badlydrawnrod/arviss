@@ -4,9 +4,11 @@
 
 void ResetPlayerActions(void);
 void UpdatePlayerActions(void);
+void HandleTriggersPlayerActions(void);
 
 static struct
 {
     void (*Reset)(void);
     void (*Update)(void);
-} PlayerActionSystem = {.Reset = ResetPlayerActions, .Update = UpdatePlayerActions};
+    void (*HandleTriggers)(void);
+} PlayerActionSystem = {.Reset = ResetPlayerActions, .Update = UpdatePlayerActions, .HandleTriggers = HandleTriggersPlayerActions};
