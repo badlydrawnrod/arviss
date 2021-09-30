@@ -14,6 +14,7 @@
 
 #define WALL_SIZE 224
 #define SHOT_SPEED 8
+#define ROBOT_SHOT_SPEED 4
 
 EntityId MakeShot(Vector2 position, Vector2 aim, EntityId owner)
 {
@@ -23,6 +24,19 @@ EntityId MakeShot(Vector2 position, Vector2 aim, EntityId owner)
     Entities.Set(id, bmPosition | bmVelocity | bmDrawable | bmShot | bmCollidable | bmOwned);
     Positions.Set(id, &(Position){.position = position});
     Velocities.Set(id, &(Velocity){.velocity = Vector2Scale(aim, SHOT_SPEED)});
+    Collidables.Set(id, &(Collidable){.type = ctSHOT});
+    Owners.Set(id, &(Owner){.ownerId = owner});
+    return id;
+}
+
+EntityId MakeRobotShot(Vector2 position, Vector2 aim, EntityId owner)
+{
+    // TODO:  We also need to make sure that if the robot dies, and another entity comes into being, then it mustn't have the
+    //  same entity id.
+    EntityId id = (EntityId){Entities.Create()};
+    Entities.Set(id, bmPosition | bmVelocity | bmDrawable | bmShot | bmCollidable | bmOwned);
+    Positions.Set(id, &(Position){.position = position});
+    Velocities.Set(id, &(Velocity){.velocity = Vector2Scale(aim, ROBOT_SHOT_SPEED)});
     Collidables.Set(id, &(Collidable){.type = ctSHOT});
     Owners.Set(id, &(Owner){.ownerId = owner});
     return id;

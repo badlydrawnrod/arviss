@@ -6,6 +6,7 @@
 #include "tables/aims.h"
 #include "tables/doors.h"
 #include "tables/events.h"
+#include "tables/owners.h"
 #include "tables/player_status.h"
 #include "tables/positions.h"
 #include "tables/rooms.h"
@@ -35,6 +36,7 @@ static RoomId nextRoom;
 static RoomId currentRoom;
 static Vector2 secondCamera;
 static GameTime exitTime;
+static EntityId playerId = {.id = -1};
 
 static void BeginDrawLines(void)
 {
@@ -132,14 +134,12 @@ static void DrawPlayer(float x, float y)
     AddLine(x + 6, y - 16, x, y - 20, headColour);
 }
 
-static void DrawShot(Vector2 position, Vector2 velocity)
+static void DrawShot(Vector2 position, Vector2 velocity, Color colour)
 {
-    const Color shotColour = RED;
-
     const Vector2 shotLength = Vector2Scale(velocity, 3.0f);
     const Vector2 behind = Vector2Subtract(position, shotLength);
 
-    AddLineV(behind, position, shotColour);
+    AddLineV(behind, position, colour);
 }
 
 static void DrawWalls(RoomId roomId)
@@ -224,7 +224,9 @@ static void DrawShots(void)
         {
             Vector2 position = Positions.GetPosition(id);
             Vector2 velocity = Velocities.GetVelocity(id);
-            DrawShot(position, velocity);
+            Owner* owner = Owners.Get(id);
+            Color shotColour = (owner->ownerId.id == playerId.id) ? LIME : RED;
+            DrawShot(position, velocity, shotColour);
         }
     }
 }
@@ -333,6 +335,19 @@ void ResetDrawingSystem(void)
 
 void UpdateDrawingSystem(void)
 {
+    // Cache the player id.
+    if (playerId.id == -1)
+    {
+        for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
+        {
+            if (Entities.Is((EntityId){i}, bmPlayer))
+            {
+                playerId.id = i;
+                break;
+            }
+        }
+    }
+
     DrawRoom();
     DrawHud();
 }

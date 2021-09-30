@@ -54,13 +54,13 @@ void UpdateRobotActions(void)
         {
             Position* p = Positions.Get(id);
             // TODO: factor this out to "fire", presumably at the player.
-            if (((int)p->position.x % 25) == 0)
+            if (((int)p->position.x % 47) == 0)
             {
                 Vector2 playerPos = Positions.GetPosition(playerId);
                 Vector2 robotPos = p->position;
                 float angle = atan2f(playerPos.y - robotPos.y, playerPos.x - robotPos.x);
                 Vector2 aim = {cosf(angle), sinf(angle)};
-                MakeShot(p->position, aim, id);
+                MakeRobotShot(p->position, aim, id);
             }
         }
     }
