@@ -1,6 +1,7 @@
 #include "drawing_system.h"
 
 #include "entities.h"
+#include "queries.h"
 #include "raylib.h"
 #include "systems/event_system.h"
 #include "tables/aims.h"
@@ -331,6 +332,7 @@ void ResetDrawingSystem(void)
     nextRoom = 0;
     currentRoom = 0;
     secondCamera = Vector2Zero();
+    playerId.id = -1;
 }
 
 void UpdateDrawingSystem(void)
@@ -338,14 +340,7 @@ void UpdateDrawingSystem(void)
     // Cache the player id.
     if (playerId.id == -1)
     {
-        for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
-        {
-            if (Entities.Is((EntityId){i}, bmPlayer))
-            {
-                playerId.id = i;
-                break;
-            }
-        }
+        playerId = Queries.GetPlayerId();
     }
 
     DrawRoom();

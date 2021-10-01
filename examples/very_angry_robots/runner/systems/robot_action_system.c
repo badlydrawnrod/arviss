@@ -1,6 +1,7 @@
 #include "robot_action_system.h"
 
 #include "factory.h"
+#include "queries.h"
 #include "systems/event_system.h"
 #include "tables/events.h"
 #include "tables/positions.h"
@@ -37,14 +38,7 @@ void UpdateRobotActions(void)
     // Cache the player id.
     if (playerId.id == -1)
     {
-        for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
-        {
-            if (Entities.Is((EntityId){i}, bmPlayer))
-            {
-                playerId.id = i;
-                break;
-            }
-        }
+        playerId = Queries.GetPlayerId();
     }
 
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)

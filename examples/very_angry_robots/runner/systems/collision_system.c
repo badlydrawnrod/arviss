@@ -1,6 +1,7 @@
 #include "collision_system.h"
 
 #include "entities.h"
+#include "queries.h"
 #include "raylib.h"
 #include "systems/event_system.h"
 #include "tables/collidables.h"
@@ -205,14 +206,7 @@ void UpdateCollisionSystem(int currentPass)
     // Cache the player id.
     if (playerId.id == -1)
     {
-        for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
-        {
-            if (Entities.Is((EntityId){i}, bmPlayer))
-            {
-                playerId.id = i;
-                break;
-            }
-        }
+        playerId = Queries.GetPlayerId();
     }
 
     if (!isEnabled)

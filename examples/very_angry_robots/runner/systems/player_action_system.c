@@ -3,6 +3,7 @@
 #include "controller.h"
 #include "entities.h"
 #include "factory.h"
+#include "queries.h"
 #include "raylib.h"
 #include "systems/event_system.h"
 #include "tables/aims.h"
@@ -198,14 +199,7 @@ void UpdatePlayerActions(void)
     // Cache the player id.
     if (playerId.id == -1)
     {
-        for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
-        {
-            if (Entities.Is((EntityId){i}, bmPlayer))
-            {
-                playerId.id = i;
-                break;
-            }
-        }
+        playerId = Queries.GetPlayerId();
     }
 
     if (!isEnabled)
@@ -226,14 +220,7 @@ void HandleTriggersPlayerActions(void)
     // Cache the player id.
     if (playerId.id == -1)
     {
-        for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
-        {
-            if (Entities.Is((EntityId){i}, bmPlayer))
-            {
-                playerId.id = i;
-                break;
-            }
-        }
+        playerId = Queries.GetPlayerId();
     }
 
     shouldFire = CheckForFiring();
