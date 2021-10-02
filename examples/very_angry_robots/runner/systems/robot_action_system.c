@@ -28,6 +28,60 @@ void ResetRobotActions(void)
     EventSystem.Register(HandleEvents);
 }
 
+// --- <syscalls>
+// Note that the syscalls have the entity id, because ultimately they'll be invoked from a trap. The trap handler will know which
+// entity is being worked on.
+
+static bool GetMyPosition(EntityId id, float* x, float* y)
+{
+    const Vector2 myPos = Positions.GetPosition(id);
+    *x = myPos.x;
+    *y = myPos.y;
+    return true;
+}
+
+static bool GetPlayerPosition(EntityId id, float* x, float* y)
+{
+    const Vector2 playerPos = Positions.GetPosition(playerId);
+    *x = playerPos.x;
+    *y = playerPos.y;
+    return true;
+}
+
+static bool FireAt(EntityId id, float x, float y)
+{
+    const Position* p = Positions.Get(id);
+    const Vector2 robotPos = p->position;
+    const float angle = atan2f(y - robotPos.y, x - robotPos.x);
+    const Vector2 aim = {cosf(angle), sinf(angle)};
+    const Room* room = Rooms.Get(id);
+    MakeRobotShot(room->roomId, p->position, aim, id);
+    return true;
+}
+
+// --- </syscalls>
+
+// --- <interact only through syscalls>
+// This code is pretending to be a VM, so it can only interact with the world through syscalls.
+
+static void UpdateRobot(EntityId id)
+{
+    // If this was running in the VM then it'd probably be in a while loop.
+    float myX;
+    float myY;
+    GetMyPosition(id, &myX, &myY);
+
+    if (((int)myX % 47) == 0)
+    {
+        float playerX;
+        float playerY;
+        GetPlayerPosition(id, &playerX, &playerY);
+        FireAt(id, playerX, playerY);
+    }
+}
+
+// --- </interact only through syscalls>
+
 void UpdateRobotActions(void)
 {
     if (!isEnabled)
@@ -46,17 +100,7 @@ void UpdateRobotActions(void)
         EntityId id = {i};
         if (Entities.Is(id, bmRobot | bmPosition | bmVelocity))
         {
-            Position* p = Positions.Get(id);
-            // TODO: factor this out to "fire", presumably at the player.
-            if (((int)p->position.x % 47) == 0)
-            {
-                Vector2 playerPos = Positions.GetPosition(playerId);
-                Vector2 robotPos = p->position;
-                float angle = atan2f(playerPos.y - robotPos.y, playerPos.x - robotPos.x);
-                Vector2 aim = {cosf(angle), sinf(angle)};
-                Room* room = Rooms.Get(id);
-                MakeRobotShot(room->roomId, p->position, aim, id);
-            }
+            UpdateRobot(id);
         }
     }
 }
