@@ -216,18 +216,23 @@ static void DrawPlayers(void)
     }
 }
 
-static void DrawShots(void)
+static void DrawShots(RoomId roomId)
 {
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
         EntityId id = {i};
         if (Entities.Is(id, bmShot | bmPosition | bmDrawable | bmVelocity))
         {
-            Vector2 position = Positions.GetPosition(id);
-            Vector2 velocity = Velocities.GetVelocity(id);
-            Owner* owner = Owners.Get(id);
-            Color shotColour = (owner->ownerId.id == playerId.id) ? LIME : RED;
-            DrawShot(position, velocity, shotColour);
+            const Room* room = Rooms.Get(id);
+
+            if (room->roomId == roomId)
+            {
+                Vector2 position = Positions.GetPosition(id);
+                Vector2 velocity = Velocities.GetVelocity(id);
+                Owner* owner = Owners.Get(id);
+                Color shotColour = (owner->ownerId.id == playerId.id) ? LIME : RED;
+                DrawShot(position, velocity, shotColour);
+            }
         }
     }
 }
@@ -243,7 +248,7 @@ static void DrawRoomById(RoomId roomId, Camera2D camera)
     }
     DrawRobots(roomId);
     DrawPlayers();
-    DrawShots();
+    DrawShots(roomId);
     EndDrawLines();
     EndMode2D();
 }

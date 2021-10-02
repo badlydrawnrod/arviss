@@ -21,6 +21,7 @@
 static bool isEnabled = true;
 static EntityId playerId = {-1};
 static bool shouldFire = false;
+static RoomId currentRoom = -1;
 
 static Vector2 GetPlayerMovement(void)
 {
@@ -170,7 +171,7 @@ static void UpdatePlayer(void)
     {
         TraceLog(LOG_DEBUG, "TODO: player fires a shot in the direction that they're aiming");
         Position* p = Positions.Get(playerId);
-        MakeShot(p->position, aim, playerId);
+        MakeShot(currentRoom, p->position, aim, playerId);
     }
 }
 
@@ -183,6 +184,22 @@ static void HandleEvents(int first, int last)
         {
             const DoorEvent* de = &e->door;
             isEnabled = de->type == deENTER;
+            if (de->type == deENTER)
+            {
+                currentRoom = de->entering;
+            }
+        }
+        else if (e->type == etPLAYER)
+        {
+            const PlayerEvent* pe = &e->player;
+            if (pe->type == peDIED)
+            {
+                isEnabled = false;
+            }
+            else if (pe->type == peSPAWNED)
+            {
+                isEnabled = true;
+            }
         }
     }
 }
@@ -191,6 +208,7 @@ void ResetPlayerActions(void)
 {
     isEnabled = true;
     shouldFire = false;
+    currentRoom = 0; // TODO: at some point this might have to come from elsewhere, particularly if rooms become more interesting.
     EventSystem.Register(HandleEvents);
 }
 

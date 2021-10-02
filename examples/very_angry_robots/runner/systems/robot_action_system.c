@@ -54,7 +54,8 @@ void UpdateRobotActions(void)
                 Vector2 robotPos = p->position;
                 float angle = atan2f(playerPos.y - robotPos.y, playerPos.x - robotPos.x);
                 Vector2 aim = {cosf(angle), sinf(angle)};
-                MakeRobotShot(p->position, aim, id);
+                Room* room = Rooms.Get(id);
+                MakeRobotShot(room->roomId, p->position, aim, id);
             }
         }
     }
