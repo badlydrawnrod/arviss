@@ -72,10 +72,8 @@ static bool MoveTowards(EntityId id, float x, float y)
     const float angle = atan2f(y - robotPos.y, x - robotPos.x);
     const Vector2 movement = {cosf(angle), sinf(angle)};
 
-    // TODO: finally, a use for the separation. Here the robot is effectively telling us where it wants to go. That'll be applied
-    //  in a different step, because if the robot doesn't move smoothly then it won't move on every tick. So, I need to figure that
-    //  out too ... is Velocity an actual velocity or it just a desired velocity?
-    //  I suspect that the movement system will have a role in this.
+    // Given that the robot's movement is stepped, it would be more accurate to call this "velocity when moved" or something
+    // similar.
     Velocity* v = Velocities.Get(id);
     v->velocity = Vector2Scale(movement, ROBOT_SPEED);
 
@@ -89,7 +87,7 @@ static bool MoveTowards(EntityId id, float x, float y)
 
 static void UpdateRobot(EntityId id)
 {
-    // If this was running in the VM then it'd probably be in a while loop.
+    // If this was running in the VM then it'd probably be in a while loop and it could have its own state.
 
     // Where am I?
     float myX;
@@ -100,6 +98,8 @@ static void UpdateRobot(EntityId id)
     float playerX;
     float playerY;
     GetPlayerPosition(id, &playerX, &playerY);
+
+    // TODO: check to see if there's a wall between me and the player.
 
     // Move in the direction of the player.
     MoveTowards(id, playerX, playerY);
