@@ -4,6 +4,7 @@
 #include "systems/event_system.h"
 #include "tables/events.h"
 #include "tables/positions.h"
+#include "tables/steps.h"
 #include "tables/velocities.h"
 
 // TODO: this needs to be in _one_ place.
@@ -43,6 +44,14 @@ void UpdateMovementSystem(void)
         EntityId id = {i};
         if (Entities.Is(id, bmPosition | bmVelocity))
         {
+            if (Entities.Is(id, bmStepped))
+            {
+                const Step* s = Steps.Get(id);
+                if (s->step != 0)
+                {
+                    continue;
+                }
+            }
             Position* c = Positions.Get(id);
             Velocity* v = Velocities.Get(id);
             c->position = Vector2Add(c->position, Vector2Scale(v->velocity, ALPHA));

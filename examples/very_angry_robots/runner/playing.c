@@ -9,6 +9,7 @@
 #include "systems/player_action_system.h"
 #include "systems/reaper_system.h"
 #include "systems/robot_action_system.h"
+#include "systems/stepper_system.h"
 
 // TODO: this needs to be in _one_ place.
 #define NUM_PHYSICS_STEPS 8
@@ -37,6 +38,7 @@ void UpdatePlaying(void)
         MovementSystem.Update();
         CollisionSystem.Update(pass);
     }
+    StepperSystem.Update();
     CollisionResponseSystem.Update();
     GameStatusSystem.Update();
 

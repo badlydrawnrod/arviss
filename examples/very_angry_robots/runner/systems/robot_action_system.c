@@ -7,7 +7,7 @@
 #include "tables/positions.h"
 #include "tables/velocities.h"
 
-#define ROBOT_SPEED 0.5f
+#define ROBOT_SPEED 4.0f
 
 static bool isEnabled = true;
 static EntityId playerId = {.id = -1};
