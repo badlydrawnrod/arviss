@@ -35,41 +35,50 @@ void ResetRobotActions(void)
 // Note that the syscalls have the entity id, because ultimately they'll be invoked from a trap. The trap handler will know which
 // entity is being worked on.
 
-static bool GetMyPosition(EntityId id, float* x, float* y)
+// Anything Rk is "robot kernel", to make it obvious. Note that GetMyPosition(), etc, aren't "Rk" because they're internal to the
+// kernel - the callers know nothing about EntityId.
+
+typedef int32_t RkResult;
+
+const RkResult RK_OK = 0;
+const RkResult RK_HIT = 1;
+
+typedef struct RkVector
+{
+    float x;
+    float y;
+} RkVector;
+
+static RkResult GetMyPosition(EntityId id, RkVector* position)
 {
     const Vector2 myPos = Positions.GetPosition(id);
-    *x = myPos.x;
-    *y = myPos.y;
-
-    return true;
+    *position = (RkVector){.x = myPos.x, .y = myPos.y};
+    return RK_OK;
 }
 
-static bool GetPlayerPosition(EntityId id, float* x, float* y)
+static RkResult GetPlayerPosition(EntityId id, RkVector* position)
 {
     const Vector2 playerPos = Positions.GetPosition(playerId);
-    *x = playerPos.x;
-    *y = playerPos.y;
-
-    return true;
+    *position = (RkVector){.x = playerPos.x, .y = playerPos.y};
+    return RK_OK;
 }
 
-static bool FireAt(EntityId id, float x, float y)
+static RkResult FireAt(EntityId id, const RkVector* target)
 {
     const Position* p = Positions.Get(id);
     const Vector2 robotPos = p->position;
-    const float angle = atan2f(y - robotPos.y, x - robotPos.x);
+    const float angle = atan2f(target->y - robotPos.y, target->x - robotPos.x);
     const Vector2 aim = {cosf(angle), sinf(angle)};
     const Room* room = Rooms.Get(id);
     MakeRobotShot(room->roomId, p->position, aim, id);
-
-    return true;
+    return RK_OK;
 }
 
-static bool MoveTowards(EntityId id, float x, float y)
+static RkResult MoveTowards(EntityId id, const RkVector* target)
 {
     const Position* p = Positions.Get(id);
     const Vector2 robotPos = p->position;
-    const float angle = atan2f(y - robotPos.y, x - robotPos.x);
+    const float angle = atan2f(target->y - robotPos.y, target->x - robotPos.x);
     const Vector2 movement = {cosf(angle), sinf(angle)};
 
     // Given that the robot's movement is stepped, it would be more accurate to call this "velocity when moved" or something
@@ -77,37 +86,93 @@ static bool MoveTowards(EntityId id, float x, float y)
     Velocity* v = Velocities.Get(id);
     v->velocity = Vector2Scale(movement, ROBOT_SPEED);
 
-    return true;
+    return RK_OK;
+}
+
+static RkResult RaycastTowards(const RkVector* position, float maxDistance)
+{
+    // TODO: implement this.
+
+    // Checks if casting a line from the caller's position to the given position (within the given distance) would hit anything,
+    // excluding the caller itself of course.
+    return RK_OK;
 }
 
 // --- </syscalls>
 
+// Some shims to let us write "robot code" before we have the VM.
+
+static EntityId currentEntity;
+
+static inline RkResult RkGetMyPosition(RkVector* position)
+{
+    return GetMyPosition(currentEntity, position);
+}
+
+static inline RkResult RkGetPlayerPosition(RkVector* position)
+{
+    return GetPlayerPosition(currentEntity, position);
+}
+
+static inline RkResult RkFireAt(const RkVector* target)
+{
+    return FireAt(currentEntity, target);
+}
+
+static inline RkResult RkMoveTowards(const RkVector* target)
+{
+    return MoveTowards(currentEntity, target);
+}
+
+static inline RkResult RkRaycastTowards(const RkVector* position, float maxDistance)
+{
+    return RaycastTowards(position, maxDistance);
+}
+
 // --- <interact only through syscalls>
+
 // This code is pretending to be a VM, so it can only interact with the world through syscalls.
 
-static void UpdateRobot(EntityId id)
+static void UpdateRobot(void)
 {
     // If this was running in the VM then it'd probably be in a while loop and it could have its own state.
 
     // Where am I?
-    float myX;
-    float myY;
-    GetMyPosition(id, &myX, &myY);
+    RkVector myPosition;
+    RkGetMyPosition(&myPosition);
 
     // Where's the player?
-    float playerX;
-    float playerY;
-    GetPlayerPosition(id, &playerX, &playerY);
+    RkVector playerPosition;
+    RkGetPlayerPosition(&playerPosition);
 
-    // TODO: check to see if there's a wall between me and the player.
+    const float probeDistance = 64.0f;
 
-    // Move in the direction of the player.
-    MoveTowards(id, playerX, playerY);
+    // Is there anything that I might hit between me and the player?
+    if (RkRaycastTowards(&playerPosition, probeDistance) != RK_HIT)
+    {
+        // Move in the direction of the player.
+        RkMoveTowards(&playerPosition);
+    }
+    else if (RkRaycastTowards(&(RkVector){.x = playerPosition.x, .y = 0.0f}, probeDistance) != RK_HIT)
+    {
+        // Move horizontally towards the player.
+        RkMoveTowards(&(RkVector){.x = playerPosition.x, .y = 0.0f});
+    }
+    else if (RkRaycastTowards(&(RkVector){.x = 0.0f, .y = playerPosition.y}, probeDistance) != RK_HIT)
+    {
+        // Move vertically towards the player.
+        RkMoveTowards(&(RkVector){.x = 0.0f, .y = playerPosition.y});
+    }
+    else
+    {
+        // Stop.
+        RkMoveTowards(&playerPosition);
+    }
 
     // Fire at the player.
-    if (((int)myX % 47) == 0)
+    if (((int)myPosition.x % 47) == 0)
     {
-        FireAt(id, playerX, playerY);
+        RkFireAt(&playerPosition);
     }
 }
 
@@ -131,7 +196,8 @@ void UpdateRobotActions(void)
         EntityId id = {i};
         if (Entities.Is(id, bmRobot | bmPosition | bmVelocity))
         {
-            UpdateRobot(id);
+            currentEntity = id;
+            UpdateRobot();
         }
     }
 }
