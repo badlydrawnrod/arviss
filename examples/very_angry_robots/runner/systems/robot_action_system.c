@@ -78,18 +78,33 @@ static RkResult MoveTowards(EntityId id, const RkVector* target)
 {
     const Position* p = Positions.Get(id);
     const Vector2 robotPos = p->position;
-    const float angle = atan2f(target->y - robotPos.y, target->x - robotPos.x);
-    const Vector2 movement = {cosf(angle), sinf(angle)};
-
-    // Given that the robot's movement is stepped, it would be more accurate to call this "velocity when moved" or something
-    // similar.
     Velocity* v = Velocities.Get(id);
-    v->velocity = Vector2Scale(movement, ROBOT_SPEED);
+    if (target->x != robotPos.x && target->y != robotPos.y)
+    {
+        const float angle = atan2f(target->y - robotPos.y, target->x - robotPos.x);
+        const Vector2 movement = {cosf(angle), sinf(angle)};
+
+        // Given that the robot's movement is stepped, it would be more accurate to call this "velocity when moved" or something
+        // similar.
+        v->velocity = Vector2Scale(movement, ROBOT_SPEED);
+    }
+    else
+    {
+        // You have reached your destination.
+        v->velocity = Vector2Zero();
+    }
 
     return RK_OK;
 }
 
-static RkResult RaycastTowards(const RkVector* position, float maxDistance)
+static RkResult Stop(EntityId id)
+{
+    Velocity* v = Velocities.Get(id);
+    v->velocity = Vector2Zero();
+    return RK_OK;
+}
+
+static RkResult RaycastTowards(EntityId id, const RkVector* position, float maxDistance)
 {
     // TODO: implement this.
 
@@ -124,9 +139,14 @@ static inline RkResult RkMoveTowards(const RkVector* target)
     return MoveTowards(currentEntity, target);
 }
 
+static inline RkResult RkStop(void)
+{
+    return Stop(currentEntity);
+}
+
 static inline RkResult RkRaycastTowards(const RkVector* position, float maxDistance)
 {
-    return RaycastTowards(position, maxDistance);
+    return RaycastTowards(currentEntity, position, maxDistance);
 }
 
 // --- <interact only through syscalls>
@@ -165,8 +185,8 @@ static void UpdateRobot(void)
     }
     else
     {
-        // Stop.
-        RkMoveTowards(&playerPosition);
+        // We can't move without hitting anything, so stop.
+        RkStop();
     }
 
     // Fire at the player.

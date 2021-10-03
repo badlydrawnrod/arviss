@@ -51,7 +51,7 @@ EntityId MakeRobot(RoomId roomId, float x, float y)
     // No velocity to start because it isn't movable until the amnesty is over.
     Entities.Set(id, bmPosition | bmDrawable | bmRobot | bmCollidable | bmInRoom | bmStepped);
     Positions.Set(id, &(Position){.position = {x, y}});
-    Velocities.Set(id, &(Velocity){.velocity = {1.0f, 0.0f}});
+    Velocities.Set(id, &(Velocity){.velocity = {0.0f, 0.0f}});
     Collidables.Set(id, &(Collidable){.type = ctROBOT});
     Rooms.Set(id, &(Room){.roomId = roomId});
     Steps.Set(id, &(Step){.rate = 32, .step = 0});
