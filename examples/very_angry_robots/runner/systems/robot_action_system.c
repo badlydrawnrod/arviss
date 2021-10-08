@@ -106,8 +106,20 @@ static RkResult Stop(EntityId id)
 
 static RkResult RaycastTowards(EntityId id, const RkVector* position, float maxDistance)
 {
-    // TODO: implement this.
+    // TODO: use raylib's rays on the xy plane.
+    Vector2 startPos = Positions.GetPosition(id);
+    Vector2 endPos = {.x = position->x, .y = position->y};
 
+    for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
+    {
+        if (i == id.id)
+        {
+            // We can't collide with ourselves.
+            continue;
+        }
+
+        EntityId e = {.id = i};
+    }
     // Checks if casting a line from the caller's position to the given position (within the given distance) would hit anything,
     // excluding the caller itself of course.
     return RK_OK;

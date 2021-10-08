@@ -73,29 +73,29 @@ static void CancelLaterEventsForReapedEntities(const CollisionEvent* src, int fi
     // Look for collisions from a later pass involving either of the entities involved in this collision. If either of the entities
     // is reaped then remove it. We do this to prevent situations where a later collision really mustn't take place, e.g., when a
     // shot has been reaped as a result of hitting a wall then anything that happened to it in a later pass should be cancelled.
-    for (int i = first; i != last; i++)
-    {
-        Event* e = Events.Get((EventId){.id = i});
-        if (e->type == etCOLLISION)
-        {
-            const CollisionEvent* c = &e->collision;
-            if (c->pass > src->pass)
-            {
-                if ((firstReaped && (src->firstId.id == c->firstId.id || src->firstId.id == c->secondId.id))
-                    || (secondReaped && (src->secondId.id == c->firstId.id || src->secondId.id == c->secondId.id)))
-                {
-                    TraceLog(LOG_DEBUG, "Cancelled later event %d", i);
-                    e->type = etCANCELLED;
-                }
-            }
-        }
-    }
+    //    for (int i = first; i != last; i++)
+    //    {
+    //        Event* e = Events.Get((EventId){.id = i});
+    //        if (e->type == etCOLLISION)
+    //        {
+    //            const CollisionEvent* c = &e->collision;
+    //            if (c->pass > src->pass)
+    //            {
+    //                if ((firstReaped && (src->firstId.id == c->firstId.id || src->firstId.id == c->secondId.id))
+    //                    || (secondReaped && (src->secondId.id == c->firstId.id || src->secondId.id == c->secondId.id)))
+    //                {
+    //                    TraceLog(LOG_DEBUG, "Cancelled later event %d", i);
+    //                    e->type = etCANCELLED;
+    //                }
+    //            }
+    //        }
+    //    }
 }
 
-static void MoveToPositionAtTimeOfImpact(EntityId id, int pass)
+static void MoveToPositionAtTimeOfImpact(EntityId id, float t)
 {
     const Velocity* v = Velocities.Get(id);
-    const float alpha = ALPHA * (float)(NUM_PHYSICS_STEPS - pass);
+    const float alpha = 1.0f - t;
     Position* p = Positions.Get(id);
     p->position = Vector2Subtract(p->position, Vector2Scale(v->velocity, alpha));
 }
@@ -120,14 +120,14 @@ static void HandleEvents(int first, int last)
         if (Entities.AnyOf(c->firstId, bmRobot | bmShot))
         {
             Entities.Set(c->firstId, bmReap);
-            MoveToPositionAtTimeOfImpact(c->firstId, c->pass);
+            MoveToPositionAtTimeOfImpact(c->firstId, 0.0f); // TODO: provide a time.
         }
 
         // Only remove mobile entities. We don't want to remove walls and doors (that happened).
         if (Entities.AnyOf(c->secondId, bmRobot | bmPlayer | bmShot))
         {
             Entities.Set(c->secondId, bmReap);
-            MoveToPositionAtTimeOfImpact(c->secondId, c->pass);
+            MoveToPositionAtTimeOfImpact(c->secondId, 0.0f); // TODO: provide a time.
         }
 
         // Handle collisions with the player.

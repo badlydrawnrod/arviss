@@ -1,7 +1,6 @@
 #include "raylib.h"
 #include "screens.h"
 #include "systems/collision_response_system.h"
-#include "systems/collision_system.h"
 #include "systems/drawing_system.h"
 #include "systems/event_system.h"
 #include "systems/game_status_system.h"
@@ -11,9 +10,6 @@
 #include "systems/robot_action_system.h"
 #include "systems/stepper_system.h"
 
-// TODO: this needs to be in _one_ place.
-#define NUM_PHYSICS_STEPS 8
-
 void EnterPlaying(void)
 {
     Entities.Reset();
@@ -21,7 +17,6 @@ void EnterPlaying(void)
     PlayerActionSystem.Reset();
     RobotActionSystem.Reset();
     MovementSystem.Reset();
-    CollisionSystem.Reset();
     CollisionResponseSystem.Reset();
     GameStatusSystem.Reset();
     DrawingSystem.Reset();
@@ -33,11 +28,7 @@ void UpdatePlaying(void)
 
     PlayerActionSystem.Update();
     RobotActionSystem.Update();
-    for (int pass = 0; pass < NUM_PHYSICS_STEPS; pass++)
-    {
-        MovementSystem.Update();
-        CollisionSystem.Update(pass);
-    }
+    MovementSystem.Update();
     StepperSystem.Update();
     CollisionResponseSystem.Update();
     GameStatusSystem.Update();
