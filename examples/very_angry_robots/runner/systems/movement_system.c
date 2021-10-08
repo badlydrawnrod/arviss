@@ -22,8 +22,8 @@
 #define PLAYER_WIDTH 32
 #define PLAYER_HEIGHT 32
 
-#define SHOT_WIDTH 4
-#define SHOT_HEIGHT 4
+#define SHOT_WIDTH 2
+#define SHOT_HEIGHT 2
 
 typedef struct
 {
@@ -38,13 +38,13 @@ typedef struct
 } Ray2D;
 
 static AABB geometries[] = {
-        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = ROBOT_WIDTH / 2, .y = ROBOT_HEIGHT / 2}},   // ctROBOT
-        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = PLAYER_WIDTH / 2, .y = PLAYER_HEIGHT / 2}}, // ctPLAYER
-        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = SHOT_WIDTH / 2, .y = SHOT_HEIGHT / 2}},     // ctSHOT
-        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = WALL_SIZE / 2, .y = WALL_THICKNESS / 2}},   // ctHWALL
-        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = WALL_THICKNESS / 2, .y = WALL_SIZE / 2}},   // ctVWALL
-        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = WALL_SIZE / 2, .y = WALL_THICKNESS / 2}},   // ctHDOOR
-        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = WALL_THICKNESS / 2, .y = WALL_SIZE / 2}},   // ctVDOOR
+        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = ROBOT_WIDTH * 0.5f, .y = ROBOT_HEIGHT * 0.5f}},   // ctROBOT
+        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = PLAYER_WIDTH * 0.5f, .y = PLAYER_HEIGHT * 0.5f}}, // ctPLAYER
+        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = SHOT_WIDTH * 0.5f, .y = SHOT_HEIGHT * 0.5f}},     // ctSHOT
+        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = WALL_SIZE * 0.5f, .y = WALL_THICKNESS * 0.5f}},   // ctHWALL
+        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = WALL_THICKNESS * 0.5f, .y = WALL_SIZE * 0.5f}},   // ctVWALL
+        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = WALL_SIZE * 0.5f, .y = WALL_THICKNESS * 0.5f}},   // ctHDOOR
+        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = WALL_THICKNESS * 0.5f, .y = WALL_SIZE * 0.5f}},   // ctVDOOR
 };
 
 static bool isEnabled = true;

@@ -14,7 +14,8 @@
 #include "tables/walls.h"
 
 #define WALL_SIZE 224
-#define SHOT_SPEED 8
+#define SHOT_SPEED 16
+
 #define ROBOT_SHOT_SPEED 4
 
 EntityId MakeShot(RoomId roomId, Vector2 position, Vector2 aim, EntityId owner)

@@ -24,6 +24,8 @@
 #define HWALLS 5
 #define VWALLS 3
 
+#define SHOT_LENGTH 8
+
 typedef struct Line
 {
     Vector2 start;
@@ -137,9 +139,7 @@ static void DrawPlayer(float x, float y)
 
 static void DrawShot(Vector2 position, Vector2 velocity, Color colour)
 {
-    const Vector2 shotLength = Vector2Scale(velocity, 3.0f);
-    const Vector2 behind = Vector2Subtract(position, shotLength);
-
+    const Vector2 behind = Vector2MoveTowards(position, Vector2Subtract(position, velocity), SHOT_LENGTH);
     AddLineV(behind, position, colour);
 }
 
