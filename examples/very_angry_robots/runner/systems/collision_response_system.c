@@ -11,10 +11,6 @@
 #include "tables/velocities.h"
 #include "types.h"
 
-// TODO: this needs to be in _one_ place.
-#define NUM_PHYSICS_STEPS 8
-#define ALPHA (1.0f / NUM_PHYSICS_STEPS)
-
 static const char* Identify(EntityId id)
 {
     if (Entities.Is(id, bmPlayer))
@@ -92,14 +88,6 @@ static void CancelLaterEventsForReapedEntities(const CollisionEvent* src, int fi
     //    }
 }
 
-static void MoveToPositionAtTimeOfImpact(EntityId id, float t)
-{
-    const Velocity* v = Velocities.Get(id);
-    const float alpha = 1.0f - t;
-    Position* p = Positions.Get(id);
-    p->position = Vector2Subtract(p->position, Vector2Scale(v->velocity, alpha));
-}
-
 static void HandleEvents(int first, int last)
 {
     for (int i = first; i != last; i++)
@@ -120,14 +108,12 @@ static void HandleEvents(int first, int last)
         if (Entities.AnyOf(c->firstId, bmRobot | bmShot))
         {
             Entities.Set(c->firstId, bmReap);
-            MoveToPositionAtTimeOfImpact(c->firstId, 0.0f); // TODO: provide a time.
         }
 
         // Only remove mobile entities. We don't want to remove walls and doors (that happened).
         if (Entities.AnyOf(c->secondId, bmRobot | bmPlayer | bmShot))
         {
             Entities.Set(c->secondId, bmReap);
-            MoveToPositionAtTimeOfImpact(c->secondId, 0.0f); // TODO: provide a time.
         }
 
         // Handle collisions with the player.

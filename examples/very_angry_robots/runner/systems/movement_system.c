@@ -49,7 +49,10 @@ static AABB geometries[] = {
 
 static bool isEnabled = true;
 static EntityId playerId = {.id = -1};
-static Vector2 desired[MAX_ENTITIES];
+static struct
+{
+    Vector2 v;
+} desired[MAX_ENTITIES];
 
 static inline float Max(float a, float b)
 {
@@ -88,40 +91,42 @@ inline float Vector2MaxComponent(Vector2 a)
 
 // See: https://medium.com/@bromanz/another-view-on-the-classic-ray-aabb-intersection-algorithm-for-bvh-traversal-41125138b525
 // https://gist.githubusercontent.com/bromanz/ed0de6725f5e40a0afd8f50985c2f7ad/raw/be5e79e16181e4617d1a0e6e540dd25c259c76a4/efficient-slab-test-majercik-et-al
-inline bool Slabs(Vector2 p0, Vector2 p1, Vector2 rayOrigin, Vector2 invRayDir)
+inline bool Slabs(Vector2 p0, Vector2 p1, Vector2 rayOrigin, Vector2 invRayDir, float* t)
 {
     const Vector2 t0 = Vector2Multiply(Vector2Subtract(p0, rayOrigin), invRayDir);
     const Vector2 t1 = Vector2Multiply(Vector2Subtract(p1, rayOrigin), invRayDir);
     const Vector2 tmin = Vector2Min(t0, t1);
     const Vector2 tmax = Vector2Max(t0, t1);
-    return Max(0.0f, Vector2MaxComponent(tmin)) <= Min(1.0f, Vector2MinComponent(tmax));
+    *t = Max(0.0f, Vector2MaxComponent(tmin));
+    return *t <= Min(1.0f, Vector2MinComponent(tmax));
 }
 
-bool CheckCollisionRay2dAABBs(Ray2D r, AABB aabb)
+bool CheckCollisionRay2dAABBs(Ray2D r, AABB aabb, float* t)
 {
     const Vector2 invD = Vector2Rcp(r.direction);
     const Vector2 aabbMin = Vector2Subtract(aabb.centre, aabb.extents);
     const Vector2 aabbMax = Vector2Add(aabb.centre, aabb.extents);
-    return Slabs(aabbMin, aabbMax, r.origin, invD);
+    return Slabs(aabbMin, aabbMax, r.origin, invD, t);
 }
 
-bool CheckCollisionMovingAABBs(AABB a, AABB b, Vector2 va, Vector2 vb)
+bool CheckCollisionMovingAABBs(AABB a, AABB b, Vector2 va, Vector2 vb, float* t)
 {
     // An AABB at B's position with the combined size of A and B.
     const AABB aabb = {.centre = b.centre, .extents = Vector2Add(a.extents, b.extents)};
 
     // A ray at A's position with its direction set to B's velocity relative to A. It's a parametric representation of a
     // line representing A's position at time t, where 0 <= t <= 1.
-    const Ray2D r = {.origin = a.centre, .direction = Vector2Subtract(vb, va)};
+    const Ray2D r = {.origin = a.centre, .direction = Vector2Subtract(va, vb)};
 
     // Does the ray hit the AABB
-    return CheckCollisionRay2dAABBs(r, aabb);
+    return CheckCollisionRay2dAABBs(r, aabb, t);
 }
 
 static void GetDesiredMovements(void)
 {
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
+        desired[i].v = Vector2Zero();
         EntityId id = {i};
         if (Entities.Is(id, bmPosition | bmVelocity))
         {
@@ -130,11 +135,10 @@ static void GetDesiredMovements(void)
                 const Step* s = Steps.Get(id);
                 if (s->step != 0)
                 {
-                    desired[i] = Vector2Zero();
                     continue;
                 }
             }
-            desired[i] = Velocities.Get(id)->velocity;
+            desired[i].v = Velocities.Get(id)->velocity;
         }
     }
 }
@@ -168,7 +172,8 @@ static void CollidePlayer(void)
             Collidable* c = Collidables.Get(id);
             AABB otherAABB = geometries[c->type];
             otherAABB.centre = Positions.GetPosition(id);
-            if (CheckCollisionMovingAABBs(playerAABB, otherAABB, desired[playerId.id], desired[i]))
+            float t;
+            if (CheckCollisionMovingAABBs(playerAABB, otherAABB, desired[playerId.id].v, desired[i].v, &t))
             {
                 Events.Add(&(Event){.type = etCOLLISION, .collision = (CollisionEvent){.firstId = playerId, .secondId = id}});
             }
@@ -204,7 +209,8 @@ static void CollideRobot(EntityId robotId)
             Collidable* c = Collidables.Get(id);
             AABB otherAABB = geometries[c->type];
             otherAABB.centre = Positions.GetPosition(id);
-            if (CheckCollisionMovingAABBs(robotAABB, otherAABB, desired[robotId.id], desired[i]))
+            float t;
+            if (CheckCollisionMovingAABBs(robotAABB, otherAABB, desired[robotId.id].v, desired[i].v, &t))
             {
                 Events.Add(&(Event){.type = etCOLLISION, .collision = (CollisionEvent){.firstId = robotId, .secondId = id}});
             }
@@ -241,8 +247,10 @@ static void CollideShot(EntityId shotId)
             Collidable* c = Collidables.Get(id);
             AABB otherAABB = geometries[c->type];
             otherAABB.centre = Positions.GetPosition(id);
-            if (CheckCollisionMovingAABBs(shotAABB, otherAABB, desired[shotId.id], desired[i]))
+            float t;
+            if (CheckCollisionMovingAABBs(shotAABB, otherAABB, desired[shotId.id].v, desired[i].v, &t))
             {
+                desired[shotId.id].v = Vector2Scale(desired[shotId.id].v, t);
                 Events.Add(&(Event){.type = etCOLLISION, .collision = (CollisionEvent){.firstId = shotId, .secondId = id}});
             }
         }
@@ -276,7 +284,7 @@ static void ApplyDesiredMovements(void)
         if (Entities.Is(id, bmPosition | bmVelocity))
         {
             Position* c = Positions.Get(id);
-            Vector2 v = desired[i];
+            Vector2 v = desired[i].v;
             c->position = Vector2Add(c->position, v);
         }
     }

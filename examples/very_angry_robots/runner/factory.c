@@ -84,8 +84,8 @@ EntityId MakeWall(RoomId roomId, float x, float y, bool isVertical)
 
 EntityId MakeWallFromGrid(RoomId roomId, int gridX, int gridY, bool isVertical)
 {
-    const float x = (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
-    const float y = (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
+    const float x = (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE * 0.5f);
+    const float y = (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE * 0.5f : 0);
     return MakeWall(roomId, x, y, isVertical);
 }
 
@@ -105,8 +105,8 @@ EntityId MakeExit(RoomId roomId, float x, float y, bool isVertical, Entrance ent
 
 EntityId MakeExitFromGrid(RoomId roomId, int gridX, int gridY, bool isVertical, Entrance entrance)
 {
-    const float x = (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
-    const float y = (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
+    const float x = (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE * 0.5f);
+    const float y = (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE * 0.5f : 0);
     return MakeExit(roomId, x, y, isVertical, entrance);
 }
 
@@ -123,7 +123,7 @@ EntityId MakeDoor(RoomId roomId, float x, float y, bool isVertical, Entrance ent
 
 EntityId MakeDoorFromGrid(RoomId roomId, int gridX, int gridY, bool isVertical, Entrance entrance)
 {
-    const float x = (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE / 2);
-    const float y = (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE / 2 : 0);
+    const float x = (float)gridX * WALL_SIZE + ((isVertical) ? 0 : WALL_SIZE * 0.5f);
+    const float y = (float)gridY * WALL_SIZE + ((isVertical) ? WALL_SIZE * 0.5f : 0);
     return MakeDoor(roomId, x, y, isVertical, entrance);
 }
