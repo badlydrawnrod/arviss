@@ -59,28 +59,28 @@ static void CreateRoom(Entrance entrance, RoomId roomId)
     switch (entrance)
     {
     case fromTOP:
-        playerSpawnPoint = (Vector2){.x = ARENA_WIDTH / 2, .y = yDisp};
+        playerSpawnPoint = (Vector2){.x = ARENA_WIDTH * 0.5f, .y = yDisp};
         MakeDoorFromGrid(roomId, 2, 0, horizontal, fromBOTTOM);
         MakeExitFromGrid(roomId, 2, 3, horizontal, fromTOP);
         MakeExitFromGrid(roomId, 0, 1, vertical, fromRIGHT);
         MakeExitFromGrid(roomId, 5, 1, vertical, fromLEFT);
         break;
     case fromBOTTOM:
-        playerSpawnPoint = (Vector2){.x = ARENA_WIDTH / 2, .y = ARENA_HEIGHT - yDisp};
+        playerSpawnPoint = (Vector2){.x = ARENA_WIDTH * 0.5f, .y = ARENA_HEIGHT - yDisp};
         MakeExitFromGrid(roomId, 2, 0, horizontal, fromBOTTOM);
         MakeDoorFromGrid(roomId, 2, 3, horizontal, fromTOP);
         MakeExitFromGrid(roomId, 0, 1, vertical, fromRIGHT);
         MakeExitFromGrid(roomId, 5, 1, vertical, fromLEFT);
         break;
     case fromLEFT:
-        playerSpawnPoint = (Vector2){.x = xDisp, .y = ARENA_HEIGHT / 2};
+        playerSpawnPoint = (Vector2){.x = xDisp, .y = ARENA_HEIGHT * 0.5f};
         MakeExitFromGrid(roomId, 2, 0, horizontal, fromBOTTOM);
         MakeExitFromGrid(roomId, 2, 3, horizontal, fromTOP);
         MakeDoorFromGrid(roomId, 0, 1, vertical, fromRIGHT);
         MakeExitFromGrid(roomId, 5, 1, vertical, fromLEFT);
         break;
     case fromRIGHT:
-        playerSpawnPoint = (Vector2){.x = ARENA_WIDTH - xDisp, .y = ARENA_HEIGHT / 2};
+        playerSpawnPoint = (Vector2){.x = ARENA_WIDTH - xDisp, .y = ARENA_HEIGHT * 0.5f};
         MakeExitFromGrid(roomId, 2, 0, horizontal, fromBOTTOM);
         MakeExitFromGrid(roomId, 2, 3, horizontal, fromTOP);
         MakeExitFromGrid(roomId, 0, 1, vertical, fromRIGHT);
@@ -88,10 +88,10 @@ static void CreateRoom(Entrance entrance, RoomId roomId)
         break;
     }
 
-    MakeRobot(roomId, ARENA_WIDTH / 4, ARENA_HEIGHT / 2);
-    MakeRobot(roomId, 3 * ARENA_WIDTH / 4, ARENA_HEIGHT / 2);
-    MakeRobot(roomId, ARENA_WIDTH / 2, ARENA_HEIGHT / 4);
-    MakeRobot(roomId, ARENA_WIDTH / 2, 3 * ARENA_HEIGHT / 4);
+    MakeRobot(roomId, ARENA_WIDTH * 0.25f, ARENA_HEIGHT * 0.5f);
+    MakeRobot(roomId, 3 * ARENA_WIDTH * 0.25f, ARENA_HEIGHT * 0.5f);
+    MakeRobot(roomId, ARENA_WIDTH * 0.5f, ARENA_HEIGHT * 0.25f);
+    MakeRobot(roomId, ARENA_WIDTH * 0.5f, 3 * ARENA_HEIGHT * 0.25f);
 
     // Top walls.
     MakeWallFromGrid(roomId, 0, 0, horizontal);

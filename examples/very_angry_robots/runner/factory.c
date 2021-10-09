@@ -55,7 +55,7 @@ EntityId MakeRobot(RoomId roomId, float x, float y)
     Velocities.Set(id, &(Velocity){.velocity = {0.0f, 0.0f}});
     Collidables.Set(id, &(Collidable){.type = ctROBOT});
     Rooms.Set(id, &(Room){.roomId = roomId});
-    Steps.Set(id, &(Step){.rate = 32, .step = 0});
+    Steps.Set(id, &(Step){.rate = 16, .step = 0});
     return id;
 }
 
