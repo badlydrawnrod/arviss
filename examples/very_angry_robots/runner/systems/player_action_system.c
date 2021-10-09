@@ -131,7 +131,6 @@ static bool CheckForFiring()
     {
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
         {
-            TraceLog(LOG_DEBUG, "PlayerControllerSystem: fired with LMB");
             return true;
         }
     }
@@ -139,7 +138,6 @@ static bool CheckForFiring()
     {
         if (IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_TRIGGER_1))
         {
-            TraceLog(LOG_DEBUG, "PlayerControllerSystem: fired with right trigger");
             return true;
         }
     }
@@ -169,7 +167,6 @@ static void UpdatePlayer(void)
     bool isFiring = GetPlayerFire();
     if (isFiring)
     {
-        TraceLog(LOG_DEBUG, "TODO: player fires a shot in the direction that they're aiming");
         Position* p = Positions.Get(playerId);
         MakeShot(currentRoom, p->position, aim, playerId);
     }

@@ -46,8 +46,6 @@ static void HandleEvents(int first, int last)
 
         const CollisionEvent* c = &e->collision;
 
-        TraceLog(LOG_INFO, "Collision between %s and %s", Identify(c->firstId), Identify(c->secondId));
-
         // Don't remove the player, walls or doors.
         if (Entities.AnyOf(c->firstId, bmRobot | bmShot))
         {

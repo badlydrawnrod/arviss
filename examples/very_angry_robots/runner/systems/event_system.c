@@ -27,7 +27,6 @@ void UpdateEventSystem(void)
     {
         int firstEvent = lastEvent;
         lastEvent = Events.Count();
-        TraceLog(LOG_DEBUG, "Processing events from %d to %d", firstEvent, lastEvent);
         for (int i = 0; i < numHandlers; i++)
         {
             handlers[i](firstEvent, lastEvent);

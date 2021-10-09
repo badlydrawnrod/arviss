@@ -166,9 +166,9 @@ static void CollideShots(void)
 
 static void CheckCollisions(void)
 {
+    CollideShots(); // Do this first to make sure that shooting something on the other side of a wall is not possible.
     CollidePlayer();
     CollideRobots();
-    CollideShots();
 }
 
 static void ApplyDesiredMovements(void)

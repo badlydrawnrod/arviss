@@ -7,6 +7,7 @@
 #include "tables/collidables.h"
 #include "tables/events.h"
 #include "tables/positions.h"
+#include "tables/steps.h"
 #include "tables/velocities.h"
 
 #define ROBOT_SPEED 4.0f
@@ -224,6 +225,14 @@ void UpdateRobotActions(void)
         EntityId id = {i};
         if (Entities.Is(id, bmRobot | bmPosition | bmVelocity))
         {
+            if (Entities.Is(id, bmStepped))
+            {
+                const Step* s = Steps.Get(id);
+                if (s->step != 0)
+                {
+                    continue;
+                }
+            }
             currentEntity = id;
             UpdateRobot();
         }

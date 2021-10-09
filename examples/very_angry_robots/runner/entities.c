@@ -38,7 +38,6 @@ int CreateEntity(void)
             {
                 ++maxCount;
             }
-            TraceLog(LOG_DEBUG, "CreateEntity() count = %d, maxCount = %d", count, maxCount);
             return id;
         }
     }
@@ -55,7 +54,6 @@ void DestroyEntity(EntityId id)
         {
             --maxCount;
         }
-        TraceLog(LOG_DEBUG, "DestroyEntity() count = %d, maxCount = %d", count, maxCount);
     }
 }
 

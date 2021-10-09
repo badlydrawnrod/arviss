@@ -48,8 +48,6 @@ static void DestroyRoom(RoomId roomId)
 
 static void CreateRoom(Entrance entrance, RoomId roomId)
 {
-    TraceLog(LOG_DEBUG, "Creating room");
-
     const bool horizontal = false;
     const bool vertical = true;
 
@@ -121,7 +119,6 @@ static void CreateRoom(Entrance entrance, RoomId roomId)
 
 static void SpawnPlayer(Vector2 spawnPoint)
 {
-    TraceLog(LOG_DEBUG, "Spawning player at (%3.1f, %3.1f)", spawnPoint.x, spawnPoint.y);
     Position* p = Positions.Get(playerId);
     p->position = spawnPoint;
 
@@ -130,7 +127,6 @@ static void SpawnPlayer(Vector2 spawnPoint)
     Events.Add(&(Event){.type = etPLAYER, .player = (PlayerEvent){.type = peSPAWNED, .id = playerId}});
 
     SetTimedTrigger(&amnestyTime, GetTime() + 2.5);
-    TraceLog(LOG_DEBUG, "Amnesty starting");
 }
 
 static void HandleEvents(int first, int last)
@@ -148,7 +144,6 @@ static void HandleEvents(int first, int last)
                 alreadyDied = true;
                 PlayerStatus* p = PlayerStatuses.Get(playerId);
                 --p->lives;
-                TraceLog(LOG_INFO, "Player died. Lives reduced to %d", p->lives);
                 SetTimedTrigger(&restartTime, GetTime() + 5);
                 Entities.Clear(pe->id, bmDrawable | bmCollidable | bmVelocity);
 
@@ -162,16 +157,11 @@ static void HandleEvents(int first, int last)
                     }
                 }
             }
-            else if (pe->type == peSPAWNED)
-            {
-                TraceLog(LOG_INFO, "Player spawned");
-            }
 
             break;
         }
         case etDOOR: {
             const DoorEvent* de = &e->door;
-            TraceLog(LOG_INFO, "Door event: %s", de->type == deENTER ? "enter" : "exit");
             if (de->type == deEXIT)
             {
                 const GameTime transitionTime = 0.5;
@@ -219,15 +209,12 @@ void UpdateGameStatusSystem(void)
         }
         else
         {
-            TraceLog(LOG_INFO, "Game Over");
             gameOver = true;
         }
     }
 
     if (PollTimedTrigger(&amnestyTime, now))
     {
-        TraceLog(LOG_DEBUG, "Amnesty over");
-
         // The robots are allowed to move once the amnesty is over.
         for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
         {
