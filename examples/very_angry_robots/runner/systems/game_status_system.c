@@ -112,6 +112,11 @@ static void CreateRoom(Entrance entrance, RoomId roomId)
     // Right walls.
     MakeWallFromGrid(roomId, 5, 0, vertical);
     MakeWallFromGrid(roomId, 5, 2, vertical);
+
+    // Another wall to separate the top 3 robots from the player.
+    MakeWallFromGrid(roomId, 1, 2, horizontal);
+    MakeWallFromGrid(roomId, 2, 2, horizontal);
+    MakeWallFromGrid(roomId, 3, 2, horizontal);
 }
 
 static void SpawnPlayer(Vector2 spawnPoint)

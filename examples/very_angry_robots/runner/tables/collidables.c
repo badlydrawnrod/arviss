@@ -9,7 +9,7 @@
 #define DOOR_THICKNESS 2
 
 #define ROBOT_WIDTH 32
-#define ROBOT_HEIGHT 16
+#define ROBOT_HEIGHT 32
 
 #define PLAYER_WIDTH 32
 #define PLAYER_HEIGHT 32

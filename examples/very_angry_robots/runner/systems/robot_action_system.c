@@ -4,6 +4,7 @@
 #include "geometry.h"
 #include "queries.h"
 #include "systems/event_system.h"
+#include "tables/collidables.h"
 #include "tables/events.h"
 #include "tables/positions.h"
 #include "tables/velocities.h"
@@ -77,24 +78,10 @@ static RkResult FireAt(EntityId id, const RkVector* target)
 
 static RkResult MoveTowards(EntityId id, const RkVector* target)
 {
-    const Position* p = Positions.Get(id);
-    const Vector2 robotPos = p->position;
+    const Vector2 robotPos = Positions.GetPosition(id);
     Velocity* v = Velocities.Get(id);
-    if (target->x != robotPos.x && target->y != robotPos.y)
-    {
-        const float angle = atan2f(target->y - robotPos.y, target->x - robotPos.x);
-        const Vector2 movement = {cosf(angle), sinf(angle)};
-
-        // Given that the robot's movement is stepped, it would be more accurate to call this "velocity when moved" or something
-        // similar.
-        v->velocity = Vector2Scale(movement, ROBOT_SPEED);
-    }
-    else
-    {
-        // You have reached your destination.
-        v->velocity = Vector2Zero();
-    }
-
+    Vector2 desiredPos = Vector2MoveTowards(robotPos, (Vector2){.x = target->x, .y = target->y}, ROBOT_SPEED);
+    v->velocity = Vector2Subtract(desiredPos, robotPos);
     return RK_OK;
 }
 
@@ -107,21 +94,30 @@ static RkResult Stop(EntityId id)
 
 static RkResult RaycastTowards(EntityId id, const RkVector* position, float maxDistance)
 {
-    Vector2 startPos = Positions.GetPosition(id);
-    Vector2 endPos = {.x = position->x, .y = position->y};
+    AABB myAABB = Collidables.GetGeometry(id);
+    myAABB.centre = Positions.GetPosition(id);
+    const Vector2 direction = Vector2Subtract(
+            Vector2MoveTowards(myAABB.centre, (Vector2){.x = position->x, .y = position->y}, maxDistance), myAABB.centre);
 
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
-        if (i == id.id)
+        EntityId otherId = {.id = i};
+        if (otherId.id == id.id)
         {
-            // We can't collide with ourselves.
             continue;
         }
-
-        EntityId e = {.id = i};
+        const bool shouldTest = Entities.Is(otherId, bmCollidable | bmPosition) && Entities.AnyOf(otherId, bmWall | bmDoor);
+        if (shouldTest)
+        {
+            AABB otherAABB = Collidables.GetGeometry(otherId);
+            otherAABB.centre = Positions.GetPosition(otherId);
+            float t;
+            if (CheckCollisionMovingAABBs(myAABB, otherAABB, direction, Vector2Zero(), &t))
+            {
+                return RK_HIT;
+            }
+        }
     }
-    // Checks if casting a line from the caller's position to the given position (within the given distance) would hit anything,
-    // excluding the caller itself of course.
     return RK_OK;
 }
 
@@ -177,7 +173,7 @@ static void UpdateRobot(void)
     RkVector playerPosition;
     RkGetPlayerPosition(&playerPosition);
 
-    const float probeDistance = 64.0f;
+    const float probeDistance = 16.0f;
 
     // Is there anything that I might hit between me and the player?
     if (RkRaycastTowards(&playerPosition, probeDistance) != RK_HIT)
