@@ -1,6 +1,7 @@
 #include "movement_system.h"
 
 #include "entities.h"
+#include "geometry.h"
 #include "queries.h"
 #include "systems/event_system.h"
 #include "tables/collidables.h"
@@ -25,18 +26,6 @@
 #define SHOT_WIDTH 2
 #define SHOT_HEIGHT 2
 
-typedef struct
-{
-    Vector2 centre;
-    Vector2 extents;
-} AABB;
-
-typedef struct
-{
-    Vector2 origin;
-    Vector2 direction; // The direction is not necessarily normalized.
-} Ray2D;
-
 static AABB geometries[] = {
         {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = ROBOT_WIDTH * 0.5f, .y = ROBOT_HEIGHT * 0.5f}},   // ctROBOT
         {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = PLAYER_WIDTH * 0.5f, .y = PLAYER_HEIGHT * 0.5f}}, // ctPLAYER
@@ -54,73 +43,6 @@ static struct
     Vector2 v;
 } desired[MAX_ENTITIES];
 
-static inline float Max(float a, float b)
-{
-    return a > b ? a : b;
-}
-
-static inline float Min(float a, float b)
-{
-    return a < b ? a : b;
-}
-
-inline Vector2 Vector2Rcp(Vector2 a)
-{
-    return (Vector2){.x = 1.0f / a.x, .y = 1.0f / a.y};
-}
-
-inline Vector2 Vector2Min(Vector2 a, Vector2 b)
-{
-    return (Vector2){Min(a.x, b.x), Min(a.y, b.y)};
-}
-
-inline Vector2 Vector2Max(Vector2 a, Vector2 b)
-{
-    return (Vector2){Max(a.x, b.x), Max(a.y, b.y)};
-}
-
-inline float Vector2MinComponent(Vector2 a)
-{
-    return Min(a.x, a.y);
-}
-
-inline float Vector2MaxComponent(Vector2 a)
-{
-    return Max(a.x, a.y);
-}
-
-// See: https://medium.com/@bromanz/another-view-on-the-classic-ray-aabb-intersection-algorithm-for-bvh-traversal-41125138b525
-// https://gist.githubusercontent.com/bromanz/ed0de6725f5e40a0afd8f50985c2f7ad/raw/be5e79e16181e4617d1a0e6e540dd25c259c76a4/efficient-slab-test-majercik-et-al
-inline bool Slabs(Vector2 p0, Vector2 p1, Vector2 rayOrigin, Vector2 invRayDir, float* t)
-{
-    const Vector2 t0 = Vector2Multiply(Vector2Subtract(p0, rayOrigin), invRayDir);
-    const Vector2 t1 = Vector2Multiply(Vector2Subtract(p1, rayOrigin), invRayDir);
-    const Vector2 tmin = Vector2Min(t0, t1);
-    const Vector2 tmax = Vector2Max(t0, t1);
-    *t = Max(0.0f, Vector2MaxComponent(tmin));
-    return *t <= Min(1.0f, Vector2MinComponent(tmax));
-}
-
-bool CheckCollisionRay2dAABBs(Ray2D r, AABB aabb, float* t)
-{
-    const Vector2 invD = Vector2Rcp(r.direction);
-    const Vector2 aabbMin = Vector2Subtract(aabb.centre, aabb.extents);
-    const Vector2 aabbMax = Vector2Add(aabb.centre, aabb.extents);
-    return Slabs(aabbMin, aabbMax, r.origin, invD, t);
-}
-
-bool CheckCollisionMovingAABBs(AABB a, AABB b, Vector2 va, Vector2 vb, float* t)
-{
-    // An AABB at B's position with the combined size of A and B.
-    const AABB aabb = {.centre = b.centre, .extents = Vector2Add(a.extents, b.extents)};
-
-    // A ray at A's position with its direction set to A's velocity relative to B. It's a parametric representation of a
-    // line representing A's position at time t, where 0 <= t <= 1.
-    const Ray2D r = {.origin = a.centre, .direction = Vector2Subtract(va, vb)};
-
-    // Does the ray hit the AABB
-    return CheckCollisionRay2dAABBs(r, aabb, t);
-}
 
 static void GetDesiredMovements(void)
 {
