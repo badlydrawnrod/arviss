@@ -181,15 +181,15 @@ static void UpdateRobot(void)
         // Move in the direction of the player.
         RkMoveTowards(&playerPosition);
     }
-    else if (RkRaycastTowards(&(RkVector){.x = playerPosition.x, .y = 0.0f}, probeDistance) != RK_HIT)
+    else if (RkRaycastTowards(&(RkVector){.x = playerPosition.x, .y = myPosition.y}, probeDistance) != RK_HIT)
     {
         // Move horizontally towards the player.
-        RkMoveTowards(&(RkVector){.x = playerPosition.x, .y = 0.0f});
+        RkMoveTowards(&(RkVector){.x = playerPosition.x, .y = myPosition.y});
     }
-    else if (RkRaycastTowards(&(RkVector){.x = 0.0f, .y = playerPosition.y}, probeDistance) != RK_HIT)
+    else if (RkRaycastTowards(&(RkVector){.x = myPosition.x, .y = playerPosition.y}, probeDistance) != RK_HIT)
     {
         // Move vertically towards the player.
-        RkMoveTowards(&(RkVector){.x = 0.0f, .y = playerPosition.y});
+        RkMoveTowards(&(RkVector){.x = myPosition.x, .y = playerPosition.y});
     }
     else
     {
