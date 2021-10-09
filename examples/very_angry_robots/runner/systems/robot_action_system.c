@@ -1,6 +1,7 @@
 #include "robot_action_system.h"
 
 #include "factory.h"
+#include "geometry.h"
 #include "queries.h"
 #include "systems/event_system.h"
 #include "tables/events.h"
@@ -106,7 +107,6 @@ static RkResult Stop(EntityId id)
 
 static RkResult RaycastTowards(EntityId id, const RkVector* position, float maxDistance)
 {
-    // TODO: use raylib's rays on the xy plane.
     Vector2 startPos = Positions.GetPosition(id);
     Vector2 endPos = {.x = position->x, .y = position->y};
 

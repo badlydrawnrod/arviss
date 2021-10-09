@@ -1,6 +1,7 @@
 #pragma once
 
 #include "entities.h"
+#include "geometry.h"
 
 #include <stdbool.h>
 
@@ -23,9 +24,11 @@ typedef struct Collidable
 
 Collidable* GetCollidable(EntityId id);
 void SetCollidable(EntityId id, Collidable* collidable);
+AABB GetCollidableGeometry(EntityId id);
 
 static struct
 {
     Collidable* (*Get)(EntityId id);
     void (*Set)(EntityId id, Collidable* collidable);
-} Collidables = {.Get = GetCollidable, .Set = SetCollidable};
+    AABB (*GetGeometry)(EntityId);
+} Collidables = {.Get = GetCollidable, .Set = SetCollidable, .GetGeometry = GetCollidableGeometry};

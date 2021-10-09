@@ -11,38 +11,12 @@
 #include "tables/steps.h"
 #include "tables/velocities.h"
 
-#define WALL_SIZE 224
-#define WALL_THICKNESS 2
-
-#define DOOR_SIZE (WALL_SIZE - 80)
-#define DOOR_THICKNESS 2
-
-#define ROBOT_WIDTH 32
-#define ROBOT_HEIGHT 16
-
-#define PLAYER_WIDTH 32
-#define PLAYER_HEIGHT 32
-
-#define SHOT_WIDTH 2
-#define SHOT_HEIGHT 2
-
-static AABB geometries[] = {
-        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = ROBOT_WIDTH * 0.5f, .y = ROBOT_HEIGHT * 0.5f}},   // ctROBOT
-        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = PLAYER_WIDTH * 0.5f, .y = PLAYER_HEIGHT * 0.5f}}, // ctPLAYER
-        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = SHOT_WIDTH * 0.5f, .y = SHOT_HEIGHT * 0.5f}},     // ctSHOT
-        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = WALL_SIZE * 0.5f, .y = WALL_THICKNESS * 0.5f}},   // ctHWALL
-        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = WALL_THICKNESS * 0.5f, .y = WALL_SIZE * 0.5f}},   // ctVWALL
-        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = WALL_SIZE * 0.5f, .y = WALL_THICKNESS * 0.5f}},   // ctHDOOR
-        {.centre = {.x = 0.0f, .y = 0.0f}, .extents = {.x = WALL_THICKNESS * 0.5f, .y = WALL_SIZE * 0.5f}},   // ctVDOOR
-};
-
 static bool isEnabled = true;
 static EntityId playerId = {.id = -1};
 static struct
 {
     Vector2 v;
 } desired[MAX_ENTITIES];
-
 
 static void GetDesiredMovements(void)
 {
@@ -71,7 +45,7 @@ static void CollidePlayer(void)
     {
         return;
     }
-    AABB playerAABB = geometries[ctPLAYER];
+    AABB playerAABB = Collidables.GetGeometry(playerId);
     playerAABB.centre = Positions.GetPosition(playerId);
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
@@ -91,8 +65,7 @@ static void CollidePlayer(void)
 
         if (shouldTest)
         {
-            Collidable* c = Collidables.Get(id);
-            AABB otherAABB = geometries[c->type];
+            AABB otherAABB = Collidables.GetGeometry(id);
             otherAABB.centre = Positions.GetPosition(id);
             float t;
             if (CheckCollisionMovingAABBs(playerAABB, otherAABB, desired[playerId.id].v, desired[i].v, &t))
@@ -106,7 +79,7 @@ static void CollidePlayer(void)
 
 static void CollideRobot(EntityId robotId)
 {
-    AABB robotAABB = geometries[ctROBOT];
+    AABB robotAABB = Collidables.GetGeometry(robotId);
     robotAABB.centre = Positions.GetPosition(robotId);
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
@@ -129,8 +102,7 @@ static void CollideRobot(EntityId robotId)
         }
         if (shouldTest)
         {
-            Collidable* c = Collidables.Get(id);
-            AABB otherAABB = geometries[c->type];
+            AABB otherAABB = Collidables.GetGeometry(id);
             otherAABB.centre = Positions.GetPosition(id);
             float t;
             if (CheckCollisionMovingAABBs(robotAABB, otherAABB, desired[robotId.id].v, desired[i].v, &t))
@@ -156,7 +128,7 @@ static void CollideRobots(void)
 
 static void CollideShot(EntityId shotId)
 {
-    AABB shotAABB = geometries[ctSHOT];
+    AABB shotAABB = Collidables.GetGeometry(shotId);
     shotAABB.centre = Positions.GetPosition(shotId);
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
@@ -168,8 +140,7 @@ static void CollideShot(EntityId shotId)
         const bool shouldTest = Entities.AnyOf(id, bmWall | bmDoor);
         if (shouldTest)
         {
-            Collidable* c = Collidables.Get(id);
-            AABB otherAABB = geometries[c->type];
+            AABB otherAABB = Collidables.GetGeometry(id);
             otherAABB.centre = Positions.GetPosition(id);
             float t;
             if (CheckCollisionMovingAABBs(shotAABB, otherAABB, desired[shotId.id].v, desired[i].v, &t))
