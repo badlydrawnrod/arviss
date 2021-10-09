@@ -15,6 +15,7 @@ typedef enum EventType
 
 typedef struct CollisionEvent
 {
+    float t; // The time (0 <= t <= 1) at which the event took place.
     EntityId firstId;
     EntityId secondId;
 } CollisionEvent;

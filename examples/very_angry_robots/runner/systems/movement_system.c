@@ -175,7 +175,8 @@ static void CollidePlayer(void)
             float t;
             if (CheckCollisionMovingAABBs(playerAABB, otherAABB, desired[playerId.id].v, desired[i].v, &t))
             {
-                Events.Add(&(Event){.type = etCOLLISION, .collision = (CollisionEvent){.firstId = playerId, .secondId = id}});
+                Events.Add(
+                        &(Event){.type = etCOLLISION, .collision = (CollisionEvent){.t = t, .firstId = playerId, .secondId = id}});
             }
         }
     }
@@ -212,7 +213,8 @@ static void CollideRobot(EntityId robotId)
             float t;
             if (CheckCollisionMovingAABBs(robotAABB, otherAABB, desired[robotId.id].v, desired[i].v, &t))
             {
-                Events.Add(&(Event){.type = etCOLLISION, .collision = (CollisionEvent){.firstId = robotId, .secondId = id}});
+                Events.Add(
+                        &(Event){.type = etCOLLISION, .collision = (CollisionEvent){.t = t, .firstId = robotId, .secondId = id}});
             }
         }
     }
@@ -251,7 +253,7 @@ static void CollideShot(EntityId shotId)
             if (CheckCollisionMovingAABBs(shotAABB, otherAABB, desired[shotId.id].v, desired[i].v, &t))
             {
                 desired[shotId.id].v = Vector2Scale(desired[shotId.id].v, t);
-                Events.Add(&(Event){.type = etCOLLISION, .collision = (CollisionEvent){.firstId = shotId, .secondId = id}});
+                Events.Add(&(Event){.type = etCOLLISION, .collision = (CollisionEvent){.t = t, .firstId = shotId, .secondId = id}});
             }
         }
     }
