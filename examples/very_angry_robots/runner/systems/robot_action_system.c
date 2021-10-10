@@ -37,10 +37,6 @@ void ResetRobotActions(void)
     EventSystem.Register(HandleEvents);
 }
 
-// --- <syscalls>
-// Note that the syscalls have the entity id, because ultimately they'll be invoked from a trap. The trap handler will know which
-// entity is being worked on.
-
 typedef enum Syscalls
 {
     SYSCALL_EXIT,                // The robot's program has finished.
@@ -135,8 +131,6 @@ static RkResult RaycastTowards(EntityId id, const RkVector* position, float maxD
     }
     return RK_OK;
 }
-
-// --- </syscalls>
 
 static void HandleTrap(Guest* guest, const ArvissTrap* trap, EntityId id)
 {
@@ -236,15 +230,18 @@ static void HandleTrap(Guest* guest, const ArvissTrap* trap, EntityId id)
 static void UpdateRobotGuest(EntityId id)
 {
     Guest* guest = Guests.Get(id);
-    ArvissResult result = ArvissRun(&guest->cpu, QUANTUM);
-    if (ArvissResultIsTrap(result))
+    int remaining = QUANTUM;
+    while (remaining > 0)
     {
-        const ArvissTrap trap = ArvissResultAsTrap(result);
-        HandleTrap(guest, &trap, id);
+        ArvissResult result = ArvissRun(&guest->cpu, remaining);
+        if (ArvissResultIsTrap(result))
+        {
+            const ArvissTrap trap = ArvissResultAsTrap(result);
+            HandleTrap(guest, &trap, id);
+        }
+        remaining -= guest->cpu.retired;
     }
 }
-
-// --- </interact only through syscalls>
 
 void UpdateRobotActions(void)
 {

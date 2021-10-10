@@ -154,6 +154,7 @@ struct ArvissCpu
     uint32_t fcsr;                 // Floating point control and status register.
     Bus bus;                       // The address bus.
     DecodedInstructionCache cache; // The decoded instruction cache.
+    int retired;                   // Instructions retired in the most recent call to ArvissRun().
 };
 
 #ifdef __cplusplus
