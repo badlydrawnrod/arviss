@@ -41,6 +41,17 @@ void ResetRobotActions(void)
 // Note that the syscalls have the entity id, because ultimately they'll be invoked from a trap. The trap handler will know which
 // entity is being worked on.
 
+typedef enum Syscalls
+{
+    SYSCALL_EXIT,                // The robot's program has finished.
+    SYSCALL_GET_MY_POSITION,     // Gets the robot's position in the world.
+    SYSCALL_GET_PLAYER_POSITION, // Gets the player's position in the world.
+    SYSCALL_FIRE_AT,             // Fires a shot towards the given postion.
+    SYSCALL_MOVE_TOWARDS,        // Instructs the robot to move towards the given position.
+    SYSCALL_STOP,                // Instructs the robot to stop.
+    SYSCALL_RAYCAST_TOWARDS      // Fires a ray towards the given position to detect obstacles.
+} Syscalls;
+
 // Anything Rk is "robot kernel", to make it obvious. Note that GetMyPosition(), etc, aren't "Rk" because they're internal to the
 // kernel - the callers know nothing about EntityId.
 
@@ -127,87 +138,6 @@ static RkResult RaycastTowards(EntityId id, const RkVector* position, float maxD
 
 // --- </syscalls>
 
-// Some shims to let us write "robot code" before we have the VM.
-
-static EntityId currentEntity;
-
-static inline RkResult RkGetMyPosition(RkVector* position)
-{
-    return GetMyPosition(currentEntity, position);
-}
-
-static inline RkResult RkGetPlayerPosition(RkVector* position)
-{
-    return GetPlayerPosition(currentEntity, position);
-}
-
-static inline RkResult RkFireAt(const RkVector* target)
-{
-    return FireAt(currentEntity, target);
-}
-
-static inline RkResult RkMoveTowards(const RkVector* target)
-{
-    return MoveTowards(currentEntity, target);
-}
-
-static inline RkResult RkStop(void)
-{
-    return Stop(currentEntity);
-}
-
-static inline RkResult RkRaycastTowards(const RkVector* position, float maxDistance)
-{
-    return RaycastTowards(currentEntity, position, maxDistance);
-}
-
-// --- <interact only through syscalls>
-
-// This code is pretending to be a VM, so it can only interact with the world through syscalls.
-
-static void UpdateRobot(void)
-{
-    // If this was running in the VM then it'd probably be in a while loop and it could have its own state.
-
-    // Where am I?
-    RkVector myPosition;
-    RkGetMyPosition(&myPosition);
-
-    // Where's the player?
-    RkVector playerPosition;
-    RkGetPlayerPosition(&playerPosition);
-
-    const float probeDistance = 16.0f;
-
-    // Is there anything that I might hit between me and the player?
-    if (RkRaycastTowards(&playerPosition, probeDistance) != RK_HIT)
-    {
-        // Move in the direction of the player.
-        RkMoveTowards(&playerPosition);
-    }
-    else if (RkRaycastTowards(&(RkVector){.x = playerPosition.x, .y = myPosition.y}, probeDistance) != RK_HIT)
-    {
-        // Move horizontally towards the player.
-        RkMoveTowards(&(RkVector){.x = playerPosition.x, .y = myPosition.y});
-    }
-    else if (RkRaycastTowards(&(RkVector){.x = myPosition.x, .y = playerPosition.y}, probeDistance) != RK_HIT)
-    {
-        // Move vertically towards the player.
-        RkMoveTowards(&(RkVector){.x = myPosition.x, .y = playerPosition.y});
-    }
-    else
-    {
-        // We can't move without hitting anything, so stop.
-        RkStop();
-    }
-
-    // Fire at the player.
-    if (((int)myPosition.x % 47) == 0)
-    {
-        RkFireAt(&playerPosition);
-    }
-}
-
 static void HandleTrap(Guest* guest, const ArvissTrap* trap, EntityId id)
 {
     // Check for a syscall.
@@ -220,6 +150,65 @@ static void HandleTrap(Guest* guest, const ArvissTrap* trap, EntityId id)
         bool syscallHandled = true;
         switch (syscall)
         {
+        case SYSCALL_EXIT:
+            // The exit code is in a0 (x10).
+            break;
+        case SYSCALL_GET_MY_POSITION: {
+            const Vector2 position = Positions.GetPosition(id);
+
+            // The VM address of the structure to place the result is in a0 (x10).
+            const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
+            BusCode mc = bcOK;
+            guest->cpu.bus.Write32(guest->cpu.bus.token, a0, *(uint32_t*)&position.x, &mc);
+            guest->cpu.bus.Write32(guest->cpu.bus.token, a0 + 4, *(uint32_t*)&position.y, &mc);
+            break;
+        }
+        case SYSCALL_GET_PLAYER_POSITION: {
+            const Vector2 position = Positions.GetPosition(playerId);
+
+            // The VM address of the structure to place the result is in a0 (x10).
+            const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
+            BusCode mc = bcOK;
+            guest->cpu.bus.Write32(guest->cpu.bus.token, a0, *(uint32_t*)&position.x, &mc);
+            guest->cpu.bus.Write32(guest->cpu.bus.token, a0 + 4, *(uint32_t*)&position.y, &mc);
+            break;
+        }
+        case SYSCALL_FIRE_AT: {
+            // The VM address of the structure containing the target is in a0.
+            const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
+            BusCode mc = bcOK;
+            uint32_t x = guest->cpu.bus.Read32(guest->cpu.bus.token, a0, &mc);
+            uint32_t y = guest->cpu.bus.Read32(guest->cpu.bus.token, a0 + 4, &mc);
+            RkVector v = {.x = *(float*)&x, .y = *(float*)&y};
+            FireAt(id, &v);
+            break;
+        }
+        case SYSCALL_MOVE_TOWARDS: {
+            // The VM address of the structure containing the target is in a0.
+            const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
+            BusCode mc = bcOK;
+            uint32_t x = guest->cpu.bus.Read32(guest->cpu.bus.token, a0, &mc);
+            uint32_t y = guest->cpu.bus.Read32(guest->cpu.bus.token, a0 + 4, &mc);
+            RkVector v = {.x = *(float*)&x, .y = *(float*)&y};
+            MoveTowards(id, &v);
+            break;
+        }
+        case SYSCALL_STOP:
+            Stop(id);
+            break;
+        case SYSCALL_RAYCAST_TOWARDS: {
+            // The VM address of the structure containing the target is in a0.
+            const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
+            BusCode mc = bcOK;
+            uint32_t x = guest->cpu.bus.Read32(guest->cpu.bus.token, a0, &mc);
+            uint32_t y = guest->cpu.bus.Read32(guest->cpu.bus.token, a0 + 4, &mc);
+            RkVector v = {.x = *(float*)&x, .y = *(float*)&y};
+            // The maximum distance is a float held in a1.
+            const uint32_t distance = ArvissReadXReg(&guest->cpu, 11);
+            const RkResult hit = RaycastTowards(id, &v, *(float*)&distance);
+            ArvissWriteXReg(&guest->cpu, 10, hit == RK_HIT ? 1 : 0);
+            break;
+        }
         default:
             // Unknown syscall.
             TraceLog(LOG_WARNING, "Unknown syscall %04x", syscall);
@@ -283,8 +272,6 @@ void UpdateRobotActions(void)
                     continue;
                 }
             }
-            currentEntity = id;
-            UpdateRobot();
             UpdateRobotGuest(id);
         }
     }
