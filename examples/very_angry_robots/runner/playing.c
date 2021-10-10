@@ -9,10 +9,12 @@
 #include "systems/reaper_system.h"
 #include "systems/robot_action_system.h"
 #include "systems/stepper_system.h"
+#include "tables/guests.h"
 
 void EnterPlaying(void)
 {
     Entities.Reset();
+    Guests.Clear();
     EventSystem.Reset(); // Reset this first, because many of the other systems register with it.
     PlayerActionSystem.Reset();
     RobotActionSystem.Reset();

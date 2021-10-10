@@ -6,9 +6,12 @@
 #include "systems/event_system.h"
 #include "tables/collidables.h"
 #include "tables/events.h"
+#include "tables/guests.h"
 #include "tables/positions.h"
 #include "tables/steps.h"
 #include "tables/velocities.h"
+
+#define QUANTUM 1024
 
 #define ROBOT_SPEED 4.0f
 
@@ -205,6 +208,53 @@ static void UpdateRobot(void)
     }
 }
 
+static void HandleTrap(Guest* guest, const ArvissTrap* trap, EntityId id)
+{
+    // Check for a syscall.
+    if (trap->mcause == trENVIRONMENT_CALL_FROM_M_MODE)
+    {
+        // The syscall number is in a7 (x17).
+        const uint32_t syscall = ArvissReadXReg(&guest->cpu, 17);
+
+        // Service the syscall.
+        bool syscallHandled = true;
+        switch (syscall)
+        {
+        default:
+            // Unknown syscall.
+            TraceLog(LOG_WARNING, "Unknown syscall %04x", syscall);
+            syscallHandled = false;
+            break;
+        }
+
+        // If we handled the syscall then perform an MRET so that we can return from the trap.
+        if (syscallHandled)
+        {
+            ArvissMret(&guest->cpu);
+        }
+    }
+    else if (trap->mcause == trILLEGAL_INSTRUCTION)
+    {
+        TraceLog(LOG_WARNING, "Illegal instruction %8x", trap->mtval);
+    }
+    else
+    {
+        // Ideally I'd like this to be an error, but LOG_ERROR in raylib actually stops the program.
+        TraceLog(LOG_WARNING, "Trap cause %d not recognised", trap->mcause);
+    }
+}
+
+static void UpdateRobotGuest(EntityId id)
+{
+    Guest* guest = Guests.Get(id);
+    ArvissResult result = ArvissRun(&guest->cpu, QUANTUM);
+    if (ArvissResultIsTrap(result))
+    {
+        const ArvissTrap trap = ArvissResultAsTrap(result);
+        HandleTrap(guest, &trap, id);
+    }
+}
+
 // --- </interact only through syscalls>
 
 void UpdateRobotActions(void)
@@ -235,6 +285,7 @@ void UpdateRobotActions(void)
             }
             currentEntity = id;
             UpdateRobot();
+            UpdateRobotGuest(id);
         }
     }
 }
