@@ -19,10 +19,10 @@ runner.
 
 ### Running
 
-After building the example, run it using `run_very_angry_robots.exe` from the runner's `build` directory.
+After building the example, run it using `run_very_angry_robots.exe` from the relevant Arviss `build` directory.
 
 ```
-C:> cd build
+C:> cd build\examples\very_angry_robots\runner
 C:> run_very_angry_robots
 ```
 
@@ -43,9 +43,9 @@ runner.
 
 ### Running
 
-After building the example, run it using `run_very_angry_robots` from the runner's `build` directory.
+After building the example, run it using `run_very_angry_robots.exe` from the relevant Arviss `build` directory.
 
 ```shell
-$ cd build
+$ cd build/examples/very_angry_robots/runner
 $ ./run_very_angry_robots
 ```
