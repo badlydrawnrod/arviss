@@ -48,67 +48,29 @@ typedef enum Syscalls
     SYSCALL_RAYCAST_TOWARDS      // Fires a ray towards the given position to detect obstacles.
 } Syscalls;
 
-// Anything Rk is "robot kernel", to make it obvious. Note that GetMyPosition(), etc, aren't "Rk" because they're internal to the
-// kernel - the callers know nothing about EntityId.
-
-typedef int32_t RkResult;
-
-const RkResult RK_OK = 0;
-const RkResult RK_HIT = 1;
-
-typedef struct RkVector
-{
-    float x;
-    float y;
-} RkVector;
-
-static RkResult GetMyPosition(EntityId id, RkVector* position)
-{
-    const Vector2 myPos = Positions.GetPosition(id);
-    *position = (RkVector){.x = myPos.x, .y = myPos.y};
-    return RK_OK;
-}
-
-static RkResult GetPlayerPosition(EntityId id, RkVector* position)
-{
-    const Vector2 playerPos = Positions.GetPosition(playerId);
-    *position = (RkVector){.x = playerPos.x, .y = playerPos.y};
-    return RK_OK;
-}
-
-static RkResult FireAt(EntityId id, const RkVector* target)
+static void FireAt(EntityId id, const Vector2 target)
 {
     const Position* p = Positions.Get(id);
     const Vector2 robotPos = p->position;
-    const float angle = atan2f(target->y - robotPos.y, target->x - robotPos.x);
+    const float angle = atan2f(target.x - robotPos.y, target.y - robotPos.x);
     const Vector2 aim = {cosf(angle), sinf(angle)};
     const Room* room = Rooms.Get(id);
     MakeRobotShot(room->roomId, p->position, aim, id);
-    return RK_OK;
 }
 
-static RkResult MoveTowards(EntityId id, const RkVector* target)
+static void MoveTowards(EntityId id, const Vector2 target)
 {
     const Vector2 robotPos = Positions.GetPosition(id);
     Velocity* v = Velocities.Get(id);
-    Vector2 desiredPos = Vector2MoveTowards(robotPos, (Vector2){.x = target->x, .y = target->y}, ROBOT_SPEED);
+    const Vector2 desiredPos = Vector2MoveTowards(robotPos, target, ROBOT_SPEED);
     v->velocity = Vector2Subtract(desiredPos, robotPos);
-    return RK_OK;
 }
 
-static RkResult Stop(EntityId id)
-{
-    Velocity* v = Velocities.Get(id);
-    v->velocity = Vector2Zero();
-    return RK_OK;
-}
-
-static RkResult RaycastTowards(EntityId id, const RkVector* position, float maxDistance)
+static bool RaycastTowards(EntityId id, const Vector2 position, float maxDistance)
 {
     AABB myAABB = Collidables.GetGeometry(id);
     myAABB.centre = Positions.GetPosition(id);
-    const Vector2 direction = Vector2Subtract(
-            Vector2MoveTowards(myAABB.centre, (Vector2){.x = position->x, .y = position->y}, maxDistance), myAABB.centre);
+    const Vector2 direction = Vector2Subtract(Vector2MoveTowards(myAABB.centre, position, maxDistance), myAABB.centre);
 
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
@@ -125,11 +87,80 @@ static RkResult RaycastTowards(EntityId id, const RkVector* position, float maxD
             float t;
             if (CheckCollisionMovingAABBs(myAABB, otherAABB, direction, Vector2Zero(), &t))
             {
-                return RK_HIT;
+                return true;
             }
         }
     }
-    return RK_OK;
+    return false;
+}
+
+static inline void SysExit(Guest* guest, EntityId id)
+{
+    // The exit code is in a0 (x10).
+}
+
+static inline void SysGetMyPosition(Guest* guest, EntityId id)
+{
+    const Vector2 position = Positions.GetPosition(id);
+
+    // The VM address of the structure to place the result is in a0 (x10).
+    const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
+    BusCode mc = bcOK;
+    guest->cpu.bus.Write32(guest->cpu.bus.token, a0, *(uint32_t*)&position.x, &mc);
+    guest->cpu.bus.Write32(guest->cpu.bus.token, a0 + 4, *(uint32_t*)&position.y, &mc);
+}
+
+static inline void SysGetPlayerPosition(Guest* guest, EntityId id)
+{
+    const Vector2 position = Positions.GetPosition(playerId);
+
+    // The VM address of the structure to place the result is in a0 (x10).
+    const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
+    BusCode mc = bcOK;
+    guest->cpu.bus.Write32(guest->cpu.bus.token, a0, *(uint32_t*)&position.x, &mc);
+    guest->cpu.bus.Write32(guest->cpu.bus.token, a0 + 4, *(uint32_t*)&position.y, &mc);
+}
+
+static inline void SysFireAt(Guest* guest, EntityId id)
+{
+    // The VM address of the structure containing the target is in a0.
+    const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
+    BusCode mc = bcOK;
+    uint32_t x = guest->cpu.bus.Read32(guest->cpu.bus.token, a0, &mc);
+    uint32_t y = guest->cpu.bus.Read32(guest->cpu.bus.token, a0 + 4, &mc);
+    const Vector2 v = {.x = *(float*)&x, .y = *(float*)&y};
+    FireAt(id, v);
+}
+
+static inline void SysMoveTowards(Guest* guest, EntityId id)
+{
+    // The VM address of the structure containing the target is in a0.
+    const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
+    BusCode mc = bcOK;
+    uint32_t x = guest->cpu.bus.Read32(guest->cpu.bus.token, a0, &mc);
+    uint32_t y = guest->cpu.bus.Read32(guest->cpu.bus.token, a0 + 4, &mc);
+    const Vector2 v = {.x = *(float*)&x, .y = *(float*)&y};
+    MoveTowards(id, v);
+}
+
+static inline void SysStop(Guest* guest, EntityId id)
+{
+    Velocity* v = Velocities.Get(id);
+    v->velocity = Vector2Zero();
+}
+
+static inline void SysRaycastTowards(Guest* guest, EntityId id)
+{
+    // The VM address of the structure containing the target is in a0.
+    const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
+    BusCode mc = bcOK;
+    uint32_t x = guest->cpu.bus.Read32(guest->cpu.bus.token, a0, &mc);
+    uint32_t y = guest->cpu.bus.Read32(guest->cpu.bus.token, a0 + 4, &mc);
+    Vector2 v = {.x = *(float*)&x, .y = *(float*)&y};
+    // The maximum distance is a float held in a1.
+    const uint32_t distance = ArvissReadXReg(&guest->cpu, 11);
+    const bool hit = RaycastTowards(id, v, *(float*)&distance);
+    ArvissWriteXReg(&guest->cpu, 10, hit ? 1 : 0);
 }
 
 static void HandleTrap(Guest* guest, const ArvissTrap* trap, EntityId id)
@@ -145,64 +176,26 @@ static void HandleTrap(Guest* guest, const ArvissTrap* trap, EntityId id)
         switch (syscall)
         {
         case SYSCALL_EXIT:
-            // The exit code is in a0 (x10).
+            SysExit(guest, id);
             break;
-        case SYSCALL_GET_MY_POSITION: {
-            const Vector2 position = Positions.GetPosition(id);
-
-            // The VM address of the structure to place the result is in a0 (x10).
-            const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
-            BusCode mc = bcOK;
-            guest->cpu.bus.Write32(guest->cpu.bus.token, a0, *(uint32_t*)&position.x, &mc);
-            guest->cpu.bus.Write32(guest->cpu.bus.token, a0 + 4, *(uint32_t*)&position.y, &mc);
+        case SYSCALL_GET_MY_POSITION:
+            SysGetMyPosition(guest, id);
             break;
-        }
-        case SYSCALL_GET_PLAYER_POSITION: {
-            const Vector2 position = Positions.GetPosition(playerId);
-
-            // The VM address of the structure to place the result is in a0 (x10).
-            const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
-            BusCode mc = bcOK;
-            guest->cpu.bus.Write32(guest->cpu.bus.token, a0, *(uint32_t*)&position.x, &mc);
-            guest->cpu.bus.Write32(guest->cpu.bus.token, a0 + 4, *(uint32_t*)&position.y, &mc);
+        case SYSCALL_GET_PLAYER_POSITION:
+            SysGetPlayerPosition(guest, id);
             break;
-        }
-        case SYSCALL_FIRE_AT: {
-            // The VM address of the structure containing the target is in a0.
-            const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
-            BusCode mc = bcOK;
-            uint32_t x = guest->cpu.bus.Read32(guest->cpu.bus.token, a0, &mc);
-            uint32_t y = guest->cpu.bus.Read32(guest->cpu.bus.token, a0 + 4, &mc);
-            RkVector v = {.x = *(float*)&x, .y = *(float*)&y};
-            FireAt(id, &v);
+        case SYSCALL_FIRE_AT:
+            SysFireAt(guest, id);
             break;
-        }
-        case SYSCALL_MOVE_TOWARDS: {
-            // The VM address of the structure containing the target is in a0.
-            const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
-            BusCode mc = bcOK;
-            uint32_t x = guest->cpu.bus.Read32(guest->cpu.bus.token, a0, &mc);
-            uint32_t y = guest->cpu.bus.Read32(guest->cpu.bus.token, a0 + 4, &mc);
-            RkVector v = {.x = *(float*)&x, .y = *(float*)&y};
-            MoveTowards(id, &v);
+        case SYSCALL_MOVE_TOWARDS:
+            SysMoveTowards(guest, id);
             break;
-        }
         case SYSCALL_STOP:
-            Stop(id);
+            SysStop(guest, id);
             break;
-        case SYSCALL_RAYCAST_TOWARDS: {
-            // The VM address of the structure containing the target is in a0.
-            const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
-            BusCode mc = bcOK;
-            uint32_t x = guest->cpu.bus.Read32(guest->cpu.bus.token, a0, &mc);
-            uint32_t y = guest->cpu.bus.Read32(guest->cpu.bus.token, a0 + 4, &mc);
-            RkVector v = {.x = *(float*)&x, .y = *(float*)&y};
-            // The maximum distance is a float held in a1.
-            const uint32_t distance = ArvissReadXReg(&guest->cpu, 11);
-            const RkResult hit = RaycastTowards(id, &v, *(float*)&distance);
-            ArvissWriteXReg(&guest->cpu, 10, hit == RK_HIT ? 1 : 0);
+        case SYSCALL_RAYCAST_TOWARDS:
+            SysRaycastTowards(guest, id);
             break;
-        }
         default:
             // Unknown syscall.
             TraceLog(LOG_WARNING, "Unknown syscall %04x", syscall);
