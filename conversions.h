@@ -21,3 +21,8 @@ static inline uint32_t FloatAsU32(const float a)
     } x = {a};
     return x.b;
 }
+
+static inline uint32_t BoolAsU32(const bool b)
+{
+    return b ? 1 : 0;
+}

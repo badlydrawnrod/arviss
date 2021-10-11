@@ -42,7 +42,7 @@ int main(void)
         }
 
         // Fire at the player.
-        if (((int)myPosition.x % 47) == 0)
+        if (((int)myPosition.x % 11) == 0)
         {
             RkFireAt(&playerPosition);
         }
