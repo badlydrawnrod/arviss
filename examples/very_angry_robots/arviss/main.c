@@ -46,6 +46,8 @@ int main(void)
         {
             RkFireAt(&playerPosition);
         }
+
+        RkYield();
     }
 }
 #pragma clang diagnostic pop

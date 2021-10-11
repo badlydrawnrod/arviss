@@ -6,6 +6,7 @@
 typedef enum Syscalls
 {
     SYSCALL_EXIT,                // The robot's program has finished.
+    SYSCALL_YIELD,               // Give way.
     SYSCALL_GET_MY_POSITION,     // Gets the robot's position in the world.
     SYSCALL_GET_PLAYER_POSITION, // Gets the player's position in the world.
     SYSCALL_FIRE_AT,             // Fires a shot towards the given postion.
@@ -62,9 +63,14 @@ static inline uint32_t syscall3(uint32_t n, uint32_t a, uint32_t b, uint32_t c)
     __asm_syscall("r"(a7), "r"(a0), "r"(a1), "r"(a2))
 }
 
-static inline void sys_exit(int32_t status)
+static inline void RkExit(int32_t status)
 {
     syscall1(SYSCALL_EXIT, status);
+}
+
+static inline void RkYield(void)
+{
+    syscall0(SYSCALL_YIELD);
 }
 
 static inline void RkGetMyPosition(RkVector* v)

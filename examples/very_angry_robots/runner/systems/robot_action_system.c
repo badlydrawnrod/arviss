@@ -40,6 +40,7 @@ void ResetRobotActions(void)
 typedef enum Syscalls
 {
     SYSCALL_EXIT,                // The robot's program has finished.
+    SYSCALL_YIELD,               // Give way.
     SYSCALL_GET_MY_POSITION,     // Gets the robot's position in the world.
     SYSCALL_GET_PLAYER_POSITION, // Gets the player's position in the world.
     SYSCALL_FIRE_AT,             // Fires a shot towards the given postion.
@@ -67,7 +68,7 @@ static void FireAt(EntityId id, const Vector2 target)
 {
     const Position* p = Positions.Get(id);
     const Vector2 robotPos = p->position;
-    const float angle = atan2f(target.x - robotPos.y, target.y - robotPos.x);
+    const float angle = atan2f(target.y - robotPos.y, target.x - robotPos.x);
     const Vector2 aim = {cosf(angle), sinf(angle)};
     const Room* room = Rooms.Get(id);
     MakeRobotShot(room->roomId, p->position, aim, id);
@@ -112,6 +113,11 @@ static bool RaycastTowards(EntityId id, const Vector2 position, float maxDistanc
 static inline void SysExit(Guest* guest, EntityId id)
 {
     // The exit code is in a0 (x10).
+    const uint32_t exitCode = ArvissReadXReg(&guest->cpu, abiA0);
+}
+
+static inline void SysYield(Guest* guest, EntityId id)
+{
 }
 
 static inline void SysGetMyPosition(Guest* guest, EntityId id)
@@ -119,7 +125,7 @@ static inline void SysGetMyPosition(Guest* guest, EntityId id)
     const Vector2 position = Positions.GetPosition(id);
 
     // The VM address of the structure to place the result is in a0 (x10).
-    const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
+    const uint32_t a0 = ArvissReadXReg(&guest->cpu, abiA0);
     BusCode mc = bcOK;
     guest->cpu.bus.Write32(guest->cpu.bus.token, a0, BitcastFloatToU32(position.x), &mc);
     guest->cpu.bus.Write32(guest->cpu.bus.token, a0 + 4, BitcastFloatToU32(position.y), &mc);
@@ -130,7 +136,7 @@ static inline void SysGetPlayerPosition(Guest* guest, EntityId id)
     const Vector2 position = Positions.GetPosition(playerId);
 
     // The VM address of the structure to place the result is in a0 (x10).
-    const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
+    const uint32_t a0 = ArvissReadXReg(&guest->cpu, abiA0);
     BusCode mc = bcOK;
     guest->cpu.bus.Write32(guest->cpu.bus.token, a0, BitcastFloatToU32(position.x), &mc);
     guest->cpu.bus.Write32(guest->cpu.bus.token, a0 + 4, BitcastFloatToU32(position.y), &mc);
@@ -139,22 +145,22 @@ static inline void SysGetPlayerPosition(Guest* guest, EntityId id)
 static inline void SysFireAt(Guest* guest, EntityId id)
 {
     // The VM address of the structure containing the target is in a0.
-    const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
+    const uint32_t a0 = ArvissReadXReg(&guest->cpu, abiA0);
     BusCode mc = bcOK;
     uint32_t x = guest->cpu.bus.Read32(guest->cpu.bus.token, a0, &mc);
     uint32_t y = guest->cpu.bus.Read32(guest->cpu.bus.token, a0 + 4, &mc);
-    const Vector2 v = {.x = BitcastU32ToFloat(x), BitcastU32ToFloat(y)};
+    const Vector2 v = {.x = BitcastU32ToFloat(x), .y = BitcastU32ToFloat(y)};
     FireAt(id, v);
 }
 
 static inline void SysMoveTowards(Guest* guest, EntityId id)
 {
     // The VM address of the structure containing the target is in a0.
-    const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
+    const uint32_t a0 = ArvissReadXReg(&guest->cpu, abiA0);
     BusCode mc = bcOK;
     uint32_t x = guest->cpu.bus.Read32(guest->cpu.bus.token, a0, &mc);
     uint32_t y = guest->cpu.bus.Read32(guest->cpu.bus.token, a0 + 4, &mc);
-    const Vector2 v = {.x = BitcastU32ToFloat(x), BitcastU32ToFloat(y)};
+    const Vector2 v = {.x = BitcastU32ToFloat(x), .y = BitcastU32ToFloat(y)};
     MoveTowards(id, v);
 }
 
@@ -167,13 +173,13 @@ static inline void SysStop(Guest* guest, EntityId id)
 static inline void SysRaycastTowards(Guest* guest, EntityId id)
 {
     // The VM address of the structure containing the target is in a0.
-    const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
+    const uint32_t a0 = ArvissReadXReg(&guest->cpu, abiA0);
     BusCode mc = bcOK;
     uint32_t x = guest->cpu.bus.Read32(guest->cpu.bus.token, a0, &mc);
     uint32_t y = guest->cpu.bus.Read32(guest->cpu.bus.token, a0 + 4, &mc);
-    const Vector2 v = {.x = BitcastU32ToFloat(x), BitcastU32ToFloat(y)};
+    const Vector2 v = {.x = BitcastU32ToFloat(x), .y = BitcastU32ToFloat(y)};
     // The maximum distance is a float held in a1.
-    const uint32_t distance = ArvissReadXReg(&guest->cpu, 11);
+    const uint32_t distance = ArvissReadXReg(&guest->cpu, abiA1);
     const bool hit = RaycastTowards(id, v, BitcastU32ToFloat(distance));
     ArvissWriteXReg(&guest->cpu, 10, BitcastBoolToU32(hit));
 }
@@ -184,13 +190,16 @@ static void HandleTrap(Guest* guest, const ArvissTrap* trap, EntityId id)
     if (trap->mcause == trENVIRONMENT_CALL_FROM_M_MODE)
     {
         // The syscall number is in a7 (x17).
-        const uint32_t syscall = ArvissReadXReg(&guest->cpu, 17);
+        const uint32_t syscall = ArvissReadXReg(&guest->cpu, abiA7);
 
         // Service the syscall.
         bool syscallHandled = true;
         switch (syscall)
         {
         case SYSCALL_EXIT:
+            SysExit(guest, id);
+            break;
+        case SYSCALL_YIELD:
             SysExit(guest, id);
             break;
         case SYSCALL_GET_MY_POSITION:
@@ -246,6 +255,11 @@ static void UpdateRobotGuest(EntityId id)
         {
             const ArvissTrap trap = ArvissResultAsTrap(result);
             HandleTrap(guest, &trap, id);
+            if (trap.mcause == trENVIRONMENT_CALL_FROM_M_MODE && ArvissReadXReg(&guest->cpu, abiA7) == SYSCALL_YIELD)
+            {
+                // The VM has voluntarily given up control.
+                break;
+            }
         }
         remaining -= guest->cpu.retired;
     }

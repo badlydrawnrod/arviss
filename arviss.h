@@ -7,6 +7,82 @@
 
 #include <stdint.h>
 
+// ABI names for integer registers.
+// See: https://github.com/riscv-non-isa/riscv-elf-psabi-doc/blob/master/riscv-cc.adoc#register-convention
+typedef enum ArvissIntReg
+{
+    abiZERO = 0,
+    abiRA = 1,
+    abiSP = 2,
+    abiGP = 3,
+    abiTP = 4,
+    abiT0 = 5,
+    abiT1 = 6,
+    abiT2 = 7,
+    abiS0 = 8,
+    abiS1 = 9,
+    abiA0 = 10,
+    abiA1 = 11,
+    abiA2 = 12,
+    abiA3 = 13,
+    abiA4 = 14,
+    abiA5 = 15,
+    abiA6 = 16,
+    abiA7 = 17,
+    abiS2 = 18,
+    abiS3 = 19,
+    abiS4 = 20,
+    abiS5 = 21,
+    abiS6 = 22,
+    abiS7 = 23,
+    abiS8 = 24,
+    abiS9 = 25,
+    abiS10 = 26,
+    abiS11 = 27,
+    abiT3 = 28,
+    abiT4 = 29,
+    abiT5 = 30,
+    abiT6 = 31
+} ArvissIntReg;
+
+// ABI names for floating point registers.
+// See: https://github.com/riscv-non-isa/riscv-elf-psabi-doc/blob/master/riscv-cc.adoc#register-convention
+typedef enum ArvissFloatReg
+{
+    abiFT0 = 0,
+    abiFT1 = 1,
+    abiFT2 = 2,
+    abiFT3 = 3,
+    abiFT4 = 4,
+    abiFT5 = 5,
+    abiFT6 = 6,
+    abiFT7 = 7,
+    abiFS0 = 8,
+    abiFS1 = 9,
+    abiFA0 = 10,
+    abiFA1 = 11,
+    abiFA2 = 12,
+    abiFA3 = 13,
+    abiFA4 = 14,
+    abiFA5 = 15,
+    abiFA6 = 16,
+    abiFA7 = 17,
+    abiFS2 = 18,
+    abiFS3 = 19,
+    abiFS4 = 20,
+    abiFS5 = 21,
+    abiFS6 = 22,
+    abiFS7 = 23,
+    abiFS8 = 24,
+    abiFS9 = 25,
+    abiFS10 = 26,
+    abiFS11 = 27,
+    abiFT8 = 28,
+    abiFT9 = 29,
+    abiFT10 = 30,
+    abiFT11 = 31
+} ArvissFloatReg;
+
 /**
  * A handle to an Arviss CPU.
  */
