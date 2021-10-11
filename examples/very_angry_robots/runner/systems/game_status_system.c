@@ -148,9 +148,9 @@ static void HandleEvents(int first, int last)
                 Entities.Clear(pe->id, bmDrawable | bmCollidable | bmVelocity);
 
                 // The robots should stop moving because the player has died.
-                for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
+                for (int j = 0, numEntities = Entities.MaxCount(); j < numEntities; j++)
                 {
-                    EntityId id = {.id = i};
+                    EntityId id = {.id = j};
                     if (Entities.Is(id, bmRobot))
                     {
                         Entities.Clear(id, bmVelocity);

@@ -114,8 +114,10 @@ static inline void SysExit(Guest* guest, EntityId id)
 {
     // The exit code is in a0 (x10).
     const uint32_t exitCode = ArvissReadXReg(&guest->cpu, abiA0);
-    Entities.Clear(id, bmGuest); // Stop it from updating.
-    // TODO: how about tearing down the VM?
+
+    // Remove the guest from the entity, and free it.
+    Entities.Clear(id, bmGuest);
+    Guests.Free(id);
 }
 
 static inline void SysYield(Guest* guest, EntityId id)
@@ -202,7 +204,7 @@ static void HandleTrap(Guest* guest, const ArvissTrap* trap, EntityId id)
             SysExit(guest, id);
             break;
         case SYSCALL_YIELD:
-            SysExit(guest, id);
+            SysYield(guest, id);
             break;
         case SYSCALL_GET_MY_POSITION:
             SysGetMyPosition(guest, id);

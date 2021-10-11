@@ -20,12 +20,14 @@ typedef struct Guest
 } Guest;
 
 void ClearGuests(void);
+void FreeGuest(EntityId id);
 Guest* GetGuest(EntityId id);
 GuestId MakeGuest(EntityId id);
 
 static struct
 {
     void (*Clear)(void);
+    void (*Free)(EntityId id);
     Guest* (*Get)(EntityId id);
     GuestId (*Make)(EntityId id);
-} Guests = {.Clear = ClearGuests, .Get = GetGuest, .Make = MakeGuest};
+} Guests = {.Clear = ClearGuests, .Free = FreeGuest, .Get = GetGuest, .Make = MakeGuest};

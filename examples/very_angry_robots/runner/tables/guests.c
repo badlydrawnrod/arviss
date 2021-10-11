@@ -145,6 +145,13 @@ void ClearGuests(void)
     }
 }
 
+void FreeGuest(EntityId id)
+{
+    GuestId guestId = guestsByEntity[id.id];
+    guests[guestId.id].allocated = false;
+    guestsByEntity[id.id].id = -1;
+}
+
 Guest* GetGuest(EntityId id)
 {
     // TODO: sanity check.
