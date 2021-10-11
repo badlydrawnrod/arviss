@@ -1,6 +1,6 @@
 #include "arviss.h"
 
-#include "conversions.h"
+#include "bitcasts.h"
 #include "opcodes.h"
 
 #include <math.h>
@@ -1568,7 +1568,8 @@ static inline DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
 ArvissResult ArvissRun(ArvissCpu* cpu, int count)
 {
     cpu->result = ArvissMakeOk();
-    for (int i = 0; i < count; i++)
+    int retired = 0;
+    for (; retired < count; retired++)
     {
         DecodedInstruction* decoded = FetchFromCache(cpu); // Fetch a decoded instruction from the decoded instruction cache.
         decoded->opcode(cpu, decoded);                     // Execute the decoded instruction.
@@ -1580,6 +1581,7 @@ ArvissResult ArvissRun(ArvissCpu* cpu, int count)
             break;
         }
     }
+    cpu->retired = retired;
     return cpu->result;
 }
 

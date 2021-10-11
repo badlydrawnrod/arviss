@@ -18,10 +18,10 @@ Built samples are output to `turtles\arviss\bin` in a format that can be loaded 
 
 ### Running
 
-After building the example, run it using `run_turtles.exe` from the runner's `build` directory.
+After building the example, run it using `run_turtles.exe` from the relevant Arviss `build` directory.
 
 ```
-C:> cd build
+C:> cd build\examples\turtles\runner
 C:> run_turtles
 ```
 
@@ -41,9 +41,9 @@ Built samples are output to `turtles/arviss/bin` in a form that can be loaded in
 
 ### Running
 
-After building the example, run it using `run_turtles` from the runner's `build` directory.
+After building the example, run it using `run_turtles.exe` from the relevant Arviss `build` directory.
 
 ```shell
-$ cd build
+$ cd build/examples/turtles/runner
 $ ./run_turtles
 ```

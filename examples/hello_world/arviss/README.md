@@ -18,10 +18,10 @@ Built samples are output to `hello_world\arviss\bin` in a format that can be loa
 
 ### Running
 
-After building the example, run it using `run_hello.exe` from the runner's `build` directory.
+After building the example, run it using `run_hello.exe` from the relevant Arviss `build` directory.
 
 ```
-C:> cd build
+C:> cd build\examples\hello_world\runner
 C:> run_hello
 ```
 
@@ -41,9 +41,9 @@ Built samples are output to `hello_world/arviss/bin` in a form that can be loade
 
 ### Running
 
-After building the example, run it using `run_hello` from the runner's `build` directory.
+After building the example, run it using `run_hello.exe` from the relevant Arviss `build` directory.
 
 ```shell
-$ cd build
+$ cd build/examples/hello_world/runner
 $ ./run_hello
 ```
