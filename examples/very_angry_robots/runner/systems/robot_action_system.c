@@ -48,6 +48,21 @@ typedef enum Syscalls
     SYSCALL_RAYCAST_TOWARDS      // Fires a ray towards the given position to detect obstacles.
 } Syscalls;
 
+static inline float BitcastU32ToFloat(uint32_t u)
+{
+    return *(float*)&u;
+}
+
+static inline uint32_t BitcastFloatToU32(float f)
+{
+    return *(uint32_t*)&f;
+}
+
+static inline uint32_t BitcastBoolToU32(bool b)
+{
+    return b ? 1 : 0;
+}
+
 static void FireAt(EntityId id, const Vector2 target)
 {
     const Position* p = Positions.Get(id);
@@ -106,8 +121,8 @@ static inline void SysGetMyPosition(Guest* guest, EntityId id)
     // The VM address of the structure to place the result is in a0 (x10).
     const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
     BusCode mc = bcOK;
-    guest->cpu.bus.Write32(guest->cpu.bus.token, a0, *(uint32_t*)&position.x, &mc);
-    guest->cpu.bus.Write32(guest->cpu.bus.token, a0 + 4, *(uint32_t*)&position.y, &mc);
+    guest->cpu.bus.Write32(guest->cpu.bus.token, a0, BitcastFloatToU32(position.x), &mc);
+    guest->cpu.bus.Write32(guest->cpu.bus.token, a0 + 4, BitcastFloatToU32(position.y), &mc);
 }
 
 static inline void SysGetPlayerPosition(Guest* guest, EntityId id)
@@ -117,8 +132,8 @@ static inline void SysGetPlayerPosition(Guest* guest, EntityId id)
     // The VM address of the structure to place the result is in a0 (x10).
     const uint32_t a0 = ArvissReadXReg(&guest->cpu, 10);
     BusCode mc = bcOK;
-    guest->cpu.bus.Write32(guest->cpu.bus.token, a0, *(uint32_t*)&position.x, &mc);
-    guest->cpu.bus.Write32(guest->cpu.bus.token, a0 + 4, *(uint32_t*)&position.y, &mc);
+    guest->cpu.bus.Write32(guest->cpu.bus.token, a0, BitcastFloatToU32(position.x), &mc);
+    guest->cpu.bus.Write32(guest->cpu.bus.token, a0 + 4, BitcastFloatToU32(position.y), &mc);
 }
 
 static inline void SysFireAt(Guest* guest, EntityId id)
@@ -128,7 +143,7 @@ static inline void SysFireAt(Guest* guest, EntityId id)
     BusCode mc = bcOK;
     uint32_t x = guest->cpu.bus.Read32(guest->cpu.bus.token, a0, &mc);
     uint32_t y = guest->cpu.bus.Read32(guest->cpu.bus.token, a0 + 4, &mc);
-    const Vector2 v = {.x = *(float*)&x, .y = *(float*)&y};
+    const Vector2 v = {.x = BitcastU32ToFloat(x), BitcastU32ToFloat(y)};
     FireAt(id, v);
 }
 
@@ -139,7 +154,7 @@ static inline void SysMoveTowards(Guest* guest, EntityId id)
     BusCode mc = bcOK;
     uint32_t x = guest->cpu.bus.Read32(guest->cpu.bus.token, a0, &mc);
     uint32_t y = guest->cpu.bus.Read32(guest->cpu.bus.token, a0 + 4, &mc);
-    const Vector2 v = {.x = *(float*)&x, .y = *(float*)&y};
+    const Vector2 v = {.x = BitcastU32ToFloat(x), BitcastU32ToFloat(y)};
     MoveTowards(id, v);
 }
 
@@ -156,11 +171,11 @@ static inline void SysRaycastTowards(Guest* guest, EntityId id)
     BusCode mc = bcOK;
     uint32_t x = guest->cpu.bus.Read32(guest->cpu.bus.token, a0, &mc);
     uint32_t y = guest->cpu.bus.Read32(guest->cpu.bus.token, a0 + 4, &mc);
-    Vector2 v = {.x = *(float*)&x, .y = *(float*)&y};
+    const Vector2 v = {.x = BitcastU32ToFloat(x), BitcastU32ToFloat(y)};
     // The maximum distance is a float held in a1.
     const uint32_t distance = ArvissReadXReg(&guest->cpu, 11);
-    const bool hit = RaycastTowards(id, v, *(float*)&distance);
-    ArvissWriteXReg(&guest->cpu, 10, hit ? 1 : 0);
+    const bool hit = RaycastTowards(id, v, BitcastU32ToFloat(distance));
+    ArvissWriteXReg(&guest->cpu, 10, BitcastBoolToU32(hit));
 }
 
 static void HandleTrap(Guest* guest, const ArvissTrap* trap, EntityId id)
