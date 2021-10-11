@@ -114,6 +114,8 @@ static inline void SysExit(Guest* guest, EntityId id)
 {
     // The exit code is in a0 (x10).
     const uint32_t exitCode = ArvissReadXReg(&guest->cpu, abiA0);
+    Entities.Clear(id, bmGuest); // Stop it from updating.
+    // TODO: how about tearing down the VM?
 }
 
 static inline void SysYield(Guest* guest, EntityId id)
@@ -281,7 +283,7 @@ void UpdateRobotActions(void)
     for (int i = 0, numEntities = Entities.MaxCount(); i < numEntities; i++)
     {
         EntityId id = {i};
-        if (Entities.Is(id, bmRobot | bmPosition | bmVelocity))
+        if (Entities.Is(id, bmRobot | bmPosition | bmVelocity | bmGuest))
         {
             if (Entities.Is(id, bmStepped))
             {
