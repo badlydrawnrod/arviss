@@ -15,12 +15,6 @@ typedef enum Syscalls
     SYSCALL_RAYCAST_TOWARDS      // Fires a ray towards the given position to detect obstacles.
 } Syscalls;
 
-typedef struct RkVector
-{
-    float x;
-    float y;
-} RkVector;
-
 // Credit to: https://github.com/lluixhi/musl-riscv/blob/master/arch/riscv32/syscall_arch.h
 
 /*
@@ -61,44 +55,4 @@ static inline uint32_t syscall3(uint32_t n, uint32_t a, uint32_t b, uint32_t c)
     register uint32_t a1 asm("a1") = b;
     register uint32_t a2 asm("a2") = c;
     __asm_syscall("r"(a7), "r"(a0), "r"(a1), "r"(a2))
-}
-
-static inline void RkExit(int32_t status)
-{
-    syscall1(SYSCALL_EXIT, status);
-}
-
-static inline void RkYield(void)
-{
-    syscall0(SYSCALL_YIELD);
-}
-
-static inline void RkGetMyPosition(RkVector* v)
-{
-    syscall1(SYSCALL_GET_MY_POSITION, (uint32_t)v);
-}
-
-static inline void RkGetPlayerPosition(RkVector* v)
-{
-    syscall1(SYSCALL_GET_PLAYER_POSITION, (uint32_t)v);
-}
-
-static inline void RkFireAt(RkVector* v)
-{
-    syscall1(SYSCALL_FIRE_AT, (uint32_t)v);
-}
-
-static inline void RkMoveTowards(RkVector* v)
-{
-    syscall1(SYSCALL_MOVE_TOWARDS, (uint32_t)v);
-}
-
-static inline void RkStop(void)
-{
-    syscall0(SYSCALL_STOP);
-}
-
-static inline bool RkRaycastTowards(RkVector* v, float distance)
-{
-    return syscall2(SYSCALL_RAYCAST_TOWARDS, (uint32_t)v, *(uint32_t*)&distance);
 }

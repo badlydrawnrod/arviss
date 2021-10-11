@@ -35,7 +35,7 @@ project(robot
 set(SAMPLES_BIN "${CMAKE_SOURCE_DIR}/bin")
 file(MAKE_DIRECTORY ${SAMPLES_BIN})
 
-add_executable(robot crt0.s main.c)
+add_executable(robot crt0.s main.c robot.h syscalls.h)
 
 # Copy "robot" to the bin directory once built.
 add_custom_command(TARGET robot

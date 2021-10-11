@@ -1,4 +1,4 @@
-#include "syscalls.h"
+#include "robot.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -10,44 +10,44 @@ int main(void)
     for (;;)
     {
         // Where am I?
-        RkVector myPosition;
-        RkGetMyPosition(&myPosition);
+        Vector myPosition;
+        GetMyPosition(&myPosition);
 
         // Where's the player?
-        RkVector playerPosition;
-        RkGetPlayerPosition(&playerPosition);
+        Vector playerPosition;
+        GetPlayerPosition(&playerPosition);
 
         const float probeDistance = 16.0f;
 
         // Is there anything that I might hit between me and the player?
-        if (!RkRaycastTowards(&playerPosition, probeDistance))
+        if (!RaycastTowards(&playerPosition, probeDistance))
         {
             // Move in the direction of the player.
-            RkMoveTowards(&playerPosition);
+            MoveTowards(&playerPosition);
         }
-        else if (!RkRaycastTowards(&(RkVector){.x = playerPosition.x, .y = myPosition.y}, probeDistance))
+        else if (!RaycastTowards(&(Vector){.x = playerPosition.x, .y = myPosition.y}, probeDistance))
         {
             // Move horizontally towards the player.
-            RkMoveTowards(&(RkVector){.x = playerPosition.x, .y = myPosition.y});
+            MoveTowards(&(Vector){.x = playerPosition.x, .y = myPosition.y});
         }
-        else if (!RkRaycastTowards(&(RkVector){.x = myPosition.x, .y = playerPosition.y}, probeDistance))
+        else if (!RaycastTowards(&(Vector){.x = myPosition.x, .y = playerPosition.y}, probeDistance))
         {
             // Move vertically towards the player.
-            RkMoveTowards(&(RkVector){.x = myPosition.x, .y = playerPosition.y});
+            MoveTowards(&(Vector){.x = myPosition.x, .y = playerPosition.y});
         }
         else
         {
             // We can't move without hitting anything, so stop.
-            RkStop();
+            Stop();
         }
 
         // Fire at the player.
         if (((int)myPosition.x % 11) == 0)
         {
-            RkFireAt(&playerPosition);
+            FireAt(&playerPosition);
         }
 
-        RkYield();
+        Yield();
     }
 }
 #pragma clang diagnostic pop
