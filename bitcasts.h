@@ -4,12 +4,24 @@
 
 static inline float U32AsFloat(const uint32_t a)
 {
-    return *(float*)&a;
+    union
+    {
+        uint32_t a;
+        float b;
+    } u;
+    u.a = a;
+    return u.b;
 }
 
 static inline uint32_t FloatAsU32(const float a)
 {
-    return *(uint32_t*)&a;
+    union
+    {
+        float a;
+        uint32_t b;
+    } u;
+    u.a = a;
+    return u.b;
 }
 
 static inline uint32_t BoolAsU32(const bool b)
