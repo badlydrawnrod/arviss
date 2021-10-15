@@ -1,6 +1,7 @@
 #define PHYSICS_FPS 60.0
 #define BDR_LOOP_FIXED_UPDATE_INTERVAL_SECONDS (1.0 / PHYSICS_FPS)
 #define BDR_LOOP_FIXED_UPDATE UpdateScreen
+#define BDR_LOOP_UPDATE UpdateFrame
 #define BDR_LOOP_DRAW DrawScreen
 #define BDR_LOOP_CHECK_TRIGGERS CheckTriggers
 
@@ -14,7 +15,7 @@
 
 int main(void)
 {
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Very Angry Robots III");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Life");
     SetTargetFPS(TARGET_FPS);
     SetTraceLogLevel(LOG_DEBUG);
     SetExitKey(KEY_F4);
