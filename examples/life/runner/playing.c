@@ -11,7 +11,7 @@
 #define NUM_COLS 64
 #define NUM_ROWS 64
 
-#define TILE_SIZE 12
+#define TILE_SIZE 14
 
 #define BOARD_WIDTH (TILE_SIZE * NUM_COLS)
 #define BOARD_HEIGHT (TILE_SIZE * NUM_ROWS)
@@ -386,13 +386,32 @@ static float SpeedControl(Rectangle rect, float currentValue, float minValue, fl
     float where = (currentValue - minValue) / (maxValue - minValue);
     float barX = rect.x + 8 + where * range;
 
-    DrawRectangleRec(rect, mouseOver ? GRAY : DARKBROWN);
-    DrawRectangle(barX - 8, rect.y, 16, rect.height, PINK);
+    DrawRectangleRec(rect, mouseOver ? DARKGREEN : LIME);
+    DrawRectangle(barX - 8, rect.y, 16, rect.height, GREEN);
 
     const char* speed = TextFormat("Rate: %2.1f Hz", currentValue);
-    DrawText(speed, rect.x + rect.width + 2, rect.y + 4, 20, BLACK);
+    DrawText(speed, rect.x + 4, rect.y + 6, 20, BLACK);
 
     return currentValue;
+}
+
+static bool ResetButton(Rectangle rect, const char* text)
+{
+    Vector2 mousePos = GetMousePosition();
+    bool result = false;
+
+    bool mouseOver = CheckCollisionPointRec(mousePos, rect);
+    if (mouseOver)
+    {
+        if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+        {
+            result = true;
+        }
+    }
+    DrawRectangleRec(rect, mouseOver ? DARKGREEN : LIME);
+    DrawText(text, rect.x + 4, rect.y + 6, 20, BLACK);
+
+    return result;
 }
 
 #define MIN_SPEED 0
@@ -408,11 +427,17 @@ void DrawPlaying(double alpha)
     BeginDrawing();
     DrawBoard();
     DrawRectangle(0, 0, SCREEN_WIDTH, 32, GOLD);
-    DrawText("Playing", 4, 4, 20, BLACK);
+    DrawText("Life", 4, 4, 20, BLACK);
     DrawRectangle(0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 32, LIGHTGRAY);
     DrawFPS(4, SCREEN_HEIGHT - 20);
 
-    speedValue = SpeedControl((Rectangle){SCREEN_WIDTH / 2 - 256, SCREEN_HEIGHT - 64, 512, 32}, speedValue, MIN_SPEED, MAX_SPEED);
+    if (ResetButton((Rectangle){BOARD_LEFT, SCREEN_HEIGHT - 60, 64, 32}, "Reset"))
+    {
+        PopulateBoard();
+    }
+
+    speedValue =
+            SpeedControl((Rectangle){BOARD_LEFT + 80, SCREEN_HEIGHT - 60, BOARD_WIDTH - 80, 32}, speedValue, MIN_SPEED, MAX_SPEED);
     SetUpdateInterval(1.0 / speedValue);
 
     EndDrawing();
