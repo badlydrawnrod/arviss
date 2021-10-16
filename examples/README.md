@@ -17,6 +17,7 @@ these links to the individual examples.
 - [The canonical hello world example.](hello_world/arviss/README.md)
 - [A turtle graphics demonstration using Raylib.](turtles/arviss/README.md)
 - [A simple arcade game where the enemies are controlled by Arviss](very_angry_robots/arviss/README.md)
+- [Conway's "Life" in which every cell is an Arviss VM](life/arviss/README.md)
 
 # Installing the pre-requisites
 
