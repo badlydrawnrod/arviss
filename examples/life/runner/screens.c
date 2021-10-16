@@ -27,8 +27,8 @@ static ScreenVtbl screens[] = {{.Enter = EnterMenu,
                                 .UpdateFrame = UpdateFramePlaying,
                                 .Draw = DrawPlaying,
                                 .CheckTriggers = CheckTriggersPlaying}};
-static ScreenId screenId = MENU;
-static ScreenVtbl* screen = &screens[MENU];
+static ScreenId screenId = scrMENU;
+static ScreenVtbl* screen = &screens[scrMENU];
 
 void SwitchTo(ScreenId newScreenId)
 {

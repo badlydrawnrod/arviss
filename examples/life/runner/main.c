@@ -20,7 +20,7 @@ int main(void)
     SetTraceLogLevel(LOG_DEBUG);
     SetExitKey(KEY_F4);
 
-    SwitchTo(MENU);
+    SwitchTo(scrMENU);
     RunMainLoop();
 
     CloseWindow();

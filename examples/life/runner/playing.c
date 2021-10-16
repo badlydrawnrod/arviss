@@ -45,6 +45,8 @@ static const uint32_t memsize = MEMSIZE;
 static const uint32_t rambase = RAMBASE;
 static const uint32_t ramsize = RAMSIZE;
 
+extern void SetUpdateInterval(double seconds); // This is from game_loop.h, but we don't need anything else from it.
+
 static int CountNeighbours(int row, int col);
 static inline void SetNext(int row, int col, bool value);
 static inline bool GetCurrent(int row, int col);
@@ -366,6 +368,38 @@ void UpdateFramePlaying(double elapsed)
 {
 }
 
+static float SpeedControl(Rectangle rect, float currentValue, float minValue, float maxValue)
+{
+    Vector2 mousePos = GetMousePosition();
+    float range = rect.width - 16;
+
+    bool mouseOver = CheckCollisionPointRec(mousePos, rect);
+    if (mouseOver && IsMouseButtonDown(MOUSE_LEFT_BUTTON))
+    {
+        Vector2 bar = {mousePos.x, rect.y};
+        bar.x = (bar.x - 8 < rect.x) ? rect.x + 8 : bar.x;
+        bar.x = (bar.x + 8 > rect.x + rect.width) ? rect.x + rect.width - 8 : bar.x;
+        float normalised = (bar.x - (rect.x + 8)) / range;
+        currentValue = (maxValue - minValue) * normalised + minValue;
+    }
+
+    float where = (currentValue - minValue) / (maxValue - minValue);
+    float barX = rect.x + 8 + where * range;
+
+    DrawRectangleRec(rect, mouseOver ? GRAY : DARKBROWN);
+    DrawRectangle(barX - 8, rect.y, 16, rect.height, PINK);
+
+    const char* speed = TextFormat("Rate: %2.1f Hz", currentValue);
+    DrawText(speed, rect.x + rect.width + 2, rect.y + 4, 20, BLACK);
+
+    return currentValue;
+}
+
+#define MIN_SPEED 0
+#define MAX_SPEED 60
+
+static float speedValue = MAX_SPEED / 2;
+
 void DrawPlaying(double alpha)
 {
     (void)alpha;
@@ -377,6 +411,10 @@ void DrawPlaying(double alpha)
     DrawText("Playing", 4, 4, 20, BLACK);
     DrawRectangle(0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 32, LIGHTGRAY);
     DrawFPS(4, SCREEN_HEIGHT - 20);
+
+    speedValue = SpeedControl((Rectangle){SCREEN_WIDTH / 2 - 256, SCREEN_HEIGHT - 64, 512, 32}, speedValue, MIN_SPEED, MAX_SPEED);
+    SetUpdateInterval(1.0 / speedValue);
+
     EndDrawing();
 }
 
@@ -384,6 +422,6 @@ void CheckTriggersPlaying(void)
 {
     if (IsKeyPressed(KEY_ESCAPE))
     {
-        SwitchTo(MENU);
+        SwitchTo(scrMENU);
     }
 }

@@ -32,6 +32,6 @@ void CheckTriggersMenu(void)
 {
     if (IsKeyPressed(KEY_SPACE))
     {
-        SwitchTo(PLAYING);
+        SwitchTo(scrPLAYING);
     }
 }

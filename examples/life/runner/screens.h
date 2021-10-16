@@ -5,8 +5,8 @@
 
 typedef enum ScreenId
 {
-    MENU,
-    PLAYING
+    scrMENU,
+    scrPLAYING
 } ScreenId;
 
 void EnterMenu(void);
