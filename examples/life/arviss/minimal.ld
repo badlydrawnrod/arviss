@@ -5,8 +5,8 @@ ENTRY(_start)
 
 /* Configuration variables to be used by the MEMORY command. */
 ROM_START = 0x00000000;
-ROM_SIZE = 0x4000;  /* 16KiB  */
-RAM_SIZE = 0x4000;  /* 16KiB */
+ROM_SIZE = 0x100;  /* 256 bytes */
+RAM_SIZE = 0x100;  /* 256 bytes */
 
 /* The stack grows down from the end of RAM. */
 STACK_TOP = ROM_START + ROM_SIZE + RAM_SIZE;

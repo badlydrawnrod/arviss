@@ -8,10 +8,10 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define NUM_COLS 128
-#define NUM_ROWS 128
+#define NUM_COLS 64
+#define NUM_ROWS 64
 
-#define TILE_SIZE 8
+#define TILE_SIZE 12
 
 #define BOARD_WIDTH (TILE_SIZE * NUM_COLS)
 #define BOARD_HEIGHT (TILE_SIZE * NUM_ROWS)
@@ -375,6 +375,7 @@ void DrawPlaying(double alpha)
     DrawBoard();
     DrawRectangle(0, 0, SCREEN_WIDTH, 32, GOLD);
     DrawText("Playing", 4, 4, 20, BLACK);
+    DrawRectangle(0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 32, LIGHTGRAY);
     DrawFPS(4, SCREEN_HEIGHT - 20);
     EndDrawing();
 }
