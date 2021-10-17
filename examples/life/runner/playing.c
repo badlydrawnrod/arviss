@@ -396,7 +396,7 @@ static float SpeedControl(Rectangle rect, float currentValue, float minValue, fl
     return currentValue;
 }
 
-static bool ResetButton(Rectangle rect, const char* text)
+static bool Button(Rectangle rect, const char* text)
 {
     Vector2 mousePos = GetMousePosition();
     bool result = false;
@@ -437,6 +437,7 @@ static void CheckBoardClick(void)
 #define MAX_SPEED 60
 
 static float speedValue = MAX_SPEED / 2;
+static bool isPaused = false;
 
 void DrawPlaying(double alpha)
 {
@@ -450,14 +451,23 @@ void DrawPlaying(double alpha)
     DrawRectangle(0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 32, LIGHTGRAY);
     DrawFPS(4, SCREEN_HEIGHT - 20);
 
-    if (ResetButton((Rectangle){BOARD_LEFT, SCREEN_HEIGHT - 60, 64, 32}, "Reset"))
+    // Check the reset button.
+    if (Button((Rectangle){BOARD_LEFT, SCREEN_HEIGHT - 60, 64, 32}, "Reset"))
     {
         PopulateBoard();
     }
 
-    speedValue =
-            SpeedControl((Rectangle){BOARD_LEFT + 80, SCREEN_HEIGHT - 60, BOARD_WIDTH - 80, 32}, speedValue, MIN_SPEED, MAX_SPEED);
-    SetUpdateInterval(1.0 / speedValue);
+    // Check the pause button.
+    const char* pauseText = isPaused ? "Go" : "Stop";
+    if (Button((Rectangle){BOARD_LEFT + BOARD_WIDTH - 72, SCREEN_HEIGHT - 60, 72, 32}, pauseText))
+    {
+        isPaused = !isPaused;
+    }
+
+    // Adjust the speed.
+    speedValue = SpeedControl((Rectangle){BOARD_LEFT + 80, SCREEN_HEIGHT - 60, BOARD_WIDTH - (80 + 88), 32}, speedValue, MIN_SPEED,
+                              MAX_SPEED);
+    SetUpdateInterval(isPaused ? INFINITY : 1.0 / speedValue);
 
     CheckBoardClick();
 
