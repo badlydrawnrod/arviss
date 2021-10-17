@@ -3,6 +3,7 @@
 #include "loadelf.h"
 #include "mem.h"
 #include "raylib.h"
+#include "raymath.h"
 #include "screens.h"
 
 #include <stdbool.h>
@@ -414,6 +415,24 @@ static bool ResetButton(Rectangle rect, const char* text)
     return result;
 }
 
+static void CheckBoardClick(void)
+{
+    const Vector2 mousePos = GetMousePosition();
+    Rectangle rect = {.x = BOARD_LEFT, .y = BOARD_TOP, .width = BOARD_WIDTH, .height = BOARD_HEIGHT};
+    if (CheckCollisionPointRec(mousePos, rect))
+    {
+        Vector2 boardPos = Vector2Subtract(mousePos, (Vector2){rect.x, rect.y});
+        int col = boardPos.x / TILE_SIZE;
+        int row = boardPos.y / TILE_SIZE;
+        DrawRectangle(rect.x + col * TILE_SIZE, rect.y + row * TILE_SIZE, TILE_SIZE, TILE_SIZE, RED);
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+        {
+            bool isAlive = GetCurrent(row, col);
+            SetCurrent(row, col, !isAlive);
+        }
+    }
+}
+
 #define MIN_SPEED 0
 #define MAX_SPEED 60
 
@@ -439,6 +458,8 @@ void DrawPlaying(double alpha)
     speedValue =
             SpeedControl((Rectangle){BOARD_LEFT + 80, SCREEN_HEIGHT - 60, BOARD_WIDTH - 80, 32}, speedValue, MIN_SPEED, MAX_SPEED);
     SetUpdateInterval(1.0 / speedValue);
+
+    CheckBoardClick();
 
     EndDrawing();
 }
