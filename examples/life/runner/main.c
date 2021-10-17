@@ -69,11 +69,6 @@ static Guest guests[NUM_ROWS * NUM_COLS];
 static float updateRate = MAX_UPDATE_RATE / 2;
 static bool isPaused = false;
 
-static const uint32_t membase = MEMBASE;
-static const uint32_t memsize = MEMSIZE;
-static const uint32_t rambase = RAMBASE;
-static const uint32_t ramsize = RAMSIZE;
-
 static int CountNeighbours(int row, int col);
 static inline void SetNext(int row, int col, bool value);
 static inline bool GetCurrent(int row, int col);
@@ -81,11 +76,10 @@ static inline bool GetCurrent(int row, int col);
 static uint8_t Read8(BusToken token, uint32_t addr, BusCode* busCode)
 {
     Memory* memory = (Memory*)(token.t);
-    if (addr >= membase && addr < membase + memsize)
+    if (addr >= MEMBASE && addr < MEMBASE + MEMSIZE)
     {
-        return memory->mem[addr - membase];
+        return memory->mem[addr - MEMBASE];
     }
-
     *busCode = bcLOAD_ACCESS_FAULT;
     return 0;
 }
@@ -93,13 +87,12 @@ static uint8_t Read8(BusToken token, uint32_t addr, BusCode* busCode)
 static uint16_t Read16(BusToken token, uint32_t addr, BusCode* busCode)
 {
     Memory* memory = (Memory*)(token.t);
-    if (addr >= membase && addr < membase + memsize - 1)
+    if (addr >= MEMBASE && addr < MEMBASE + MEMSIZE - 1)
     {
         // TODO: implement for big-endian ISAs.
-        const uint16_t* base = (uint16_t*)&memory->mem[addr - membase];
+        const uint16_t* base = (uint16_t*)&memory->mem[addr - MEMBASE];
         return *base;
     }
-
     *busCode = bcLOAD_ACCESS_FAULT;
     return 0;
 }
@@ -107,13 +100,12 @@ static uint16_t Read16(BusToken token, uint32_t addr, BusCode* busCode)
 static uint32_t Read32(BusToken token, uint32_t addr, BusCode* busCode)
 {
     Memory* memory = (Memory*)(token.t);
-    if (addr >= membase && addr < membase + memsize - 3)
+    if (addr >= MEMBASE && addr < MEMBASE + MEMSIZE - 3)
     {
         // TODO: implement for big-endian ISAs.
-        const uint32_t* base = (uint32_t*)&memory->mem[addr - membase];
+        const uint32_t* base = (uint32_t*)&memory->mem[addr - MEMBASE];
         return *base;
     }
-
     *busCode = bcLOAD_ACCESS_FAULT;
     return 0;
 }
@@ -121,9 +113,9 @@ static uint32_t Read32(BusToken token, uint32_t addr, BusCode* busCode)
 static void Write8(BusToken token, uint32_t addr, uint8_t byte, BusCode* busCode)
 {
     Memory* memory = (Memory*)(token.t);
-    if (addr >= rambase && addr < rambase + ramsize)
+    if (addr >= RAMBASE && addr < RAMBASE + RAMSIZE)
     {
-        memory->mem[addr - membase] = byte;
+        memory->mem[addr - MEMBASE] = byte;
         return;
     }
     *busCode = bcSTORE_ACCESS_FAULT;
@@ -132,28 +124,26 @@ static void Write8(BusToken token, uint32_t addr, uint8_t byte, BusCode* busCode
 static void Write16(BusToken token, uint32_t addr, uint16_t halfword, BusCode* busCode)
 {
     Memory* memory = (Memory*)(token.t);
-    if (addr >= rambase && addr < rambase + ramsize - 1)
+    if (addr >= RAMBASE && addr < RAMBASE + RAMSIZE - 1)
     {
         // TODO: implement for big-endian ISAs.
-        uint16_t* base = (uint16_t*)&memory->mem[addr - membase];
+        uint16_t* base = (uint16_t*)&memory->mem[addr - MEMBASE];
         *base = halfword;
         return;
     }
-
     *busCode = bcSTORE_ACCESS_FAULT;
 }
 
 static void Write32(BusToken token, uint32_t addr, uint32_t word, BusCode* busCode)
 {
     Memory* memory = (Memory*)(token.t);
-    if (addr >= rambase && addr < rambase + ramsize - 2)
+    if (addr >= RAMBASE && addr < RAMBASE + RAMSIZE - 2)
     {
         // TODO: implement for big-endian ISAs.
-        uint32_t* base = (uint32_t*)&memory->mem[addr - membase];
+        uint32_t* base = (uint32_t*)&memory->mem[addr - MEMBASE];
         *base = word;
         return;
     }
-
     *busCode = bcSTORE_ACCESS_FAULT;
 }
 
@@ -360,9 +350,9 @@ static void DrawBoard(void)
         int y = startY + (row * TILE_SIZE);
         for (int col = 0; col < NUM_COLS; col++)
         {
-            int x = startX + (col * TILE_SIZE);
             if (GetCurrent(row, col))
             {
+                int x = startX + (col * TILE_SIZE);
                 DrawRectangle(x, y, TILE_SIZE, TILE_SIZE, LIME);
             }
         }
@@ -381,7 +371,7 @@ static void DrawBoard(void)
     }
 }
 
-static float SpeedControl(Rectangle rect, float currentValue, float minValue, float maxValue)
+static float GetUpdateRate(Rectangle rect, float currentValue, float minValue, float maxValue)
 {
     Vector2 mousePos = GetMousePosition();
     float range = rect.width - 16;
@@ -479,12 +469,9 @@ static void Draw(double alpha)
     {
         isPaused = !isPaused;
     }
-
-    // Adjust the speed.
-    updateRate = SpeedControl((Rectangle){BOARD_LEFT + 80, SCREEN_HEIGHT - 60, BOARD_WIDTH - (80 + 88), 32}, updateRate,
-                              MIN_UPDATE_RATE, MAX_UPDATE_RATE);
+    updateRate = GetUpdateRate((Rectangle){BOARD_LEFT + 80, SCREEN_HEIGHT - 60, BOARD_WIDTH - (80 + 88), 32}, updateRate,
+                               MIN_UPDATE_RATE, MAX_UPDATE_RATE);
     SetUpdateInterval(isPaused ? INFINITY : 1.0 / updateRate);
-
     CheckForBoardClick();
 
     EndDrawing();
