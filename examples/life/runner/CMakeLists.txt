@@ -26,6 +26,6 @@ endif ()
 
 
 # Run Life.
-add_executable(run_life main.c game_loop.h screens.h screens.c menu.c playing.c)
+add_executable(run_life main.c game_loop.h)
 target_include_directories(run_life PRIVATE .)
 target_link_libraries(run_life PRIVATE arviss raylib)
