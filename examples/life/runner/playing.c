@@ -22,6 +22,9 @@
 
 #define QUANTUM 1024
 
+#define MIN_UPDATE_RATE 0
+#define MAX_UPDATE_RATE 60
+
 typedef enum Syscalls
 {
     SYSCALL_COUNT,     // Count neighbours.
@@ -36,10 +39,23 @@ typedef struct Guest
     bool bad;
 } Guest;
 
+typedef struct ButtonInfo
+{
+    Rectangle rect;
+    char* text;
+    Color normalColour;
+    Color hoverColour;
+    Color textColour;
+    Color hoverTextColour;
+} ButtonInfo;
+
 static bool board[2][NUM_ROWS * NUM_COLS];
 static int current = 0;
 static int next = 1;
 static Guest guests[NUM_ROWS * NUM_COLS];
+
+static float updateRate = MAX_UPDATE_RATE / 2;
+static bool isPaused = false;
 
 static const uint32_t membase = MEMBASE;
 static const uint32_t memsize = MEMSIZE;
@@ -396,12 +412,12 @@ static float SpeedControl(Rectangle rect, float currentValue, float minValue, fl
     return currentValue;
 }
 
-static bool Button(Rectangle rect, const char* text)
+static bool Button(ButtonInfo info)
 {
     Vector2 mousePos = GetMousePosition();
     bool result = false;
 
-    bool mouseOver = CheckCollisionPointRec(mousePos, rect);
+    bool mouseOver = CheckCollisionPointRec(mousePos, info.rect);
     if (mouseOver)
     {
         if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
@@ -409,13 +425,36 @@ static bool Button(Rectangle rect, const char* text)
             result = true;
         }
     }
-    DrawRectangleRec(rect, mouseOver ? DARKGREEN : LIME);
-    DrawText(text, rect.x + 4, rect.y + 6, 20, BLACK);
+    DrawRectangleRec(info.rect, mouseOver ? info.hoverColour : info.normalColour);
+    DrawText(info.text, info.rect.x + 4, info.rect.y + 6, 20, mouseOver ? info.hoverTextColour : info.textColour);
 
     return result;
 }
 
-static void CheckBoardClick(void)
+static inline bool ResetButtonClicked(void)
+{
+    return Button((ButtonInfo){.rect = {BOARD_LEFT, SCREEN_HEIGHT - 60, 64, 32},
+                               .text = "Reset",
+                               .normalColour = LIME,
+                               .hoverColour = RED,
+                               .textColour = BLACK,
+                               .hoverTextColour = WHITE});
+}
+
+static inline bool PauseButtonClicked(void)
+{
+    const char* pauseText = isPaused ? "Go" : "Stop";
+    return Button((ButtonInfo){.rect = {BOARD_LEFT + BOARD_WIDTH - 72, SCREEN_HEIGHT - 60, 72, 32},
+                               .text = pauseText,
+                               .normalColour = LIME,
+                               .hoverColour = DARKGREEN,
+                               .textColour = BLACK,
+                               .hoverTextColour = BLACK
+
+    });
+}
+
+static void CheckForBoardClick(void)
 {
     const Vector2 mousePos = GetMousePosition();
     Rectangle rect = {.x = BOARD_LEFT, .y = BOARD_TOP, .width = BOARD_WIDTH, .height = BOARD_HEIGHT};
@@ -433,12 +472,6 @@ static void CheckBoardClick(void)
     }
 }
 
-#define MIN_SPEED 0
-#define MAX_SPEED 60
-
-static float speedValue = MAX_SPEED / 2;
-static bool isPaused = false;
-
 void DrawPlaying(double alpha)
 {
     (void)alpha;
@@ -451,25 +484,21 @@ void DrawPlaying(double alpha)
     DrawRectangle(0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 32, LIGHTGRAY);
     DrawFPS(4, SCREEN_HEIGHT - 20);
 
-    // Check the reset button.
-    if (Button((Rectangle){BOARD_LEFT, SCREEN_HEIGHT - 60, 64, 32}, "Reset"))
+    if (ResetButtonClicked())
     {
         PopulateBoard();
     }
-
-    // Check the pause button.
-    const char* pauseText = isPaused ? "Go" : "Stop";
-    if (Button((Rectangle){BOARD_LEFT + BOARD_WIDTH - 72, SCREEN_HEIGHT - 60, 72, 32}, pauseText))
+    if (PauseButtonClicked())
     {
         isPaused = !isPaused;
     }
 
     // Adjust the speed.
-    speedValue = SpeedControl((Rectangle){BOARD_LEFT + 80, SCREEN_HEIGHT - 60, BOARD_WIDTH - (80 + 88), 32}, speedValue, MIN_SPEED,
-                              MAX_SPEED);
-    SetUpdateInterval(isPaused ? INFINITY : 1.0 / speedValue);
+    updateRate = SpeedControl((Rectangle){BOARD_LEFT + 80, SCREEN_HEIGHT - 60, BOARD_WIDTH - (80 + 88), 32}, updateRate,
+                              MIN_UPDATE_RATE, MAX_UPDATE_RATE);
+    SetUpdateInterval(isPaused ? INFINITY : 1.0 / updateRate);
 
-    CheckBoardClick();
+    CheckForBoardClick();
 
     EndDrawing();
 }
