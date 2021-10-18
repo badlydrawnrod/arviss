@@ -66,12 +66,142 @@ static int next = 1;
 
 static Guest guests[NUM_ROWS * NUM_COLS];
 
-static float updateRate = MAX_UPDATE_RATE / 2;
+static float updateRate = MAX_UPDATE_RATE / 2.0f;
 static bool isPaused = false;
 
-static int CountNeighbours(int row, int col);
-static inline void SetNext(int row, int col, bool value);
-static inline bool GetCurrent(int row, int col);
+static inline void SetNext(int row, int col, bool value)
+{
+    board[next][row * NUM_COLS + col] = value;
+}
+
+static inline void SetCurrent(int row, int col, bool value)
+{
+    board[current][row * NUM_COLS + col] = value;
+}
+
+static inline bool GetCurrent(int row, int col)
+{
+    return board[current][row * NUM_COLS + col];
+}
+
+static int CountNeighbours(int row, int col)
+{
+    int total = 0;
+    for (int y = row - 1; y < row + 2; y++)
+    {
+        for (int x = col - 1; x < col + 2; x++)
+        {
+            if ((x != col) || (y != row))
+            {
+                if (y >= 0 && x >= 0 && y < NUM_ROWS && x < NUM_COLS)
+                {
+                    if (GetCurrent(y, x))
+                    {
+                        ++total;
+                    }
+                }
+            }
+        }
+    }
+    return total;
+}
+
+static void PopulateBoard(void)
+{
+    for (int row = 0; row < NUM_ROWS; row++)
+    {
+        for (int col = 0; col < NUM_COLS; col++)
+        {
+            SetCurrent(row, col, GetRandomValue(0, 999) < 250);
+        }
+    }
+}
+
+static inline void SysCountNeighbours(Guest* guest, int row, int col)
+{
+    const int neighbours = CountNeighbours(row, col);
+    ArvissWriteXReg(&guest->cpu, abiA0, (uint32_t)neighbours);
+}
+
+static inline void SysGetState(Guest* guest, int row, int col)
+{
+    const bool isAlive = GetCurrent(row, col);
+    ArvissWriteXReg(&guest->cpu, abiA0, BoolAsU32(isAlive));
+}
+
+static inline void SysSetState(Guest* guest, int row, int col)
+{
+    const bool isAlive = ArvissReadXReg(&guest->cpu, abiA0) != 0;
+    SetNext(row, col, isAlive);
+}
+
+static void HandleTrap(Guest* guest, const ArvissTrap* trap, int row, int col)
+{
+    // Check for a syscall.
+    if (trap->mcause == trENVIRONMENT_CALL_FROM_M_MODE)
+    {
+        // The syscall number is in a7 (x17).
+        const uint32_t syscall = ArvissReadXReg(&guest->cpu, abiA7);
+
+        // Service the syscall.
+        bool syscallHandled = true;
+        switch (syscall)
+        {
+        case SYSCALL_COUNT:
+            SysCountNeighbours(guest, row, col);
+            break;
+        case SYSCALL_GET_STATE:
+            SysGetState(guest, row, col);
+            break;
+        case SYSCALL_SET_STATE:
+            SysSetState(guest, row, col);
+            break;
+        default:
+            // Unknown syscall.
+            TraceLog(LOG_WARNING, "Unknown syscall %04x", syscall);
+            syscallHandled = false;
+            guest->bad = true;
+            break;
+        }
+
+        // If we handled the syscall then perform an MRET so that we can return from the trap.
+        if (syscallHandled)
+        {
+            ArvissMret(&guest->cpu);
+        }
+    }
+    else if (trap->mcause == trILLEGAL_INSTRUCTION)
+    {
+        TraceLog(LOG_WARNING, "Illegal instruction %8x", trap->mtval);
+        guest->bad = true;
+    }
+    else
+    {
+        // Ideally I'd like this to be an error, but LOG_ERROR in raylib actually stops the program.
+        TraceLog(LOG_WARNING, "Trap cause %d not recognised", trap->mcause);
+        guest->bad = true;
+    }
+}
+
+static void UpdateGuest(Guest* guest, int row, int col)
+{
+    int remaining = QUANTUM;
+    while (!guest->bad && remaining > 0)
+    {
+        ArvissResult result = ArvissRun(&guest->cpu, remaining);
+        if (ArvissResultIsTrap(result))
+        {
+            const ArvissTrap trap = ArvissResultAsTrap(result);
+            HandleTrap(guest, &trap, row, col);
+            if (trap.mcause == trENVIRONMENT_CALL_FROM_M_MODE && ArvissReadXReg(&guest->cpu, abiA7) == SYSCALL_SET_STATE)
+            {
+                // The VM gives up control whenever it sets the state of a cell.
+                break;
+            }
+        }
+        remaining -= guest->cpu.retired;
+    }
+}
 
 static uint8_t Read8(BusToken token, uint32_t addr, BusCode* busCode)
 {
@@ -184,139 +314,12 @@ static void InitGuest(Guest* guest)
     }
 }
 
-static inline void SysCountNeighbours(Guest* guest, int row, int col)
+static void InitGuests(void)
 {
-    const int neighbours = CountNeighbours(row, col);
-    ArvissWriteXReg(&guest->cpu, abiA0, (uint32_t)neighbours);
-}
-
-static inline void SysGetState(Guest* guest, int row, int col)
-{
-    const bool isAlive = GetCurrent(row, col);
-    ArvissWriteXReg(&guest->cpu, abiA0, BoolAsU32(isAlive));
-}
-
-static inline void SysSetState(Guest* guest, int row, int col)
-{
-    const bool isAlive = ArvissReadXReg(&guest->cpu, abiA0) != 0;
-    SetNext(row, col, isAlive);
-}
-
-static void HandleTrap(Guest* guest, const ArvissTrap* trap, int row, int col)
-{
-    // Check for a syscall.
-    if (trap->mcause == trENVIRONMENT_CALL_FROM_M_MODE)
+    for (int i = 0; i < NUM_ROWS * NUM_COLS; i++)
     {
-        // The syscall number is in a7 (x17).
-        const uint32_t syscall = ArvissReadXReg(&guest->cpu, abiA7);
-
-        // Service the syscall.
-        bool syscallHandled = true;
-        switch (syscall)
-        {
-        case SYSCALL_COUNT:
-            SysCountNeighbours(guest, row, col);
-            break;
-        case SYSCALL_GET_STATE:
-            SysGetState(guest, row, col);
-            break;
-        case SYSCALL_SET_STATE:
-            SysSetState(guest, row, col);
-            break;
-        default:
-            // Unknown syscall.
-            TraceLog(LOG_WARNING, "Unknown syscall %04x", syscall);
-            syscallHandled = false;
-            guest->bad = true;
-            break;
-        }
-
-        // If we handled the syscall then perform an MRET so that we can return from the trap.
-        if (syscallHandled)
-        {
-            ArvissMret(&guest->cpu);
-        }
+        InitGuest(&guests[i]);
     }
-    else if (trap->mcause == trILLEGAL_INSTRUCTION)
-    {
-        TraceLog(LOG_WARNING, "Illegal instruction %8x", trap->mtval);
-        guest->bad = true;
-    }
-    else
-    {
-        // Ideally I'd like this to be an error, but LOG_ERROR in raylib actually stops the program.
-        TraceLog(LOG_WARNING, "Trap cause %d not recognised", trap->mcause);
-        guest->bad = true;
-    }
-}
-
-static void UpdateGuest(Guest* guest, int row, int col)
-{
-    int remaining = QUANTUM;
-    while (!guest->bad && remaining > 0)
-    {
-        ArvissResult result = ArvissRun(&guest->cpu, remaining);
-        if (ArvissResultIsTrap(result))
-        {
-            const ArvissTrap trap = ArvissResultAsTrap(result);
-            HandleTrap(guest, &trap, row, col);
-            if (trap.mcause == trENVIRONMENT_CALL_FROM_M_MODE && ArvissReadXReg(&guest->cpu, abiA7) == SYSCALL_SET_STATE)
-            {
-                // The VM gives up control whenever it sets the state of a cell.
-                break;
-            }
-        }
-        remaining -= guest->cpu.retired;
-    }
-}
-
-static inline void SetNext(int row, int col, bool value)
-{
-    board[next][row * NUM_COLS + col] = value;
-}
-
-static inline void SetCurrent(int row, int col, bool value)
-{
-    board[current][row * NUM_COLS + col] = value;
-}
-
-static inline bool GetCurrent(int row, int col)
-{
-    return board[current][row * NUM_COLS + col];
-}
-
-static void PopulateBoard(void)
-{
-    for (int row = 0; row < NUM_ROWS; row++)
-    {
-        for (int col = 0; col < NUM_COLS; col++)
-        {
-            SetCurrent(row, col, GetRandomValue(0, 999) < 250);
-            InitGuest(&guests[row * NUM_COLS + col]);
-        }
-    }
-}
-
-static int CountNeighbours(int row, int col)
-{
-    int total = 0;
-    for (int y = row - 1; y < row + 2; y++)
-    {
-        for (int x = col - 1; x < col + 2; x++)
-        {
-            if ((x != col) || (y != row))
-            {
-                if (y >= 0 && x >= 0 && y < NUM_ROWS && x < NUM_COLS)
-                {
-                    if (GetCurrent(y, x))
-                    {
-                        ++total;
-                    }
-                }
-            }
-        }
-    }
-    return total;
 }
 
 static void Update(void)
@@ -371,6 +374,36 @@ static void DrawBoard(void)
     }
 }
 
+static bool Button(const ButtonInfo* info)
+{
+    Vector2 mousePos = GetMousePosition();
+    bool mouseOver = CheckCollisionPointRec(mousePos, info->rect);
+    DrawRectangleRec(info->rect, mouseOver ? info->hoverBackground : info->normalBackground);
+    DrawText(info->text, (int)info->rect.x + 4, (int)info->rect.y + 6, 20, mouseOver ? info->hoverText : info->normalText);
+
+    return mouseOver && IsMouseButtonReleased(MOUSE_LEFT_BUTTON);
+}
+
+static inline bool ResetButtonClicked(void)
+{
+    return Button(&(ButtonInfo){.rect = {BOARD_LEFT, SCREEN_HEIGHT - 60, 64, 32},
+                                .text = "Reset",
+                                .normalBackground = LIME,
+                                .hoverBackground = RED,
+                                .normalText = BLACK,
+                                .hoverText = WHITE});
+}
+
+static inline bool PauseButtonClicked(void)
+{
+    return Button(&(ButtonInfo){.rect = {BOARD_LEFT + BOARD_WIDTH - 72, SCREEN_HEIGHT - 60, 72, 32},
+                                .text = isPaused ? "Go" : "Stop",
+                                .normalBackground = LIME,
+                                .hoverBackground = DARKGREEN,
+                                .normalText = BLACK,
+                                .hoverText = BLACK});
+}
+
 static float GetUpdateRate(Rectangle rect, float currentValue, float minValue, float maxValue)
 {
     Vector2 mousePos = GetMousePosition();
@@ -396,39 +429,6 @@ static float GetUpdateRate(Rectangle rect, float currentValue, float minValue, f
     DrawText(speed, (int)rect.x + 4, (int)rect.y + 6, 20, BLACK);
 
     return currentValue;
-}
-
-static bool Button(ButtonInfo info)
-{
-    Vector2 mousePos = GetMousePosition();
-    bool mouseOver = CheckCollisionPointRec(mousePos, info.rect);
-    DrawRectangleRec(info.rect, mouseOver ? info.hoverBackground : info.normalBackground);
-    DrawText(info.text, (int)info.rect.x + 4, (int)info.rect.y + 6, 20, mouseOver ? info.hoverText : info.normalText);
-
-    return mouseOver && IsMouseButtonReleased(MOUSE_LEFT_BUTTON);
-}
-
-static inline bool ResetButtonClicked(void)
-{
-    return Button((ButtonInfo){.rect = {BOARD_LEFT, SCREEN_HEIGHT - 60, 64, 32},
-                               .text = "Reset",
-                               .normalBackground = LIME,
-                               .hoverBackground = RED,
-                               .normalText = BLACK,
-                               .hoverText = WHITE});
-}
-
-static inline bool PauseButtonClicked(void)
-{
-    const char* pauseText = isPaused ? "Go" : "Stop";
-    return Button((ButtonInfo){.rect = {BOARD_LEFT + BOARD_WIDTH - 72, SCREEN_HEIGHT - 60, 72, 32},
-                               .text = pauseText,
-                               .normalBackground = LIME,
-                               .hoverBackground = DARKGREEN,
-                               .normalText = BLACK,
-                               .hoverText = BLACK
-
-    });
 }
 
 static void CheckForBoardClick(void)
@@ -483,6 +483,7 @@ int main(void)
     SetTargetFPS(TARGET_FPS);
     SetTraceLogLevel(LOG_DEBUG);
 
+    InitGuests();
     PopulateBoard();
     RunMainLoop();
 
