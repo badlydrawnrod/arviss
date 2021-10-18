@@ -17,6 +17,7 @@ int main(void)
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Very Angry Robots III");
     SetTargetFPS(TARGET_FPS);
     SetTraceLogLevel(LOG_DEBUG);
+    SetExitKey(KEY_F4);
 
     SwitchTo(MENU);
     RunMainLoop();
