@@ -203,6 +203,21 @@ static void UpdateGuest(Guest* guest, int row, int col)
     }
 }
 
+static void Update(void)
+{
+    for (int row = 0; row < NUM_ROWS; row++)
+    {
+        for (int col = 0; col < NUM_COLS; col++)
+        {
+            Guest* guest = &guests[row * NUM_COLS + col];
+            UpdateGuest(guest, row, col);
+        }
+    }
+    int t = current;
+    current = next;
+    next = t;
+}
+
 static uint8_t Read8(BusToken token, uint32_t addr, BusCode* busCode)
 {
     Memory* memory = (Memory*)(token.t);
@@ -219,8 +234,7 @@ static uint16_t Read16(BusToken token, uint32_t addr, BusCode* busCode)
     Memory* memory = (Memory*)(token.t);
     if (addr >= MEMBASE && addr < MEMBASE + MEMSIZE - 1)
     {
-        // TODO: implement for big-endian ISAs.
-        const uint16_t* base = (uint16_t*)&memory->mem[addr - MEMBASE];
+        const uint16_t* base = (uint16_t*)&memory->mem[addr - MEMBASE]; // TODO: implement for big-endian ISAs.
         return *base;
     }
     *busCode = bcLOAD_ACCESS_FAULT;
@@ -232,8 +246,7 @@ static uint32_t Read32(BusToken token, uint32_t addr, BusCode* busCode)
     Memory* memory = (Memory*)(token.t);
     if (addr >= MEMBASE && addr < MEMBASE + MEMSIZE - 3)
     {
-        // TODO: implement for big-endian ISAs.
-        const uint32_t* base = (uint32_t*)&memory->mem[addr - MEMBASE];
+        const uint32_t* base = (uint32_t*)&memory->mem[addr - MEMBASE]; // TODO: implement for big-endian ISAs.
         return *base;
     }
     *busCode = bcLOAD_ACCESS_FAULT;
@@ -256,8 +269,7 @@ static void Write16(BusToken token, uint32_t addr, uint16_t halfword, BusCode* b
     Memory* memory = (Memory*)(token.t);
     if (addr >= RAMBASE && addr < RAMBASE + RAMSIZE - 1)
     {
-        // TODO: implement for big-endian ISAs.
-        uint16_t* base = (uint16_t*)&memory->mem[addr - MEMBASE];
+        uint16_t* base = (uint16_t*)&memory->mem[addr - MEMBASE]; // TODO: implement for big-endian ISAs.
         *base = halfword;
         return;
     }
@@ -267,10 +279,9 @@ static void Write16(BusToken token, uint32_t addr, uint16_t halfword, BusCode* b
 static void Write32(BusToken token, uint32_t addr, uint32_t word, BusCode* busCode)
 {
     Memory* memory = (Memory*)(token.t);
-    if (addr >= RAMBASE && addr < RAMBASE + RAMSIZE - 2)
+    if (addr >= RAMBASE && addr < RAMBASE + RAMSIZE - 3)
     {
-        // TODO: implement for big-endian ISAs.
-        uint32_t* base = (uint32_t*)&memory->mem[addr - MEMBASE];
+        uint32_t* base = (uint32_t*)&memory->mem[addr - MEMBASE]; // TODO: implement for big-endian ISAs.
         *base = word;
         return;
     }
@@ -320,21 +331,6 @@ static void InitGuests(void)
     {
         InitGuest(&guests[i]);
     }
-}
-
-static void Update(void)
-{
-    for (int row = 0; row < NUM_ROWS; row++)
-    {
-        for (int col = 0; col < NUM_COLS; col++)
-        {
-            Guest* guest = &guests[row * NUM_COLS + col];
-            UpdateGuest(guest, row, col);
-        }
-    }
-    int t = current;
-    current = next;
-    next = t;
 }
 
 static void DrawBoard(void)
