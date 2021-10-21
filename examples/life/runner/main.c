@@ -301,36 +301,41 @@ static void WriteV(ElfToken token, uint32_t addr, void* src, uint32_t len)
     memcpy(target + addr, src, len);
 }
 
-static void InitGuest(Guest* guest)
-{
-    guest->bad = false;
-    ArvissInit(&guest->cpu,
-               &(Bus){.token = {&guest->memory},
-                      .Read8 = Read8,
-                      .Read16 = Read16,
-                      .Read32 = Read32,
-                      .Write8 = Write8,
-                      .Write16 = Write16,
-                      .Write32 = Write32});
-
-    const char* filename = "../../../../examples/life/arviss/bin/cell";
-    if (LoadElf(filename,
-                &(ElfLoaderConfig){.token = {&guest->memory.mem},
-                                   .zeroMemFn = ZeroMem,
-                                   .writeMemFn = WriteV,
-                                   .targetSegments = (ElfSegmentDescriptor[]){{.start = ROM_START, .size = ROMSIZE},
-                                                                              {.start = RAMBASE, .size = RAMSIZE}},
-                                   .numSegments = 2}))
-    {
-        TraceLog(LOG_WARNING, "--- Failed to load %s", filename);
-    }
-}
-
 static void InitGuests(void)
 {
     for (int i = 0; i < NUM_ROWS * NUM_COLS; i++)
     {
-        InitGuest(&guests[i]);
+        Guest* guest = &guests[i];
+        guest->bad = false;
+        ArvissInit(&guest->cpu,
+                   &(Bus){.token = {&guest->memory},
+                          .Read8 = Read8,
+                          .Read16 = Read16,
+                          .Read32 = Read32,
+                          .Write8 = Write8,
+                          .Write16 = Write16,
+                          .Write32 = Write32});
+
+        if (i == 0)
+        {
+            // Load the first guest.
+            const char* filename = "../../../../examples/life/arviss/bin/cell";
+            if (LoadElf(filename,
+                        &(ElfLoaderConfig){.token = {&guest->memory.mem},
+                                           .zeroMemFn = ZeroMem,
+                                           .writeMemFn = WriteV,
+                                           .targetSegments = (ElfSegmentDescriptor[]){{.start = ROM_START, .size = ROMSIZE},
+                                                                                      {.start = RAMBASE, .size = RAMSIZE}},
+                                           .numSegments = 2}))
+            {
+                TraceLog(LOG_WARNING, "--- Failed to load %s", filename);
+            }
+        }
+        else
+        {
+            // Clone the remaining guests from the first.
+            memcpy(&guest->memory.mem, &guests[0].memory.mem, MEMSIZE);
+        }
     }
 }
 
