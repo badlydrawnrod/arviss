@@ -1,6 +1,8 @@
 # Conway's "Life"
 
-Before building this example, build Arviss, then [install the pre-requisite RISC-V toolchain](../../README.md).
+Before building this example, build Arviss, then [install the pre-requisite RISC-V toolchain](../../README.md). Note, if
+you want to build the [Zig](https://ziglang.org/) example, then install **Zig** by following the
+instructions [further down the same page]((../../README.md)).
 
 ## Windows
 
@@ -41,9 +43,31 @@ Built samples are output to `life/arviss/bin` in a form that can be loaded into 
 
 ### Running
 
-After building the example, run it using `run_life.exe` from the relevant Arviss `build` directory.
+After building the example, run it using `run_life` from the relevant Arviss `build` directory.
 
 ```shell
 $ cd build/examples/life/runner
 $ ./run_life
+```
+
+## Zig
+
+### Building
+
+Build the runner as described above under **Windows** or **Linux**, then build the example itself.
+
+To build the example, run `zig build-exe` setting the target to `riscv32-freestanding` and the CPU and features to
+`generic_rv32+f+m`.
+
+```
+C:> cd examples\life\arviss
+C:> zig build-exe cell.zig --strip --single-threaded -target riscv32-freestanding -Tminimal.ld -mcpu generic_rv32+f+m -O ReleaseSmall -femit-bin=bin\cell
+```
+
+After building the example, run it using `run_life` (Linux) or `run_life.exe` (Windows)  from the relevant Arviss
+`build` directory.
+
+```
+C:> cd build\examples\life\runner
+C:> run_life
 ```
