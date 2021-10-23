@@ -10,7 +10,8 @@ for [RISC-V](https://en.wikipedia.org/wiki/RISC-V). At the time of writing it su
 32-bit base integer instruction set (**RV32I**), the integer multiplication extension (**M**), and the 32-bit floating
 point extension (**F**).
 
-It comes with some examples written in C and Zig.
+It comes with examples written in [C](https://en.wikipedia.org/wiki/C_(programming_language)) and
+[Zig](https://en.wikipedia.org/wiki/Zig_(programming_language)).
 
 ## Building Arviss
 
