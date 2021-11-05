@@ -25,7 +25,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 # Arviss - the library.
-add_library(arviss STATIC arviss.c loadelf.c loadelf.h rounding_modes.h opcodes.h)
+add_library(arviss STATIC arviss.c loadelf.c loadelf.h)
 target_include_directories(arviss
         PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"

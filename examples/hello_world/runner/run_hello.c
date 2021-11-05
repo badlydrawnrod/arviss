@@ -94,7 +94,7 @@ static void Write16(BusToken token, uint32_t addr, uint16_t halfword, BusCode* b
 static void Write32(BusToken token, uint32_t addr, uint32_t word, BusCode* busCode)
 {
     Memory* memory = (Memory*)(token.t);
-    if (addr >= rambase && addr < rambase + ramsize - 2)
+    if (addr >= rambase && addr < rambase + ramsize - 3)
     {
         // TODO: implement for big-endian ISAs.
         uint32_t* base = (uint32_t*)&memory->mem[addr - membase];
