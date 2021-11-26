@@ -217,13 +217,94 @@ typedef struct
     BusWrite32Fn Write32;
 } Bus;
 
-typedef struct DecodedInstruction DecodedInstruction;
+typedef enum
+{
+    execIllegalInstruction,
+    execFetchDecodeReplace,
+    execLui,
+    execAuipc,
+    execJal,
+    execJalr,
+    execBeq,
+    execBne,
+    execBlt,
+    execBge,
+    execBltu,
+    execBgeu,
+    execLb,
+    execLh,
+    execLw,
+    execLbu,
+    execLhu,
+    execSb,
+    execSh,
+    execSw,
+    execAddi,
+    execSlti,
+    execSltiu,
+    execXori,
+    execOri,
+    execAndi,
+    execSlli,
+    execSrli,
+    execSrai,
+    execAdd,
+    execSub,
+    execMul,
+    execSll,
+    execMulh,
+    execSlt,
+    execMulhsu,
+    execSltu,
+    execMulhu,
+    execXor,
+    execDiv,
+    execSrl,
+    execSra,
+    execDivu,
+    execOr,
+    execRem,
+    execAnd,
+    execRemu,
+    execFence,
+    execEcall,
+    execEbreak,
+    execUret,
+    execSret,
+    execMret,
+    execFlw,
+    execFsw,
+    execFmadd_s,
+    execFmsub_s,
+    execFnmsub_s,
+    execFnmadd_s,
+    execFadd_s,
+    execFsub_s,
+    execFmul_s,
+    execFdiv_s,
+    execFsqrt_s,
+    execFsgnj_s,
+    execFsgnjn_s,
+    execFsgnjx_s,
+    execFmin_s,
+    execFmax_s,
+    execFcvt_w_s,
+    execFcvt_wu_s,
+    execFmv_x_w,
+    execFclass_s,
+    execFeq_s,
+    execFlt_s,
+    execFle_s,
+    execFcvt_s_w,
+    execFcvt_s_wu,
+    execFmv_w_x,
+} ExecFn;
 
-typedef void (*ExecFn)(ArvissCpu* cpu, const DecodedInstruction* ins);
+typedef struct DecodedInstruction DecodedInstruction;
 
 struct DecodedInstruction
 {
-    ExecFn opcode; // The function that will execute this instruction.
+    ExecFn opcode; // The instruction that this function executes. TODO: need to call it something other than opcode?
     union
     {
         struct
@@ -325,6 +406,8 @@ struct ArvissCpu
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+static void RunOne(ArvissCpu* cpu, DecodedInstruction* ins);
 
 static inline ArvissResult ArvissMakeOk(void)
 {
@@ -590,7 +673,7 @@ static void Exec_FetchDecodeReplace(ArvissCpu* cpu, const DecodedInstruction* in
         line->instructions[index] = decoded;
 
         // Execute the decoded instruction.
-        decoded.opcode(cpu, &decoded);
+        RunOne(cpu, &decoded);
     }
     else
     {
@@ -1559,17 +1642,17 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
     {
     case opLUI: {
         const int32_t upper = UImmediate(instruction);
-        return MkRdImm(Exec_Lui, rd, upper);
+        return MkRdImm(execLui, rd, upper);
     }
 
     case opAUIPC: {
         const int32_t upper = UImmediate(instruction);
-        return MkRdImm(Exec_Auipc, rd, upper);
+        return MkRdImm(execAuipc, rd, upper);
     }
 
     case opJAL: {
         const int32_t imm = JImmediate(instruction);
-        return MkRdImm(Exec_Jal, rd, imm);
+        return MkRdImm(execJal, rd, imm);
     }
 
     case opJALR: {
@@ -1577,9 +1660,9 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
         if (funct3 == 0b000)
         {
             const int32_t imm = IImmediate(instruction);
-            return MkRdRs1Imm(Exec_Jalr, rd, rs1, imm);
+            return MkRdRs1Imm(execJalr, rd, rs1, imm);
         }
-        return MkTrap(Exec_IllegalInstruction, instruction);
+        return MkTrap(execIllegalInstruction, instruction);
     }
 
     case opBRANCH: {
@@ -1589,19 +1672,19 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
         switch (funct3)
         {
         case 0b000: // BEQ
-            return MkRs1Rs2Imm(Exec_Beq, rs1, rs2, imm);
+            return MkRs1Rs2Imm(execBeq, rs1, rs2, imm);
         case 0b001: // BNE
-            return MkRs1Rs2Imm(Exec_Bne, rs1, rs2, imm);
+            return MkRs1Rs2Imm(execBne, rs1, rs2, imm);
         case 0b100: // BLT
-            return MkRs1Rs2Imm(Exec_Blt, rs1, rs2, imm);
+            return MkRs1Rs2Imm(execBlt, rs1, rs2, imm);
         case 0b101: // BGE
-            return MkRs1Rs2Imm(Exec_Bge, rs1, rs2, imm);
+            return MkRs1Rs2Imm(execBge, rs1, rs2, imm);
         case 0b110: // BLTU
-            return MkRs1Rs2Imm(Exec_Bltu, rs1, rs2, imm);
+            return MkRs1Rs2Imm(execBltu, rs1, rs2, imm);
         case 0b111: // BGEU
-            return MkRs1Rs2Imm(Exec_Bgeu, rs1, rs2, imm);
+            return MkRs1Rs2Imm(execBgeu, rs1, rs2, imm);
         default:
-            return MkTrap(Exec_IllegalInstruction, instruction);
+            return MkTrap(execIllegalInstruction, instruction);
         }
     }
 
@@ -1611,17 +1694,17 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
         switch (funct3)
         {
         case 0b000: // LB
-            return MkRdRs1Imm(Exec_Lb, rd, rs1, imm);
+            return MkRdRs1Imm(execLb, rd, rs1, imm);
         case 0b001: // LH
-            return MkRdRs1Imm(Exec_Lh, rd, rs1, imm);
+            return MkRdRs1Imm(execLh, rd, rs1, imm);
         case 0b010: // LW
-            return MkRdRs1Imm(Exec_Lw, rd, rs1, imm);
+            return MkRdRs1Imm(execLw, rd, rs1, imm);
         case 0b100: // LBU
-            return MkRdRs1Imm(Exec_Lbu, rd, rs1, imm);
+            return MkRdRs1Imm(execLbu, rd, rs1, imm);
         case 0b101: // LHU
-            return MkRdRs1Imm(Exec_Lhu, rd, rs1, imm);
+            return MkRdRs1Imm(execLhu, rd, rs1, imm);
         default:
-            return MkTrap(Exec_IllegalInstruction, instruction);
+            return MkTrap(execIllegalInstruction, instruction);
         }
     }
 
@@ -1632,13 +1715,13 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
         switch (funct3)
         {
         case 0b000: // SB
-            return MkRs1Rs2Imm(Exec_Sb, rs1, rs2, imm);
+            return MkRs1Rs2Imm(execSb, rs1, rs2, imm);
         case 0b001: // SH
-            return MkRs1Rs2Imm(Exec_Sh, rs1, rs2, imm);
+            return MkRs1Rs2Imm(execSh, rs1, rs2, imm);
         case 0b010: // SW
-            return MkRs1Rs2Imm(Exec_Sw, rs1, rs2, imm);
+            return MkRs1Rs2Imm(execSw, rs1, rs2, imm);
         default:
-            return MkTrap(Exec_IllegalInstruction, instruction);
+            return MkTrap(execIllegalInstruction, instruction);
         }
     }
 
@@ -1649,31 +1732,31 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
         switch (funct3)
         {
         case 0b000: // ADDI
-            return MkRdRs1Imm(Exec_Addi, rd, rs1, imm);
+            return MkRdRs1Imm(execAddi, rd, rs1, imm);
         case 0b010: // SLTI
-            return MkRdRs1Imm(Exec_Slti, rd, rs1, imm);
+            return MkRdRs1Imm(execSlti, rd, rs1, imm);
         case 0b011: // SLTIU
-            return MkRdRs1Imm(Exec_Sltiu, rd, rs1, imm & 0x1f);
+            return MkRdRs1Imm(execSltiu, rd, rs1, imm & 0x1f);
         case 0b100: // XORI
-            return MkRdRs1Imm(Exec_Xori, rd, rs1, imm);
+            return MkRdRs1Imm(execXori, rd, rs1, imm);
         case 0b110: // ORI
-            return MkRdRs1Imm(Exec_Ori, rd, rs1, imm);
+            return MkRdRs1Imm(execOri, rd, rs1, imm);
         case 0b111: // ANDI
-            return MkRdRs1Imm(Exec_Andi, rd, rs1, imm);
+            return MkRdRs1Imm(execAndi, rd, rs1, imm);
         case 0b001: // SLLI
-            return MkRdRs1Imm(Exec_Slli, rd, rs1, imm & 0x1f);
+            return MkRdRs1Imm(execSlli, rd, rs1, imm & 0x1f);
         case 0b101:
             switch (funct7)
             {
             case 0b0000000: // SRLI
-                return MkRdRs1Imm(Exec_Srli, rd, rs1, imm & 0x1f);
+                return MkRdRs1Imm(execSrli, rd, rs1, imm & 0x1f);
             case 0b0100000: // SRAI
-                return MkRdRs1Imm(Exec_Srai, rd, rs1, imm & 0x1f);
+                return MkRdRs1Imm(execSrai, rd, rs1, imm & 0x1f);
             default:
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         default:
-            return MkTrap(Exec_IllegalInstruction, instruction);
+            return MkTrap(execIllegalInstruction, instruction);
         }
     }
 
@@ -1687,88 +1770,88 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             switch (funct7)
             {
             case 0b0000000: // ADD
-                return MkRdRs1Rs2(Exec_Add, rd, rs1, rs2);
+                return MkRdRs1Rs2(execAdd, rd, rs1, rs2);
             case 0b0100000: // SUB
-                return MkRdRs1Rs2(Exec_Sub, rd, rs1, rs2);
+                return MkRdRs1Rs2(execSub, rd, rs1, rs2);
             case 0b00000001: // MUL (RV32M)
-                return MkRdRs1Rs2(Exec_Mul, rd, rs1, rs2);
+                return MkRdRs1Rs2(execMul, rd, rs1, rs2);
             default:
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         case 0b001:
             switch (funct7)
             {
             case 0b0000000: // SLL
-                return MkRdRs1Rs2(Exec_Sll, rd, rs1, rs2);
+                return MkRdRs1Rs2(execSll, rd, rs1, rs2);
             case 0b00000001: // MULH (RV32M)
-                return MkRdRs1Rs2(Exec_Mulh, rd, rs1, rs2);
+                return MkRdRs1Rs2(execMulh, rd, rs1, rs2);
             default:
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         case 0b010:
             switch (funct7)
             {
             case 0b0000000: // SLT
-                return MkRdRs1Rs2(Exec_Slt, rd, rs1, rs2);
+                return MkRdRs1Rs2(execSlt, rd, rs1, rs2);
             case 0b00000001: // MULHSU (RV32M)
-                return MkRdRs1Rs2(Exec_Mulhsu, rd, rs1, rs2);
+                return MkRdRs1Rs2(execMulhsu, rd, rs1, rs2);
             default:
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         case 0b011:
             switch (funct7)
             {
             case 0b0000000: // SLTU
-                return MkRdRs1Rs2(Exec_Sltu, rd, rs1, rs2);
+                return MkRdRs1Rs2(execSltu, rd, rs1, rs2);
             case 0b00000001: // MULHU (RV32M)
-                return MkRdRs1Rs2(Exec_Mulhu, rd, rs1, rs2);
+                return MkRdRs1Rs2(execMulhu, rd, rs1, rs2);
             default:
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         case 0b100:
             switch (funct7)
             {
             case 0b0000000: // XOR
-                return MkRdRs1Rs2(Exec_Xor, rd, rs1, rs2);
+                return MkRdRs1Rs2(execXor, rd, rs1, rs2);
             case 0b00000001: // DIV (RV32M)
-                return MkRdRs1Rs2(Exec_Div, rd, rs1, rs2);
+                return MkRdRs1Rs2(execDiv, rd, rs1, rs2);
             default:
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         case 0b101:
             switch (funct7)
             {
             case 0b0000000: // SRL
-                return MkRdRs1Rs2(Exec_Srl, rd, rs1, rs2);
+                return MkRdRs1Rs2(execSrl, rd, rs1, rs2);
             case 0b0100000: // SRA
-                return MkRdRs1Rs2(Exec_Sra, rd, rs1, rs2);
+                return MkRdRs1Rs2(execSra, rd, rs1, rs2);
             case 0b00000001: // DIVU (RV32M)
-                return MkRdRs1Rs2(Exec_Divu, rd, rs1, rs2);
+                return MkRdRs1Rs2(execDivu, rd, rs1, rs2);
             default:
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         case 0b110:
             switch (funct7)
             {
             case 0b0000000: // OR
-                return MkRdRs1Rs2(Exec_Or, rd, rs1, rs2);
+                return MkRdRs1Rs2(execOr, rd, rs1, rs2);
             case 0b00000001: // REM
-                return MkRdRs1Rs2(Exec_Rem, rd, rs1, rs2);
+                return MkRdRs1Rs2(execRem, rd, rs1, rs2);
             default:
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         case 0b111:
             switch (funct7)
             {
             case 0b0000000: // AND
-                return MkRdRs1Rs2(Exec_And, rd, rs1, rs2);
+                return MkRdRs1Rs2(execAnd, rd, rs1, rs2);
             case 0b00000001: // REMU
-                return MkRdRs1Rs2(Exec_Remu, rd, rs1, rs2);
+                return MkRdRs1Rs2(execRemu, rd, rs1, rs2);
             default:
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         default:
-            return MkTrap(Exec_IllegalInstruction, instruction);
+            return MkTrap(execIllegalInstruction, instruction);
         }
     }
 
@@ -1776,11 +1859,11 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
         const uint32_t funct3 = Funct3(instruction);
         if (funct3 == 0b000)
         {
-            return MkNoArg(Exec_Fence);
+            return MkNoArg(execFence);
         }
         else
         {
-            return MkTrap(Exec_IllegalInstruction, instruction);
+            return MkTrap(execIllegalInstruction, instruction);
         }
     }
 
@@ -1791,22 +1874,22 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             switch (funct12)
             {
             case 0b000000000000: // ECALL
-                return MkNoArg(Exec_Ecall);
+                return MkNoArg(execEcall);
             case 0b000000000001: // EBREAK
-                return MkNoArg(Exec_Ebreak);
+                return MkNoArg(execEbreak);
             case 0b000000000010: // URET
-                return MkNoArg(Exec_Uret);
+                return MkNoArg(execUret);
             case 0b000100000010: // SRET
-                return MkNoArg(Exec_Sret);
+                return MkNoArg(execSret);
             case 0b001100000010: // MRET
-                return MkNoArg(Exec_Mret);
+                return MkNoArg(execMret);
             default:
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         }
         else
         {
-            return MkTrap(Exec_IllegalInstruction, instruction);
+            return MkTrap(execIllegalInstruction, instruction);
         }
 
     case opLOADFP: { // Floating point load (RV32F)
@@ -1814,11 +1897,11 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
         if (funct3 == 0b010) // FLW
         {
             const int32_t imm = IImmediate(instruction);
-            return MkRdRs1Imm(Exec_Flw, rd, rs1, imm);
+            return MkRdRs1Imm(execFlw, rd, rs1, imm);
         }
         else
         {
-            return MkTrap(Exec_IllegalInstruction, instruction);
+            return MkTrap(execIllegalInstruction, instruction);
         }
     }
 
@@ -1829,11 +1912,11 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             // f32(rs1 + imm_s) = rs2
             const uint32_t rs2 = Rs2(instruction);
             const int32_t imm = SImmediate(instruction);
-            return MkRs1Rs2Imm(Exec_Fsw, rs1, rs2, imm);
+            return MkRs1Rs2Imm(execFsw, rs1, rs2, imm);
         }
         else
         {
-            return MkTrap(Exec_IllegalInstruction, instruction);
+            return MkTrap(execIllegalInstruction, instruction);
         }
     }
 
@@ -1843,11 +1926,11 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             const uint32_t rm = Rm(instruction);
             const uint32_t rs2 = Rs2(instruction);
             const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(Exec_Fmadd_s, rd, rs1, rs2, rs3, rm);
+            return MkRdRs1Rs2Rs3Rm(execFmadd_s, rd, rs1, rs2, rs3, rm);
         }
         else
         {
-            return MkTrap(Exec_IllegalInstruction, instruction);
+            return MkTrap(execIllegalInstruction, instruction);
         }
     }
 
@@ -1857,11 +1940,11 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             const uint32_t rm = Rm(instruction);
             const uint32_t rs2 = Rs2(instruction);
             const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(Exec_Fmsub_s, rd, rs1, rs2, rs3, rm);
+            return MkRdRs1Rs2Rs3Rm(execFmsub_s, rd, rs1, rs2, rs3, rm);
         }
         else
         {
-            return MkTrap(Exec_IllegalInstruction, instruction);
+            return MkTrap(execIllegalInstruction, instruction);
         }
     }
 
@@ -1871,11 +1954,11 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             const uint32_t rm = Rm(instruction);
             const uint32_t rs2 = Rs2(instruction);
             const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(Exec_Fnmsub_s, rd, rs1, rs2, rs3, rm);
+            return MkRdRs1Rs2Rs3Rm(execFnmsub_s, rd, rs1, rs2, rs3, rm);
         }
         else
         {
-            return MkTrap(Exec_IllegalInstruction, instruction);
+            return MkTrap(execIllegalInstruction, instruction);
         }
     }
 
@@ -1885,11 +1968,11 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             const uint32_t rm = Rm(instruction);
             const uint32_t rs2 = Rs2(instruction);
             const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(Exec_Fnmadd_s, rd, rs1, rs2, rs3, rm);
+            return MkRdRs1Rs2Rs3Rm(execFnmadd_s, rd, rs1, rs2, rs3, rm);
         }
         else
         {
-            return MkTrap(Exec_IllegalInstruction, instruction);
+            return MkTrap(execIllegalInstruction, instruction);
         }
     }
 
@@ -1901,55 +1984,55 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
         switch (funct7)
         {
         case 0b0000000: // FADD.S
-            return MkRdRs1Rs2Rm(Exec_Fadd_s, rd, rs1, rs2, rm);
+            return MkRdRs1Rs2Rm(execFadd_s, rd, rs1, rs2, rm);
         case 0b0000100: // FSUB.S
-            return MkRdRs1Rs2Rm(Exec_Fsub_s, rd, rs1, rs2, rm);
+            return MkRdRs1Rs2Rm(execFsub_s, rd, rs1, rs2, rm);
         case 0b0001000: // FMUL.S
-            return MkRdRs1Rs2Rm(Exec_Fmul_s, rd, rs1, rs2, rm);
+            return MkRdRs1Rs2Rm(execFmul_s, rd, rs1, rs2, rm);
         case 0b0001100: // FDIV.S
-            return MkRdRs1Rs2Rm(Exec_Fdiv_s, rd, rs1, rs2, rm);
+            return MkRdRs1Rs2Rm(execFdiv_s, rd, rs1, rs2, rm);
         case 0b0101100:
             if (rs2 == 0b00000) // FSQRT.S
             {
-                return MkRdRs1Rm(Exec_Fsqrt_s, rd, rs1, rm);
+                return MkRdRs1Rm(execFsqrt_s, rd, rs1, rm);
             }
             else
             {
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         case 0b0010000: {
             switch (funct3)
             {
             case 0b000: // FSGNJ.S
-                return MkRdRs1Rs2Rm(Exec_Fsgnj_s, rd, rs1, rs2, rm);
+                return MkRdRs1Rs2Rm(execFsgnj_s, rd, rs1, rs2, rm);
             case 0b001: // FSGNJN.S
-                return MkRdRs1Rs2Rm(Exec_Fsgnjn_s, rd, rs1, rs2, rm);
+                return MkRdRs1Rs2Rm(execFsgnjn_s, rd, rs1, rs2, rm);
             case 0b010: // FSGNJX.S
-                return MkRdRs1Rs2Rm(Exec_Fsgnjx_s, rd, rs1, rs2, rm);
+                return MkRdRs1Rs2Rm(execFsgnjx_s, rd, rs1, rs2, rm);
             default:
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         }
         case 0b0010100: {
             switch (funct3)
             {
             case 0b000: // FMIN.S
-                return MkRdRs1Rs2(Exec_Fmin_s, rd, rs1, rs2);
+                return MkRdRs1Rs2(execFmin_s, rd, rs1, rs2);
             case 0b001: // FMAX.S
-                return MkRdRs1Rs2(Exec_Fmax_s, rd, rs1, rs2);
+                return MkRdRs1Rs2(execFmax_s, rd, rs1, rs2);
             default:
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         }
         case 0b1100000: {
             switch (rs2) // Not actually rs2 - just the same bits.
             {
             case 0b00000: // FCVT.W.S
-                return MkRdRs1Rm(Exec_Fcvt_w_s, rd, rs1, rm);
+                return MkRdRs1Rm(execFcvt_w_s, rd, rs1, rm);
             case 0b00001: // FVCT.WU.S
-                return MkRdRs1Rm(Exec_Fcvt_wu_s, rd, rs1, rm);
+                return MkRdRs1Rm(execFcvt_wu_s, rd, rs1, rm);
             default:
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         }
         case 0b1110000: {
@@ -1958,55 +2041,55 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
                 switch (funct3)
                 {
                 case 0b000: // FMV.X.W
-                    return MkRdRs1(Exec_Fmv_x_w, rd, rs1);
+                    return MkRdRs1(execFmv_x_w, rd, rs1);
                 case 0b001: // FCLASS.S
-                    return MkRdRs1(Exec_Fclass_s, rd, rs1);
+                    return MkRdRs1(execFclass_s, rd, rs1);
                 default:
-                    return MkTrap(Exec_IllegalInstruction, instruction);
+                    return MkTrap(execIllegalInstruction, instruction);
                 }
             }
-            return MkTrap(Exec_IllegalInstruction, instruction);
+            return MkTrap(execIllegalInstruction, instruction);
         }
         case 0b1010000: {
             switch (funct3)
             {
             case 0b010: // FEQ.S
-                return MkRdRs1Rs2(Exec_Feq_s, rd, rs1, rs2);
+                return MkRdRs1Rs2(execFeq_s, rd, rs1, rs2);
             case 0b001: // FLT.S
-                return MkRdRs1Rs2(Exec_Flt_s, rd, rs1, rs2);
+                return MkRdRs1Rs2(execFlt_s, rd, rs1, rs2);
             case 0b000: // FLE.S
-                return MkRdRs1Rs2(Exec_Fle_s, rd, rs1, rs2);
+                return MkRdRs1Rs2(execFle_s, rd, rs1, rs2);
             default:
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         }
         case 0b1101000: {
             switch (rs2) // No actually rs2 - just the same bits,
             {
             case 0b00000: // FCVT.S.W
-                return MkRdRs1(Exec_Fcvt_s_w, rd, rs1);
+                return MkRdRs1(execFcvt_s_w, rd, rs1);
             case 0b00001: // FVCT.S.WU
-                return MkRdRs1(Exec_Fcvt_s_wu, rd, rs1);
+                return MkRdRs1(execFcvt_s_wu, rd, rs1);
             default:
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         }
         case 0b1111000:
             if (rs2 == 0b00000 && funct3 == 0b000) // FMV.W.X
             {
-                return MkRdRs1(Exec_Fmv_w_x, rd, rs1);
+                return MkRdRs1(execFmv_w_x, rd, rs1);
             }
             else
             {
-                return MkTrap(Exec_IllegalInstruction, instruction);
+                return MkTrap(execIllegalInstruction, instruction);
             }
         default:
-            return MkTrap(Exec_IllegalInstruction, instruction);
+            return MkTrap(execIllegalInstruction, instruction);
         }
     }
 
     default:
-        return MkTrap(Exec_IllegalInstruction, instruction);
+        return MkTrap(execIllegalInstruction, instruction);
     }
 }
 
@@ -2027,7 +2110,7 @@ static inline DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
         // that are never run.
         for (uint32_t i = 0u; i < CACHE_LINE_LENGTH; i++)
         {
-            line->instructions[i] = MkFetchDecodeReplace(Exec_FetchDecodeReplace, cacheLine, i);
+            line->instructions[i] = MkFetchDecodeReplace(execFetchDecodeReplace, cacheLine, i);
         }
         line->isValid = true;
         line->owner = owner;
@@ -2038,6 +2121,251 @@ static inline DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
 
 // --- The Arviss API --------------------------------------------------------------------------------------------------------------
 
+static void RunOne(ArvissCpu* cpu, DecodedInstruction* ins)
+{
+    switch (ins->opcode)
+    {
+    case execFetchDecodeReplace:
+        Exec_FetchDecodeReplace(cpu, ins);
+        break;
+    case execLui:
+        Exec_Lui(cpu, ins);
+        break;
+    case execAuipc:
+        Exec_Auipc(cpu, ins);
+        break;
+    case execJal:
+        Exec_Jal(cpu, ins);
+        break;
+    case execJalr:
+        Exec_Jalr(cpu, ins);
+        break;
+    case execBeq:
+        Exec_Beq(cpu, ins);
+        break;
+    case execBne:
+        Exec_Bne(cpu, ins);
+        break;
+    case execBlt:
+        Exec_Blt(cpu, ins);
+        break;
+    case execBge:
+        Exec_Bge(cpu, ins);
+        break;
+    case execBltu:
+        Exec_Bltu(cpu, ins);
+        break;
+    case execBgeu:
+        Exec_Bgeu(cpu, ins);
+        break;
+    case execLb:
+        Exec_Lb(cpu, ins);
+        break;
+    case execLh:
+        Exec_Lh(cpu, ins);
+        break;
+    case execLw:
+        Exec_Lw(cpu, ins);
+        break;
+    case execLbu:
+        Exec_Lbu(cpu, ins);
+        break;
+    case execLhu:
+        Exec_Lhu(cpu, ins);
+        break;
+    case execSb:
+        Exec_Sb(cpu, ins);
+        break;
+    case execSh:
+        Exec_Sh(cpu, ins);
+        break;
+    case execSw:
+        Exec_Sw(cpu, ins);
+        break;
+    case execAddi:
+        Exec_Addi(cpu, ins);
+        break;
+    case execSlti:
+        Exec_Slti(cpu, ins);
+        break;
+    case execSltiu:
+        Exec_Sltiu(cpu, ins);
+        break;
+    case execXori:
+        Exec_Xori(cpu, ins);
+        break;
+    case execOri:
+        Exec_Ori(cpu, ins);
+        break;
+    case execAndi:
+        Exec_Andi(cpu, ins);
+        break;
+    case execSlli:
+        Exec_Slli(cpu, ins);
+        break;
+    case execSrli:
+        Exec_Srli(cpu, ins);
+        break;
+    case execSrai:
+        Exec_Srai(cpu, ins);
+        break;
+    case execAdd:
+        Exec_Add(cpu, ins);
+        break;
+    case execSub:
+        Exec_Sub(cpu, ins);
+        break;
+    case execMul:
+        Exec_Mul(cpu, ins);
+        break;
+    case execSll:
+        Exec_Sll(cpu, ins);
+        break;
+    case execMulh:
+        Exec_Mulh(cpu, ins);
+        break;
+    case execSlt:
+        Exec_Slt(cpu, ins);
+        break;
+    case execMulhsu:
+        Exec_Mulhsu(cpu, ins);
+        break;
+    case execSltu:
+        Exec_Sltu(cpu, ins);
+        break;
+    case execMulhu:
+        Exec_Mulhu(cpu, ins);
+        break;
+    case execXor:
+        Exec_Xor(cpu, ins);
+        break;
+    case execDiv:
+        Exec_Div(cpu, ins);
+        break;
+    case execSrl:
+        Exec_Srl(cpu, ins);
+        break;
+    case execSra:
+        Exec_Sra(cpu, ins);
+        break;
+    case execDivu:
+        Exec_Divu(cpu, ins);
+        break;
+    case execOr:
+        Exec_Or(cpu, ins);
+        break;
+    case execRem:
+        Exec_Rem(cpu, ins);
+        break;
+    case execAnd:
+        Exec_And(cpu, ins);
+        break;
+    case execRemu:
+        Exec_Remu(cpu, ins);
+        break;
+    case execFence:
+        Exec_Fence(cpu, ins);
+        break;
+    case execEcall:
+        Exec_Ecall(cpu, ins);
+        break;
+    case execEbreak:
+        Exec_Ebreak(cpu, ins);
+        break;
+    case execUret:
+        Exec_Uret(cpu, ins);
+        break;
+    case execSret:
+        Exec_Sret(cpu, ins);
+        break;
+    case execMret:
+        Exec_Mret(cpu, ins);
+        break;
+    case execFlw:
+        Exec_Flw(cpu, ins);
+        break;
+    case execFsw:
+        Exec_Fsw(cpu, ins);
+        break;
+    case execFmadd_s:
+        Exec_Fmadd_s(cpu, ins);
+        break;
+    case execFmsub_s:
+        Exec_Fmsub_s(cpu, ins);
+        break;
+    case execFnmsub_s:
+        Exec_Fnmsub_s(cpu, ins);
+        break;
+    case execFnmadd_s:
+        Exec_Fnmadd_s(cpu, ins);
+        break;
+    case execFadd_s:
+        Exec_Fadd_s(cpu, ins);
+        break;
+    case execFsub_s:
+        Exec_Fsub_s(cpu, ins);
+        break;
+    case execFmul_s:
+        Exec_Fmul_s(cpu, ins);
+        break;
+    case execFdiv_s:
+        Exec_Fdiv_s(cpu, ins);
+        break;
+    case execFsqrt_s:
+        Exec_Fsqrt_s(cpu, ins);
+        break;
+    case execFsgnj_s:
+        Exec_Fsgnj_s(cpu, ins);
+        break;
+    case execFsgnjn_s:
+        Exec_Fsgnjn_s(cpu, ins);
+        break;
+    case execFsgnjx_s:
+        Exec_Fsgnjx_s(cpu, ins);
+        break;
+    case execFmin_s:
+        Exec_Fmin_s(cpu, ins);
+        break;
+    case execFmax_s:
+        Exec_Fmax_s(cpu, ins);
+        break;
+    case execFcvt_w_s:
+        Exec_Fcvt_w_s(cpu, ins);
+        break;
+    case execFcvt_wu_s:
+        Exec_Fcvt_wu_s(cpu, ins);
+        break;
+    case execFmv_x_w:
+        Exec_Fmv_x_w(cpu, ins);
+        break;
+    case execFclass_s:
+        Exec_Fclass_s(cpu, ins);
+        break;
+    case execFeq_s:
+        Exec_Feq_s(cpu, ins);
+        break;
+    case execFlt_s:
+        Exec_Flt_s(cpu, ins);
+        break;
+    case execFle_s:
+        Exec_Fle_s(cpu, ins);
+        break;
+    case execFcvt_s_w:
+        Exec_Fcvt_s_w(cpu, ins);
+        break;
+    case execFcvt_s_wu:
+        Exec_Fcvt_s_wu(cpu, ins);
+        break;
+    case execFmv_w_x:
+        Exec_Fmv_w_x(cpu, ins);
+        break;
+    case execIllegalInstruction:
+    default:
+        Exec_IllegalInstruction(cpu, ins);
+        break;
+    }
+}
+
 ArvissResult ArvissRun(ArvissCpu* cpu, int count)
 {
     cpu->result = ArvissMakeOk();
@@ -2045,7 +2373,7 @@ ArvissResult ArvissRun(ArvissCpu* cpu, int count)
     for (; retired < count; retired++)
     {
         DecodedInstruction* decoded = FetchFromCache(cpu); // Fetch a decoded instruction from the decoded instruction cache.
-        decoded->opcode(cpu, decoded);                     // Execute the decoded instruction.
+        RunOne(cpu, decoded);
 
         if (ArvissResultIsTrap(cpu->result))
         {
@@ -2061,7 +2389,7 @@ ArvissResult ArvissRun(ArvissCpu* cpu, int count)
 ArvissResult ArvissExecute(ArvissCpu* cpu, uint32_t instruction)
 {
     DecodedInstruction decoded = ArvissDecode(instruction);
-    decoded.opcode(cpu, &decoded);
+    RunOne(cpu, &decoded);
     return cpu->result;
 }
 
