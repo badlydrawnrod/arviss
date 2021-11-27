@@ -70,7 +70,7 @@ static void Write8(BusToken token, uint32_t addr, uint8_t byte, BusCode* busCode
 
     if (addr == TTY_DATA)
     {
-        // putchar(byte);
+        putchar(byte);
         return;
     }
 
@@ -137,21 +137,18 @@ int main(void)
     }
 
     // Run the program, n instructions at a time.
-    for (int i = 0; i < 5000000; i++)
+    ArvissInit(&cpu,
+               &(Bus){.token = {&memory},
+                      .Read8 = Read8,
+                      .Read16 = Read16,
+                      .Read32 = Read32,
+                      .Write8 = Write8,
+                      .Write16 = Write16,
+                      .Write32 = Write32});
+    ArvissResult result = ArvissMakeOk();
+    while (!ArvissResultIsTrap(result))
     {
-        ArvissInit(&cpu,
-                   &(Bus){.token = {&memory},
-                          .Read8 = Read8,
-                          .Read16 = Read16,
-                          .Read32 = Read32,
-                          .Write8 = Write8,
-                          .Write16 = Write16,
-                          .Write32 = Write32});
-        ArvissResult result = ArvissMakeOk();
-        while (!ArvissResultIsTrap(result))
-        {
-            result = ArvissRun(&cpu, 100000);
-        }
+        result = ArvissRun(&cpu, 100000);
     }
 
     // The exit code (assuming that it exited) is in x10.
