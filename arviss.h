@@ -407,8 +407,6 @@ struct ArvissCpu
 extern "C" {
 #endif
 
-static void RunOne(ArvissCpu* cpu, DecodedInstruction* ins);
-
 static inline ArvissResult ArvissMakeOk(void)
 {
     // Not using designated initializers as...
@@ -535,6 +533,8 @@ void ArvissMret(ArvissCpu* cpu);
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+static void RunOne(ArvissCpu* cpu, DecodedInstruction* ins);
 
 static inline float U32AsFloat(const uint32_t a)
 {
