@@ -58,22 +58,25 @@ or by using a package manager such as scoop.
 C:> scoop install ziglang
 ```
 
+And once you've tried Zig, you may never go back.
+
 ## Linux pre-requisites
 
-On Linux, install **clang-11** or later. These instructions are for Ubuntu 20.04 which appears to ship with **clang-10**
-.
+On Linux, you'll need **clang-11** or later. The instructions shown here are for Ubuntu 20.04 where the default **
+clang**
+is **clang-10**.
 
 ### Install CMake, Ninja, Clang, and lld
 
-Install **CMake**, **Ninja**, **clang-11**, and the **lld-11** linker.
+Install **CMake**, **Ninja**, **clang-11** or later, and the **lld** linker that corresponds to the **clang** version.
 
 ```shell
 $ sudo apt install cmake
 $ sudo apt install ninja-build
-$ sudo apt install clang-11 lld-11
+$ sudo apt install clang-12 lld-12
 ```
-
-## Installing Zig
 
 To build the **Zig** example, first install **Zig** by [downloading a pre-built binary](https://ziglang.org/download/),
 or [installing it with a package manager](https://github.com/ziglang/zig/wiki/Install-Zig-from-a-Package-Manager).
+
+And once you've tried Zig, you may never go back.

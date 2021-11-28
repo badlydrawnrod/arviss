@@ -20,7 +20,7 @@ set(CMAKE_C_FLAGS_INIT "")
 set(CMAKE_C_FLAGS "--target=riscv32 -ffreestanding -nostdlib -nodefaultlibs -march=rv32imf -mabi=ilp32f -ffunction-sections -fdata-sections")
 set(CMAKE_ASM_FLAGS "--target=riscv32 -ffreestanding -nostdlib -nodefaultlibs -march=rv32imf -mabi=ilp32f -ffunction-sections -fdata-sections")
 
-# Allow the linker to be overridden on the cmake command line, e.g., -DLINKER=lld-12
+# Allow the linker to be overridden on the cmake command line, e.g., -DARVISS_LINKER=lld-12
 if (NOT DEFINED ARVISS_LINKER)
     set(ARVISS_LINKER lld)
 endif ()

@@ -38,6 +38,17 @@ $ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-11
 $ cmake --build build
 ```
 
+Note that this needs **clang-11** or later. If you're on a system such as Ubuntu 20.04 where the default **clang** is
+lower than required then set `CMAKE_C_COMPILER` to a later version of **clang** (you'll need to install it first) and
+set `ARVISS_LINKER` to the corresponding linker version. For example, if you have **clang-12** installed then set
+`CMAKE_C_COMPILER` to `clang-12` and set `ARVISS_LINKER` to `lld-12`.
+
+e.g.,
+
+```shell
+$ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-12 -DARVISS_LINKER=lld-12
+```
+
 Built samples are output to `very_angry_robots/arviss/bin` in a form that can be loaded into this example's Arviss
 runner.
 
