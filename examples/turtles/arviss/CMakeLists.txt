@@ -20,11 +20,6 @@ set(CMAKE_C_FLAGS_INIT "")
 set(CMAKE_C_FLAGS "--target=riscv32 -ffreestanding -nostdlib -nodefaultlibs -march=rv32imf -mabi=ilp32f -ffunction-sections -fdata-sections")
 set(CMAKE_ASM_FLAGS "--target=riscv32 -ffreestanding -nostdlib -nodefaultlibs -march=rv32imf -mabi=ilp32f -ffunction-sections -fdata-sections")
 
-# Check that we're using a sensible version of Clang.
-if (CLANG_VERSION_MAJOR VERSION_LESS 11)
-    message(FATAL_ERROR "Clang 11 or later required. Set it with -DCMAKE_C_COMPILER. You may also want to set ARVISS_LINKER.")
-endif ()
-
 # Allow the linker to be overridden on the cmake command line, e.g., -DARVISS_LINKER=lld-12
 if (NOT DEFINED ARVISS_LINKER)
     set(ARVISS_LINKER lld)
