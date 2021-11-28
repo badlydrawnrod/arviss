@@ -65,6 +65,7 @@ C:> scoop install ziglang
 And once you've tried Zig, you may never go back.
 
 ## Linux pre-requisites
+
 On Linux, you'll need **clang-11** or later. The instructions shown here are for Ubuntu 20.04 where the default **
 clang**
 is **clang-10**.
