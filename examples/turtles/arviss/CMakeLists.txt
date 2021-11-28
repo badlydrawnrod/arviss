@@ -20,13 +20,12 @@ set(CMAKE_C_FLAGS_INIT "")
 set(CMAKE_C_FLAGS "--target=riscv32 -ffreestanding -nostdlib -nodefaultlibs -march=rv32imf -mabi=ilp32f -ffunction-sections -fdata-sections")
 set(CMAKE_ASM_FLAGS "--target=riscv32 -ffreestanding -nostdlib -nodefaultlibs -march=rv32imf -mabi=ilp32f -ffunction-sections -fdata-sections")
 
-if (UNIX)
-    set(THE_LINKER lld-11)
-else ()
-    set(THE_LINKER lld)
+# Allow the linker to be overridden on the cmake command line, e.g., -DLINKER=lld-12
+if (NOT DEFINED ARVISS_LINKER)
+    set(ARVISS_LINKER lld)
 endif ()
 
-set(CMAKE_C_LINK_FLAGS "-Wl,--gc-sections -Wl,-T,,${CMAKE_SOURCE_DIR}/minimal.ld -Wl,--nmagic -fuse-ld=${THE_LINKER} -nostartfiles")
+set(CMAKE_C_LINK_FLAGS "-Wl,--gc-sections -Wl,-T,,${CMAKE_SOURCE_DIR}/minimal.ld -Wl,--nmagic -fuse-ld=${ARVISS_LINKER} -nostartfiles")
 
 project(turtle
         LANGUAGES C ASM)
