@@ -16,13 +16,12 @@ and
 
 # Building Arviss
 
-By default, building Arviss will also build the native portion of the examples. To inhibit this, add
-`-DINHIBIT_ARVISS_EXAMPLES=ON` to the initial **CMake** command line.
+By default, building Arviss will also build the native portion of the examples. To inhibit this, define
+`INHIBIT_ARVISS_EXAMPLES=ON`, e.g., with `-D` on the **CMake** command line.
 
 ## Windows Pre-requisites
 
-The instructions assume that you have some form of Visual Studio 2019 build tools installed, and that **CMake** is
-installed and is on the path.
+The instructions assume that you have some form of Visual Studio 2019 build tools installed.
 
 ## Linux Pre-requisites
 
