@@ -46,8 +46,13 @@ target_compile_definitions(arviss PRIVATE
 # Arviss tests.
 add_subdirectory("tests")
 
-# Examples.
-add_subdirectory("examples")
+# Build the native "runners" for the examples.
+if (${INHIBIT_ARVISS_EXAMPLES})
+    MESSAGE(STATUS "Not building examples. To build, set INHIBIT_ARVISS_EXAMPLES=OFF.")
+else ()
+    MESSAGE(STATUS "Building examples. To disable, set INHIBIT_ARVISS_EXAMPLES=ON.")
+    add_subdirectory(examples)
+endif ()
 
 # Installation.
 # TODO: fix it so that it doesn't install gtest.

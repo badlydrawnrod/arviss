@@ -2,17 +2,21 @@
 
 Arviss ships with a handful of examples that show how to use it. Each example is divided into two parts:
 
-1. a native "runner" that will run the example. These are built as part of Arviss.
+1. a native "runner" that will run the example. **These are built as part of Arviss**.
 2. RISC-V examples, designed to be run with a native runner.
 
 The RISC-V examples are designed to be run with **Arviss**, so they must be compiled for RISC-V. This needs a
 cross-compiler toolchain, such as a **gcc** toolchain that targets RISC-V, or **clang** which can compile for many
-targets including RISC-V. Similarly, the Zig example requires [Zig](https://ziglang.org) to be installed.
+targets including RISC-V.
+
+> **Recommendation:** use clang rather than gcc, as it's already a cross-compiler.
+
+Similarly, the Zig example requires [Zig](https://ziglang.org) to be installed.
 
 ## Links to examples
 
-To run these examples, first build Arviss and the native runners. Install the pre-requisites (see below) then follow
-these links to the individual examples.
+To run these examples, first build Arviss and the native runners. When you have done that, come back to these
+instructions and install the pre-requisites (see below) then follow these links to the individual examples.
 
 - [The canonical hello world example.](hello_world/arviss/README.md)
 - [A turtle graphics demonstration using Raylib.](turtles/arviss/README.md)

@@ -14,11 +14,27 @@ It comes with [examples](examples/README.md) written in [C](https://en.wikipedia
 and
 [Zig](https://en.wikipedia.org/wiki/Zig_(programming_language)).
 
-## Building Arviss
+# Building Arviss
 
-All of the following instructions assume that **CMake** is installed and is on the path.
+By default, building Arviss will also build the native portion of the examples. To inhibit this, define
+`INHIBIT_ARVISS_EXAMPLES=ON`, e.g., with `-D` on the **CMake** command line.
 
-### Building with MSVC and MSBuild on Windows
+## Windows Pre-requisites
+
+The instructions assume that you have some form of Visual Studio 2019 build tools installed.
+
+## Linux Pre-requisites
+
+The graphical examples use [Raylib](https://www.raylib.com/). To build these on Linux you will need to install the
+following, as described [on the Raylib wiki](https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux).
+
+```shell
+$ sudo apt install libasound2-dev mesa-common-dev libx11-dev libxrandr-dev libxi-dev xorg-dev libgl1-mesa-dev libglu1-mesa-dev
+```
+
+## Building with MSVC and MSBuild on Windows
+
+These instructions assume that **CMake** is installed and is on the path.
 
 Run the following from a Visual Studio Developer Command Prompt.
 
@@ -28,9 +44,9 @@ C:> cmake --build build
 C:> ctest --test-dir build --verbose
 ```
 
-### Building with MSVC and Ninja on Windows
+## Building with MSVC and Ninja on Windows
 
-This assumes that **CMake** and **Ninja** are installed and are on the path.
+These instructions assume that **CMake** and **Ninja** are installed and are on the path.
 
 Run the following from a Visual Studio Developer Command Prompt.
 
@@ -40,9 +56,9 @@ C:> cmake --build build
 C:> ctest --test-dir build --verbose
 ```
 
-### Building with clang and Ninja on Windows
+## Building with clang and Ninja on Windows
 
-This assumes that **CMake**, **clang** and **Ninja** are installed and are on the path.
+These instructions assume that **CMake**, **clang** and **Ninja** are installed and are on the path.
 
 Run the following from a command prompt.
 
@@ -52,9 +68,9 @@ C:> cmake --build build
 C:> ctest --test-dir build --verbose
 ```
 
-### Building with gcc and make on Linux
+## Building with gcc and make on Linux
 
-This assumes that **CMake** is installed and is on the path.
+These instructions assume that **CMake** is installed and is on the path.
 
 Run the following from a shell prompt.
 
@@ -64,9 +80,9 @@ cmake --build build
 ctest --test-dir build --verbose
 ```
 
-### Building with gcc and Ninja on Linux
+## Building with gcc and Ninja on Linux
 
-This assumes that **CMake** and **Ninja** are installed and are on the path.
+These instructions assume that **CMake** and **Ninja** are installed and are on the path.
 
 Run the following from a shell prompt.
 
@@ -76,9 +92,9 @@ cmake --build build
 ctest --test-dir build --verbose
 ```
 
-### Building with clang and Ninja on Linux
+## Building with clang and Ninja on Linux
 
-This assumes that **CMake** and **Ninja** are installed and are on the path.
+These instructions assume that **CMake** and **Ninja** are installed and are on the path.
 
 Run the following from a shell prompt.
 
@@ -88,6 +104,6 @@ cmake --build build
 ctest --test-dir build --verbose
 ```
 
-## Building the examples
+## Building the RISC-V portion of the examples
 
-See [this readme](examples/README.md) to learn how to build and run the examples.
+See [this readme](examples/README.md) to learn how to build and run the RISC-V portion of the examples.
