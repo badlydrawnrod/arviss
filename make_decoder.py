@@ -18,7 +18,7 @@ def walk(d, level=0):
     indent = "    " * level
     for k, v in sorted(d.items()):
         hi, lo = k
-        print(f"{indent}switch (bits({hi}, {lo}))")
+        print(f"{indent}switch (Bits(ins, {hi}, {lo}))")
         print(f"{indent}{{")
         for c in sorted(v.keys()):
             print(f"{indent}case 0x{c:02x}:")
@@ -27,12 +27,18 @@ def walk(d, level=0):
                 walk(v[c], level + 1)
             else:
                 print(f"{indent}    // {content[0]}")
-                opcode = "EXEC_" + content[0].upper().replace('.', '_')
-                print(f"{indent}    return mk_{'_'.join(content[1])}({opcode}, {', '.join(content[1])});")
+                instruction = "".join(s.capitalize() for s in content[0].split("."))
+                opcode = f"exec{instruction}"
+                arg_part = '_'.join(content[1])
+                if len(arg_part) == 0:
+                    arg_part = "no_args"
+                print(f"{indent}    return mk_{arg_part}({opcode}, ins);")
         print(f"{indent}default:")
-        print(f"{indent}    // Illegal instruction.")
-        print(f"{indent}    return mk_trap(EXEC_ILLEGAL_INSTRUCTION, ins);")
+        print(f"{indent}    break;")
         print(f"{indent}}}")
+    if level == 0:
+        print(f"// Illegal instruction.")
+        print(f"return mk_trap(execIllegalInstruction, ins);")
 
 
 # See: https://raw.githubusercontent.com/riscv/riscv-opcodes/master/opcodes-rv32i (etc)
@@ -140,6 +146,12 @@ fmadd.s   rd rs1 rs2 rs3 rm 26..25=0 6..2=0x10 1..0=3
 fmsub.s   rd rs1 rs2 rs3 rm 26..25=0 6..2=0x11 1..0=3
 fnmsub.s  rd rs1 rs2 rs3 rm 26..25=0 6..2=0x12 1..0=3
 fnmadd.s  rd rs1 rs2 rs3 rm 26..25=0 6..2=0x13 1..0=3
+
+# system
+ecall     11..7=0 19..15=0 31..20=0x000 14..12=0 6..2=0x1C 1..0=3
+ebreak    11..7=0 19..15=0 31..20=0x001 14..12=0 6..2=0x1C 1..0=3
+sret      11..7=0 19..15=0 31..20=0x102 14..12=0 6..2=0x1C 1..0=3
+mret      11..7=0 19..15=0 31..20=0x302 14..12=0 6..2=0x1C 1..0=3
 """
 
 operands = {"rd", "rs1", "rs2", "rs3", "bimm12hi", "bimm12lo", "imm12hi", "imm12lo", "imm12", "jimm20", "imm20", "fm",
@@ -167,9 +179,8 @@ if __name__ == "__main__":
                         hi, lo = left, left
                     hi, lo = int(hi), int(lo)
                     t_ops.append((hi, lo, right))
-            t_ops.sort()
             result = (ins, sorted(t_operands))
-            for hi, lo, left in reversed(t_ops):
+            for hi, lo, left in t_ops:
                 d = {}
                 d[(hi, lo)] = {left: result}
                 result = d

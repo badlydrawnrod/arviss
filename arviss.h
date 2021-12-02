@@ -267,6 +267,7 @@ typedef enum
     execAnd,
     execRemu,
     execFence,
+    execFenceI,
     execEcall,
     execEbreak,
     execUret,
@@ -274,30 +275,30 @@ typedef enum
     execMret,
     execFlw,
     execFsw,
-    execFmadd_s,
-    execFmsub_s,
-    execFnmsub_s,
-    execFnmadd_s,
-    execFadd_s,
-    execFsub_s,
-    execFmul_s,
-    execFdiv_s,
-    execFsqrt_s,
-    execFsgnj_s,
-    execFsgnjn_s,
-    execFsgnjx_s,
-    execFmin_s,
-    execFmax_s,
-    execFcvt_w_s,
-    execFcvt_wu_s,
-    execFmv_x_w,
-    execFclass_s,
-    execFeq_s,
-    execFlt_s,
-    execFle_s,
-    execFcvt_s_w,
-    execFcvt_s_wu,
-    execFmv_w_x,
+    execFmaddS,
+    execFmsubS,
+    execFnmsubS,
+    execFnmaddS,
+    execFaddS,
+    execFsubS,
+    execFmulS,
+    execFdivS,
+    execFsqrtS,
+    execFsgnjS,
+    execFsgnjnS,
+    execFsgnjxS,
+    execFminS,
+    execFmaxS,
+    execFcvtWS,
+    execFcvtWuS,
+    execFmvXW,
+    execFclassS,
+    execFeqS,
+    execFltS,
+    execFleS,
+    execFcvtSW,
+    execFcvtSWu,
+    execFmvWX
 } ExecFn;
 
 typedef struct DecodedInstruction DecodedInstruction;
@@ -1630,9 +1631,605 @@ static inline uint32_t Rm(uint32_t instruction)
     return (instruction >> 12) & 7;
 }
 
+static inline uint32_t Bits(uint32_t n, uint32_t hi, uint32_t lo)
+{
+    const uint32_t run = (hi - lo) + 1;
+    const uint32_t mask = ((1 << run) - 1) << lo;
+    const uint32_t result = (n & mask) >> lo;
+    return result;
+}
+
+static inline DecodedInstruction mk_imm12_rd_rs1(ExecFn opcode, uint32_t ins)
+{
+    return MkRdRs1Imm(opcode, Rd(ins), Rs1(ins), IImmediate(ins));
+}
+
+static inline DecodedInstruction mk_trap(ExecFn opcode, uint32_t ins)
+{
+    return MkTrap(opcode, ins);
+}
+
+static inline DecodedInstruction mk_fm_pred_rd_rs1_succ(ExecFn opcode, uint32_t ins)
+{
+    // TODO: fix this
+    return MkNoArg(opcode);
+}
+
+static inline DecodedInstruction mk_rd_rs1_shamtw(ExecFn opcode, uint32_t ins)
+{
+    return MkRdRs1Imm(opcode, Rd(ins), Rs1(ins), IImmediate(ins) & 0x1f);
+}
+
+static inline DecodedInstruction mk_imm20_rd(ExecFn opcode, uint32_t ins)
+{
+    return MkRdImm(opcode, Rd(ins), UImmediate(ins));
+}
+
+static inline DecodedInstruction mk_imm12hi_imm12lo_rs1_rs2(ExecFn opcode, uint32_t ins)
+{
+    return MkRs1Rs2Imm(opcode, Rs1(ins), Rs2(ins), SImmediate(ins));
+}
+
+static inline DecodedInstruction mk_rd_rs1_rs2(ExecFn opcode, uint32_t ins)
+{
+    return MkRdRs1Rs2(opcode, Rd(ins), Rs1(ins), Rs2(ins));
+}
+
+static inline DecodedInstruction mk_rd_rm_rs1_rs2_rs3(ExecFn opcode, uint32_t ins)
+{
+    return MkRdRs1Rs2Rs3Rm(opcode, Rd(ins), Rs1(ins), Rs2(ins), Rs3(ins), Rm(ins));
+}
+
+static inline DecodedInstruction mk_rd_rs1(ExecFn opcode, uint32_t ins)
+{
+    return MkRdRs1(opcode, Rd(ins), Rs1(ins));
+}
+
+static inline DecodedInstruction mk_rd_rm_rs1(ExecFn opcode, uint32_t ins)
+{
+    return MkRdRs1Rm(opcode, Rd(ins), Rs1(ins), Rm(ins));
+}
+
+static inline DecodedInstruction mk_rd_rm_rs1_rs2(ExecFn opcode, uint32_t ins)
+{
+    return MkRdRs1Rs2Rm(opcode, Rd(ins), Rs1(ins), Rs2(ins), Rm(ins));
+}
+
+static inline DecodedInstruction mk_bimm12hi_bimm12lo_rs1_rs2(ExecFn opcode, uint32_t ins)
+{
+    return MkRs1Rs2Imm(opcode, Rs1(ins), Rs2(ins), BImmediate(ins));
+}
+
+static inline DecodedInstruction mk_jimm20_rd(ExecFn opcode, uint32_t ins)
+{
+    return MkRdImm(opcode, Rd(ins), JImmediate(ins));
+}
+
+static inline DecodedInstruction mk_no_args(ExecFn opcode, uint32_t ins)
+{
+    return MkNoArg(opcode);
+}
+
+static DecodedInstruction ArvissDecode(uint32_t ins)
+{
+    switch (Bits(ins, 1, 0))
+    {
+    case 0x03:
+        switch (Bits(ins, 6, 2))
+        {
+        case 0x00:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x00:
+                // lb
+                return mk_imm12_rd_rs1(execLb, ins);
+            case 0x01:
+                // lh
+                return mk_imm12_rd_rs1(execLh, ins);
+            case 0x02:
+                // lw
+                return mk_imm12_rd_rs1(execLw, ins);
+            case 0x04:
+                // lbu
+                return mk_imm12_rd_rs1(execLbu, ins);
+            case 0x05:
+                // lhu
+                return mk_imm12_rd_rs1(execLhu, ins);
+            default:
+                break;
+            }
+        case 0x01:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x02:
+                // flw
+                return mk_imm12_rd_rs1(execFlw, ins);
+            default:
+                break;
+            }
+        case 0x03:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x00:
+                // fence
+                return mk_fm_pred_rd_rs1_succ(execFence, ins);
+            case 0x01:
+                // fence.i
+                return mk_imm12_rd_rs1(execFenceI, ins);
+            default:
+                break;
+            }
+        case 0x04:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x00:
+                // addi
+                return mk_imm12_rd_rs1(execAddi, ins);
+            case 0x01:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x00:
+                    // slli
+                    return mk_rd_rs1_shamtw(execSlli, ins);
+                default:
+                    break;
+                }
+            case 0x02:
+                // slti
+                return mk_imm12_rd_rs1(execSlti, ins);
+            case 0x03:
+                // sltiu
+                return mk_imm12_rd_rs1(execSltiu, ins);
+            case 0x04:
+                // xori
+                return mk_imm12_rd_rs1(execXori, ins);
+            case 0x05:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x00:
+                    // srli
+                    return mk_rd_rs1_shamtw(execSrli, ins);
+                case 0x20:
+                    // srai
+                    return mk_rd_rs1_shamtw(execSrai, ins);
+                default:
+                    break;
+                }
+            case 0x06:
+                // ori
+                return mk_imm12_rd_rs1(execOri, ins);
+            case 0x07:
+                // andi
+                return mk_imm12_rd_rs1(execAndi, ins);
+            default:
+                break;
+            }
+        case 0x05:
+            // auipc
+            return mk_imm20_rd(execAuipc, ins);
+        case 0x08:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x00:
+                // sb
+                return mk_imm12hi_imm12lo_rs1_rs2(execSb, ins);
+            case 0x01:
+                // sh
+                return mk_imm12hi_imm12lo_rs1_rs2(execSh, ins);
+            case 0x02:
+                // sw
+                return mk_imm12hi_imm12lo_rs1_rs2(execSw, ins);
+            default:
+                break;
+            }
+        case 0x09:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x02:
+                // fsw
+                return mk_imm12hi_imm12lo_rs1_rs2(execFsw, ins);
+            default:
+                break;
+            }
+        case 0x0c:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x00:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x00:
+                    // add
+                    return mk_rd_rs1_rs2(execAdd, ins);
+                case 0x01:
+                    // mul
+                    return mk_rd_rs1_rs2(execMul, ins);
+                case 0x20:
+                    // sub
+                    return mk_rd_rs1_rs2(execSub, ins);
+                default:
+                    break;
+                }
+            case 0x01:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x00:
+                    // sll
+                    return mk_rd_rs1_rs2(execSll, ins);
+                case 0x01:
+                    // mulh
+                    return mk_rd_rs1_rs2(execMulh, ins);
+                default:
+                    break;
+                }
+            case 0x02:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x00:
+                    // slt
+                    return mk_rd_rs1_rs2(execSlt, ins);
+                case 0x01:
+                    // mulhsu
+                    return mk_rd_rs1_rs2(execMulhsu, ins);
+                default:
+                    break;
+                }
+            case 0x03:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x00:
+                    // sltu
+                    return mk_rd_rs1_rs2(execSltu, ins);
+                case 0x01:
+                    // mulhu
+                    return mk_rd_rs1_rs2(execMulhu, ins);
+                default:
+                    break;
+                }
+            case 0x04:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x00:
+                    // xor
+                    return mk_rd_rs1_rs2(execXor, ins);
+                case 0x01:
+                    // div
+                    return mk_rd_rs1_rs2(execDiv, ins);
+                default:
+                    break;
+                }
+            case 0x05:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x00:
+                    // srl
+                    return mk_rd_rs1_rs2(execSrl, ins);
+                case 0x01:
+                    // divu
+                    return mk_rd_rs1_rs2(execDivu, ins);
+                case 0x20:
+                    // sra
+                    return mk_rd_rs1_rs2(execSra, ins);
+                default:
+                    break;
+                }
+            case 0x06:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x00:
+                    // or
+                    return mk_rd_rs1_rs2(execOr, ins);
+                case 0x01:
+                    // rem
+                    return mk_rd_rs1_rs2(execRem, ins);
+                default:
+                    break;
+                }
+            case 0x07:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x00:
+                    // and
+                    return mk_rd_rs1_rs2(execAnd, ins);
+                case 0x01:
+                    // remu
+                    return mk_rd_rs1_rs2(execRemu, ins);
+                default:
+                    break;
+                }
+            default:
+                break;
+            }
+        case 0x0d:
+            // lui
+            return mk_imm20_rd(execLui, ins);
+        case 0x10:
+            switch (Bits(ins, 26, 25))
+            {
+            case 0x00:
+                // fmadd.s
+                return mk_rd_rm_rs1_rs2_rs3(execFmaddS, ins);
+            default:
+                break;
+            }
+        case 0x11:
+            switch (Bits(ins, 26, 25))
+            {
+            case 0x00:
+                // fmsub.s
+                return mk_rd_rm_rs1_rs2_rs3(execFmsubS, ins);
+            default:
+                break;
+            }
+        case 0x12:
+            switch (Bits(ins, 26, 25))
+            {
+            case 0x00:
+                // fnmsub.s
+                return mk_rd_rm_rs1_rs2_rs3(execFnmsubS, ins);
+            default:
+                break;
+            }
+        case 0x13:
+            switch (Bits(ins, 26, 25))
+            {
+            case 0x00:
+                // fnmadd.s
+                return mk_rd_rm_rs1_rs2_rs3(execFnmaddS, ins);
+            default:
+                break;
+            }
+        case 0x14:
+            switch (Bits(ins, 26, 25))
+            {
+            case 0x00:
+                switch (Bits(ins, 14, 12))
+                {
+                case 0x00:
+                    switch (Bits(ins, 31, 27))
+                    {
+                    case 0x04:
+                        // fsgnj.s
+                        return mk_rd_rs1_rs2(execFsgnjS, ins);
+                    case 0x05:
+                        // fmin.s
+                        return mk_rd_rs1_rs2(execFminS, ins);
+                    case 0x14:
+                        // fle.s
+                        return mk_rd_rs1_rs2(execFleS, ins);
+                    case 0x1c:
+                        switch (Bits(ins, 24, 20))
+                        {
+                        case 0x00:
+                            // fmv.x.w
+                            return mk_rd_rs1(execFmvXW, ins);
+                        default:
+                            break;
+                        }
+                    case 0x1e:
+                        switch (Bits(ins, 24, 20))
+                        {
+                        case 0x00:
+                            // fmv.w.x
+                            return mk_rd_rs1(execFmvWX, ins);
+                        default:
+                            break;
+                        }
+                    default:
+                        break;
+                    }
+                case 0x01:
+                    switch (Bits(ins, 31, 27))
+                    {
+                    case 0x04:
+                        // fsgnjn.s
+                        return mk_rd_rs1_rs2(execFsgnjnS, ins);
+                    case 0x05:
+                        // fmax.s
+                        return mk_rd_rs1_rs2(execFmaxS, ins);
+                    case 0x14:
+                        // flt.s
+                        return mk_rd_rs1_rs2(execFltS, ins);
+                    case 0x1c:
+                        switch (Bits(ins, 24, 20))
+                        {
+                        case 0x00:
+                            // fclass.s
+                            return mk_rd_rs1(execFclassS, ins);
+                        default:
+                            break;
+                        }
+                    default:
+                        break;
+                    }
+                case 0x02:
+                    switch (Bits(ins, 31, 27))
+                    {
+                    case 0x04:
+                        // fsgnjx.s
+                        return mk_rd_rs1_rs2(execFsgnjxS, ins);
+                    case 0x14:
+                        // feq.s
+                        return mk_rd_rs1_rs2(execFeqS, ins);
+                    default:
+                        break;
+                    }
+                default:
+                    break;
+                }
+                switch (Bits(ins, 31, 27))
+                {
+                case 0x00:
+                    // fadd.s
+                    return mk_rd_rm_rs1_rs2(execFaddS, ins);
+                case 0x01:
+                    // fsub.s
+                    return mk_rd_rm_rs1_rs2(execFsubS, ins);
+                case 0x02:
+                    // fmul.s
+                    return mk_rd_rm_rs1_rs2(execFmulS, ins);
+                case 0x03:
+                    // fdiv.s
+                    return mk_rd_rm_rs1_rs2(execFdivS, ins);
+                case 0x0b:
+                    switch (Bits(ins, 24, 20))
+                    {
+                    case 0x00:
+                        // fsqrt.s
+                        return mk_rd_rm_rs1(execFsqrtS, ins);
+                    default:
+                        break;
+                    }
+                case 0x18:
+                    switch (Bits(ins, 24, 20))
+                    {
+                    case 0x00:
+                        // fcvt.w.s
+                        return mk_rd_rm_rs1(execFcvtWS, ins);
+                    case 0x01:
+                        // fcvt.wu.s
+                        return mk_rd_rm_rs1(execFcvtWuS, ins);
+                    default:
+                        break;
+                    }
+                case 0x1a:
+                    switch (Bits(ins, 24, 20))
+                    {
+                    case 0x00:
+                        // fcvt.s.w
+                        return mk_rd_rm_rs1(execFcvtSW, ins);
+                    case 0x01:
+                        // fcvt.s.wu
+                        return mk_rd_rm_rs1(execFcvtSWu, ins);
+                    default:
+                        break;
+                    }
+                default:
+                    break;
+                }
+            default:
+                break;
+            }
+        case 0x18:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x00:
+                // beq
+                return mk_bimm12hi_bimm12lo_rs1_rs2(execBeq, ins);
+            case 0x01:
+                // bne
+                return mk_bimm12hi_bimm12lo_rs1_rs2(execBne, ins);
+            case 0x04:
+                // blt
+                return mk_bimm12hi_bimm12lo_rs1_rs2(execBlt, ins);
+            case 0x05:
+                // bge
+                return mk_bimm12hi_bimm12lo_rs1_rs2(execBge, ins);
+            case 0x06:
+                // bltu
+                return mk_bimm12hi_bimm12lo_rs1_rs2(execBltu, ins);
+            case 0x07:
+                // bgeu
+                return mk_bimm12hi_bimm12lo_rs1_rs2(execBgeu, ins);
+            default:
+                break;
+            }
+        case 0x19:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x00:
+                // jalr
+                return mk_imm12_rd_rs1(execJalr, ins);
+            default:
+                break;
+            }
+        case 0x1b:
+            // jal
+            return mk_jimm20_rd(execJal, ins);
+        case 0x1c:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x00:
+                switch (Bits(ins, 31, 20))
+                {
+                case 0x00:
+                    switch (Bits(ins, 19, 15))
+                    {
+                    case 0x00:
+                        switch (Bits(ins, 11, 7))
+                        {
+                        case 0x00:
+                            // ecall
+                            return mk_no_args(execEcall, ins);
+                        default:
+                            break;
+                        }
+                    default:
+                        break;
+                    }
+                case 0x01:
+                    switch (Bits(ins, 19, 15))
+                    {
+                    case 0x00:
+                        switch (Bits(ins, 11, 7))
+                        {
+                        case 0x00:
+                            // ebreak
+                            return mk_no_args(execEbreak, ins);
+                        default:
+                            break;
+                        }
+                    default:
+                        break;
+                    }
+                case 0x102:
+                    switch (Bits(ins, 19, 15))
+                    {
+                    case 0x00:
+                        switch (Bits(ins, 11, 7))
+                        {
+                        case 0x00:
+                            // sret
+                            return mk_no_args(execSret, ins);
+                        default:
+                            break;
+                        }
+                    default:
+                        break;
+                    }
+                case 0x302:
+                    switch (Bits(ins, 19, 15))
+                    {
+                    case 0x00:
+                        switch (Bits(ins, 11, 7))
+                        {
+                        case 0x00:
+                            // mret
+                            return mk_no_args(execMret, ins);
+                        default:
+                            break;
+                        }
+                    default:
+                        break;
+                    }
+                default:
+                    break;
+                }
+            default:
+                break;
+            }
+        default:
+            break;
+        }
+    default:
+        break;
+    }
+    // Illegal instruction.
+    return mk_trap(execIllegalInstruction, ins);
+}
+
 // See: http://www.five-embeddev.com/riscv-isa-manual/latest/gmaps.html#rv3264g-instruction-set-listings
 // or riscv-spec-209191213.pdf.
-static DecodedInstruction ArvissDecode(uint32_t instruction)
+static DecodedInstruction OldArvissDecode(uint32_t instruction)
 {
     const uint32_t opcode = Opcode(instruction);
     const uint32_t rd = Rd(instruction);
@@ -1926,7 +2523,7 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             const uint32_t rm = Rm(instruction);
             const uint32_t rs2 = Rs2(instruction);
             const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(execFmadd_s, rd, rs1, rs2, rs3, rm);
+            return MkRdRs1Rs2Rs3Rm(execFmaddS, rd, rs1, rs2, rs3, rm);
         }
         else
         {
@@ -1940,7 +2537,7 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             const uint32_t rm = Rm(instruction);
             const uint32_t rs2 = Rs2(instruction);
             const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(execFmsub_s, rd, rs1, rs2, rs3, rm);
+            return MkRdRs1Rs2Rs3Rm(execFmsubS, rd, rs1, rs2, rs3, rm);
         }
         else
         {
@@ -1954,7 +2551,7 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             const uint32_t rm = Rm(instruction);
             const uint32_t rs2 = Rs2(instruction);
             const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(execFnmsub_s, rd, rs1, rs2, rs3, rm);
+            return MkRdRs1Rs2Rs3Rm(execFnmsubS, rd, rs1, rs2, rs3, rm);
         }
         else
         {
@@ -1968,7 +2565,7 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             const uint32_t rm = Rm(instruction);
             const uint32_t rs2 = Rs2(instruction);
             const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(execFnmadd_s, rd, rs1, rs2, rs3, rm);
+            return MkRdRs1Rs2Rs3Rm(execFnmaddS, rd, rs1, rs2, rs3, rm);
         }
         else
         {
@@ -1984,17 +2581,17 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
         switch (funct7)
         {
         case 0b0000000: // FADD.S
-            return MkRdRs1Rs2Rm(execFadd_s, rd, rs1, rs2, rm);
+            return MkRdRs1Rs2Rm(execFaddS, rd, rs1, rs2, rm);
         case 0b0000100: // FSUB.S
-            return MkRdRs1Rs2Rm(execFsub_s, rd, rs1, rs2, rm);
+            return MkRdRs1Rs2Rm(execFsubS, rd, rs1, rs2, rm);
         case 0b0001000: // FMUL.S
-            return MkRdRs1Rs2Rm(execFmul_s, rd, rs1, rs2, rm);
+            return MkRdRs1Rs2Rm(execFmulS, rd, rs1, rs2, rm);
         case 0b0001100: // FDIV.S
-            return MkRdRs1Rs2Rm(execFdiv_s, rd, rs1, rs2, rm);
+            return MkRdRs1Rs2Rm(execFdivS, rd, rs1, rs2, rm);
         case 0b0101100:
             if (rs2 == 0b00000) // FSQRT.S
             {
-                return MkRdRs1Rm(execFsqrt_s, rd, rs1, rm);
+                return MkRdRs1Rm(execFsqrtS, rd, rs1, rm);
             }
             else
             {
@@ -2004,11 +2601,11 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             switch (funct3)
             {
             case 0b000: // FSGNJ.S
-                return MkRdRs1Rs2Rm(execFsgnj_s, rd, rs1, rs2, rm);
+                return MkRdRs1Rs2Rm(execFsgnjS, rd, rs1, rs2, rm);
             case 0b001: // FSGNJN.S
-                return MkRdRs1Rs2Rm(execFsgnjn_s, rd, rs1, rs2, rm);
+                return MkRdRs1Rs2Rm(execFsgnjnS, rd, rs1, rs2, rm);
             case 0b010: // FSGNJX.S
-                return MkRdRs1Rs2Rm(execFsgnjx_s, rd, rs1, rs2, rm);
+                return MkRdRs1Rs2Rm(execFsgnjxS, rd, rs1, rs2, rm);
             default:
                 return MkTrap(execIllegalInstruction, instruction);
             }
@@ -2017,9 +2614,9 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             switch (funct3)
             {
             case 0b000: // FMIN.S
-                return MkRdRs1Rs2(execFmin_s, rd, rs1, rs2);
+                return MkRdRs1Rs2(execFminS, rd, rs1, rs2);
             case 0b001: // FMAX.S
-                return MkRdRs1Rs2(execFmax_s, rd, rs1, rs2);
+                return MkRdRs1Rs2(execFmaxS, rd, rs1, rs2);
             default:
                 return MkTrap(execIllegalInstruction, instruction);
             }
@@ -2028,9 +2625,9 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             switch (rs2) // Not actually rs2 - just the same bits.
             {
             case 0b00000: // FCVT.W.S
-                return MkRdRs1Rm(execFcvt_w_s, rd, rs1, rm);
+                return MkRdRs1Rm(execFcvtWS, rd, rs1, rm);
             case 0b00001: // FVCT.WU.S
-                return MkRdRs1Rm(execFcvt_wu_s, rd, rs1, rm);
+                return MkRdRs1Rm(execFcvtWuS, rd, rs1, rm);
             default:
                 return MkTrap(execIllegalInstruction, instruction);
             }
@@ -2041,9 +2638,9 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
                 switch (funct3)
                 {
                 case 0b000: // FMV.X.W
-                    return MkRdRs1(execFmv_x_w, rd, rs1);
+                    return MkRdRs1(execFmvXW, rd, rs1);
                 case 0b001: // FCLASS.S
-                    return MkRdRs1(execFclass_s, rd, rs1);
+                    return MkRdRs1(execFclassS, rd, rs1);
                 default:
                     return MkTrap(execIllegalInstruction, instruction);
                 }
@@ -2054,11 +2651,11 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             switch (funct3)
             {
             case 0b010: // FEQ.S
-                return MkRdRs1Rs2(execFeq_s, rd, rs1, rs2);
+                return MkRdRs1Rs2(execFeqS, rd, rs1, rs2);
             case 0b001: // FLT.S
-                return MkRdRs1Rs2(execFlt_s, rd, rs1, rs2);
+                return MkRdRs1Rs2(execFltS, rd, rs1, rs2);
             case 0b000: // FLE.S
-                return MkRdRs1Rs2(execFle_s, rd, rs1, rs2);
+                return MkRdRs1Rs2(execFleS, rd, rs1, rs2);
             default:
                 return MkTrap(execIllegalInstruction, instruction);
             }
@@ -2067,9 +2664,9 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
             switch (rs2) // No actually rs2 - just the same bits,
             {
             case 0b00000: // FCVT.S.W
-                return MkRdRs1(execFcvt_s_w, rd, rs1);
+                return MkRdRs1(execFcvtSW, rd, rs1);
             case 0b00001: // FVCT.S.WU
-                return MkRdRs1(execFcvt_s_wu, rd, rs1);
+                return MkRdRs1(execFcvtSWu, rd, rs1);
             default:
                 return MkTrap(execIllegalInstruction, instruction);
             }
@@ -2077,7 +2674,7 @@ static DecodedInstruction ArvissDecode(uint32_t instruction)
         case 0b1111000:
             if (rs2 == 0b00000 && funct3 == 0b000) // FMV.W.X
             {
-                return MkRdRs1(execFmv_w_x, rd, rs1);
+                return MkRdRs1(execFmvWX, rd, rs1);
             }
             else
             {
@@ -2287,76 +2884,76 @@ static void RunOne(ArvissCpu* cpu, DecodedInstruction* ins)
     case execFsw:
         Exec_Fsw(cpu, ins);
         break;
-    case execFmadd_s:
+    case execFmaddS:
         Exec_Fmadd_s(cpu, ins);
         break;
-    case execFmsub_s:
+    case execFmsubS:
         Exec_Fmsub_s(cpu, ins);
         break;
-    case execFnmsub_s:
+    case execFnmsubS:
         Exec_Fnmsub_s(cpu, ins);
         break;
-    case execFnmadd_s:
+    case execFnmaddS:
         Exec_Fnmadd_s(cpu, ins);
         break;
-    case execFadd_s:
+    case execFaddS:
         Exec_Fadd_s(cpu, ins);
         break;
-    case execFsub_s:
+    case execFsubS:
         Exec_Fsub_s(cpu, ins);
         break;
-    case execFmul_s:
+    case execFmulS:
         Exec_Fmul_s(cpu, ins);
         break;
-    case execFdiv_s:
+    case execFdivS:
         Exec_Fdiv_s(cpu, ins);
         break;
-    case execFsqrt_s:
+    case execFsqrtS:
         Exec_Fsqrt_s(cpu, ins);
         break;
-    case execFsgnj_s:
+    case execFsgnjS:
         Exec_Fsgnj_s(cpu, ins);
         break;
-    case execFsgnjn_s:
+    case execFsgnjnS:
         Exec_Fsgnjn_s(cpu, ins);
         break;
-    case execFsgnjx_s:
+    case execFsgnjxS:
         Exec_Fsgnjx_s(cpu, ins);
         break;
-    case execFmin_s:
+    case execFminS:
         Exec_Fmin_s(cpu, ins);
         break;
-    case execFmax_s:
+    case execFmaxS:
         Exec_Fmax_s(cpu, ins);
         break;
-    case execFcvt_w_s:
+    case execFcvtWS:
         Exec_Fcvt_w_s(cpu, ins);
         break;
-    case execFcvt_wu_s:
+    case execFcvtWuS:
         Exec_Fcvt_wu_s(cpu, ins);
         break;
-    case execFmv_x_w:
+    case execFmvXW:
         Exec_Fmv_x_w(cpu, ins);
         break;
-    case execFclass_s:
+    case execFclassS:
         Exec_Fclass_s(cpu, ins);
         break;
-    case execFeq_s:
+    case execFeqS:
         Exec_Feq_s(cpu, ins);
         break;
-    case execFlt_s:
+    case execFltS:
         Exec_Flt_s(cpu, ins);
         break;
-    case execFle_s:
+    case execFleS:
         Exec_Fle_s(cpu, ins);
         break;
-    case execFcvt_s_w:
+    case execFcvtSW:
         Exec_Fcvt_s_w(cpu, ins);
         break;
-    case execFcvt_s_wu:
+    case execFcvtSWu:
         Exec_Fcvt_s_wu(cpu, ins);
         break;
-    case execFmv_w_x:
+    case execFmvWX:
         Exec_Fmv_w_x(cpu, ins);
         break;
     case execIllegalInstruction:
