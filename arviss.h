@@ -1496,61 +1496,6 @@ inline static void Exec_Fmv_w_x(ArvissCpu* cpu, const DecodedInstruction* ins)
 //
 // Functions in this section decode instructions into their executable form.
 
-static inline DecodedInstruction MkNoArg(ExecFn opcode)
-{
-    return (DecodedInstruction){.opcode = opcode};
-}
-
-static inline DecodedInstruction MkTrap(ExecFn opcode, uint32_t instruction)
-{
-    return (DecodedInstruction){.opcode = opcode, .ins = instruction};
-}
-
-static inline DecodedInstruction MkFetchDecodeReplace(ExecFn opcode, uint32_t cacheLine, uint32_t index)
-{
-    return (DecodedInstruction){.opcode = opcode, .fdr = {.cacheLine = cacheLine, .index = index}};
-}
-
-static inline DecodedInstruction MkRdImm(ExecFn opcode, uint8_t rd, int32_t imm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_imm = {.rd = rd, .imm = imm}};
-}
-
-static inline DecodedInstruction MkRdRs1Imm(ExecFn opcode, uint8_t rd, uint8_t rs1, int32_t imm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1_imm = {.rd = rd, .rs1 = rs1, .imm = imm}};
-}
-
-static inline DecodedInstruction MkRdRs1(ExecFn opcode, uint8_t rd, uint8_t rs1)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1 = {.rd = rd, .rs1 = rs1}};
-}
-
-static inline DecodedInstruction MkRdRs1Rs2(ExecFn opcode, uint8_t rd, uint8_t rs1, uint8_t rs2)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rs2 = {.rd = rd, .rs1 = rs1, .rs2 = rs2}};
-}
-
-static inline DecodedInstruction MkRs1Rs2Imm(ExecFn opcode, uint8_t rs1, uint8_t rs2, int32_t imm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rs1_rs2_imm = {.rs1 = rs1, .rs2 = rs2, .imm = imm}};
-}
-
-static inline DecodedInstruction MkRdRs1Rs2Rs3Rm(ExecFn opcode, uint8_t rd, uint8_t rs1, uint8_t rs2, uint8_t rs3, uint8_t rm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rs2_rs3_rm = {.rd = rd, .rs1 = rs1, .rs2 = rs2, .rs3 = rs3, .rm = rm}};
-}
-
-static inline DecodedInstruction MkRdRs1Rm(ExecFn opcode, uint8_t rd, uint8_t rs1, uint8_t rm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rm = {.rd = rd, .rs1 = rs1, .rm = rm}};
-}
-
-static inline DecodedInstruction MkRdRs1Rs2Rm(ExecFn opcode, uint8_t rd, uint8_t rs1, uint8_t rs2, uint8_t rm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rs2_rm = {.rd = rd, .rs1 = rs1, .rs2 = rs2, .rm = rm}};
-}
-
 static inline int32_t IImmediate(uint32_t instruction)
 {
     return (int32_t)instruction >> 20; // inst[31:20] -> sext(imm[11:0])
@@ -1586,26 +1531,6 @@ static inline int32_t JImmediate(uint32_t instruction)
             ;
 }
 
-static inline uint32_t Funct3(uint32_t instruction)
-{
-    return (instruction >> 12) & 7;
-}
-
-static inline uint32_t Funct7(uint32_t instruction)
-{
-    return instruction >> 25;
-}
-
-static inline uint32_t Funct12(uint32_t instruction)
-{
-    return instruction >> 20;
-}
-
-static inline uint32_t Opcode(uint32_t instruction)
-{
-    return instruction & 0x7f;
-}
-
 static inline uint32_t Rd(uint32_t instruction)
 {
     return (instruction >> 7) & 0x1f;
@@ -1639,80 +1564,88 @@ static inline uint32_t Bits(uint32_t n, uint32_t hi, uint32_t lo)
     return result;
 }
 
+static inline DecodedInstruction GenFetchDecodeReplace(ExecFn opcode, uint32_t cacheLine, uint32_t index)
+{
+    return (DecodedInstruction){.opcode = opcode, .fdr = {.cacheLine = cacheLine, .index = index}};
+}
+
 static inline DecodedInstruction GenImm12RdRs1(ExecFn opcode, uint32_t ins)
 {
-    return MkRdRs1Imm(opcode, Rd(ins), Rs1(ins), IImmediate(ins));
+    return (DecodedInstruction){.opcode = opcode, .rd_rs1_imm = {.rd = Rd(ins), .rs1 = Rs1(ins), .imm = IImmediate(ins)}};
 }
 
 static inline DecodedInstruction mk_trap(ExecFn opcode, uint32_t ins)
 {
-    return MkTrap(opcode, ins);
+    return (DecodedInstruction){.opcode = opcode, .ins = ins};
 }
 
 static inline DecodedInstruction GenFmPredRdRs1Succ(ExecFn opcode, uint32_t ins)
 {
     // TODO: implement this.
-    return MkNoArg(opcode);
+    return (DecodedInstruction){.opcode = opcode};
 }
 
 static inline DecodedInstruction GenRdRs1Shamtw(ExecFn opcode, uint32_t ins)
 {
-    return MkRdRs1Imm(opcode, Rd(ins), Rs1(ins), IImmediate(ins) & 0x1f);
+    return (DecodedInstruction){.opcode = opcode, .rd_rs1_imm = {.rd = Rd(ins), .rs1 = Rs1(ins), .imm = IImmediate(ins) & 0x1f}};
 }
 
 static inline DecodedInstruction GenImm20Rd(ExecFn opcode, uint32_t ins)
 {
-    return MkRdImm(opcode, Rd(ins), UImmediate(ins));
+    return (DecodedInstruction){.opcode = opcode, .rd_imm = {.rd = Rd(ins), .imm = UImmediate(ins)}};
 }
 
 static inline DecodedInstruction GenImm12hiImm12loRs1Rs2(ExecFn opcode, uint32_t ins)
 {
-    return MkRs1Rs2Imm(opcode, Rs1(ins), Rs2(ins), SImmediate(ins));
+    return (DecodedInstruction){.opcode = opcode, .rs1_rs2_imm = {.rs1 = Rs1(ins), .rs2 = Rs2(ins), .imm = SImmediate(ins)}};
 }
 
 static inline DecodedInstruction GenRdRs1Rs2(ExecFn opcode, uint32_t ins)
 {
-    return MkRdRs1Rs2(opcode, Rd(ins), Rs1(ins), Rs2(ins));
+    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rs2 = {.rd = Rd(ins), .rs1 = Rs1(ins), .rs2 = Rs2(ins)}};
 }
 
 static inline DecodedInstruction GenRdRmRs1Rs2Rs3(ExecFn opcode, uint32_t ins)
 {
-    return MkRdRs1Rs2Rs3Rm(opcode, Rd(ins), Rs1(ins), Rs2(ins), Rs3(ins), Rm(ins));
+    return (DecodedInstruction){
+            .opcode = opcode,
+            .rd_rs1_rs2_rs3_rm = {.rd = Rd(ins), .rs1 = Rs1(ins), .rs2 = Rs2(ins), .rs3 = Rs3(ins), .rm = Rm(ins)}};
 }
 
 static inline DecodedInstruction GenRdRs1(ExecFn opcode, uint32_t ins)
 {
-    return MkRdRs1(opcode, Rd(ins), Rs1(ins));
+    return (DecodedInstruction){.opcode = opcode, .rd_rs1 = {.rd = Rd(ins), .rs1 = Rs1(ins)}};
 }
 
 static inline DecodedInstruction GenRdRmRs1(ExecFn opcode, uint32_t ins)
 {
-    return MkRdRs1Rm(opcode, Rd(ins), Rs1(ins), Rm(ins));
+    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rm = {.rd = Rd(ins), .rs1 = Rs1(ins), .rm = Rm(ins)}};
 }
 
 static inline DecodedInstruction GenRdRmRs1Rs2(ExecFn opcode, uint32_t ins)
 {
-    return MkRdRs1Rs2Rm(opcode, Rd(ins), Rs1(ins), Rs2(ins), Rm(ins));
+    return (DecodedInstruction){.opcode = opcode,
+                                .rd_rs1_rs2_rm = {.rd = Rd(ins), .rs1 = Rs1(ins), .rs2 = Rs2(ins), .rm = Rm(ins)}};
 }
 
 static inline DecodedInstruction GenBimm12hiBimm12loRs1Rs2(ExecFn opcode, uint32_t ins)
 {
-    return MkRs1Rs2Imm(opcode, Rs1(ins), Rs2(ins), BImmediate(ins));
+    return (DecodedInstruction){.opcode = opcode, .rs1_rs2_imm = {.rs1 = Rs1(ins), .rs2 = Rs2(ins), .imm = BImmediate(ins)}};
 }
 
 static inline DecodedInstruction GenJimm20Rd(ExecFn opcode, uint32_t ins)
 {
-    return MkRdImm(opcode, Rd(ins), JImmediate(ins));
+    return (DecodedInstruction){.opcode = opcode, .rd_imm = {.rd = Rd(ins), .imm = JImmediate(ins)}};
 }
 
 static inline DecodedInstruction GenNoArgs(ExecFn opcode, uint32_t ins)
 {
-    return MkNoArg(opcode);
+    return (DecodedInstruction){.opcode = opcode};
 }
 
 static DecodedInstruction ArvissDecode(uint32_t ins)
 {
-    // This function is generated by make_decoder.py. Do not edit.]0;C:\Users\rodhy\scoop\apps\python\current\python.exe
+    // This function is generated by make_decoder.py. Do not edit.
     switch (Bits(ins, 1, 0))
     {
     case 0x3:
@@ -2245,7 +2178,7 @@ static inline DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
         // that are never run.
         for (uint32_t i = 0u; i < CACHE_LINE_LENGTH; i++)
         {
-            line->instructions[i] = MkFetchDecodeReplace(execFetchDecodeReplace, cacheLine, i);
+            line->instructions[i] = GenFetchDecodeReplace(execFetchDecodeReplace, cacheLine, i);
         }
         line->isValid = true;
         line->owner = owner;
