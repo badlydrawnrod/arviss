@@ -1,5 +1,5 @@
-#include "arviss.h"
-#include "bitcasts.h"
+#include "../arviss.h"
+#include "../bitcasts.h"
 
 #include "gtest/gtest.h"
 #include <cmath>

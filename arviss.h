@@ -267,6 +267,7 @@ typedef enum
     execAnd,
     execRemu,
     execFence,
+    execFenceI,
     execEcall,
     execEbreak,
     execUret,
@@ -274,30 +275,30 @@ typedef enum
     execMret,
     execFlw,
     execFsw,
-    execFmadd_s,
-    execFmsub_s,
-    execFnmsub_s,
-    execFnmadd_s,
-    execFadd_s,
-    execFsub_s,
-    execFmul_s,
-    execFdiv_s,
-    execFsqrt_s,
-    execFsgnj_s,
-    execFsgnjn_s,
-    execFsgnjx_s,
-    execFmin_s,
-    execFmax_s,
-    execFcvt_w_s,
-    execFcvt_wu_s,
-    execFmv_x_w,
-    execFclass_s,
-    execFeq_s,
-    execFlt_s,
-    execFle_s,
-    execFcvt_s_w,
-    execFcvt_s_wu,
-    execFmv_w_x,
+    execFmaddS,
+    execFmsubS,
+    execFnmsubS,
+    execFnmaddS,
+    execFaddS,
+    execFsubS,
+    execFmulS,
+    execFdivS,
+    execFsqrtS,
+    execFsgnjS,
+    execFsgnjnS,
+    execFsgnjxS,
+    execFminS,
+    execFmaxS,
+    execFcvtWS,
+    execFcvtWuS,
+    execFmvXW,
+    execFclassS,
+    execFeqS,
+    execFltS,
+    execFleS,
+    execFcvtSW,
+    execFcvtSWu,
+    execFmvWX
 } ExecFn;
 
 typedef struct DecodedInstruction DecodedInstruction;
@@ -534,35 +535,6 @@ void ArvissMret(ArvissCpu* cpu);
 extern "C" {
 #endif
 
-static void RunOne(ArvissCpu* cpu, DecodedInstruction* ins);
-
-static inline float U32AsFloat(const uint32_t a)
-{
-    union
-    {
-        uint32_t a;
-        float b;
-    } u;
-    u.a = a;
-    return u.b;
-}
-
-static inline uint32_t FloatAsU32(const float a)
-{
-    union
-    {
-        float a;
-        uint32_t b;
-    } u;
-    u.a = a;
-    return u.b;
-}
-
-static inline uint32_t BoolAsU32(const bool b)
-{
-    return b ? 1 : 0;
-}
-
 #if defined(ARVISS_TRACE_ENABLED)
 #include <stdio.h>
 #define TRACE(...)                                                                                                                 \
@@ -590,7 +562,35 @@ static char* fabiNames[] = {"ft0", "ft1", "ft2", "ft3", "ft4",  "ft5",  "ft6", "
 static char* roundingModes[] = {"rne", "rtz", "rdn", "rup", "rmm", "reserved5", "reserved6", "dyn"};
 #endif
 
+static void RunOne(ArvissCpu* cpu, DecodedInstruction* ins);
 static DecodedInstruction ArvissDecode(uint32_t instruction);
+
+static inline float U32AsFloat(const uint32_t a)
+{
+    union
+    {
+        uint32_t a;
+        float b;
+    } u;
+    u.a = a;
+    return u.b;
+}
+
+static inline uint32_t FloatAsU32(const float a)
+{
+    union
+    {
+        float a;
+        uint32_t b;
+    } u;
+    u.a = a;
+    return u.b;
+}
+
+static inline uint32_t BoolAsU32(const bool b)
+{
+    return b ? 1 : 0;
+}
 
 // --- Bus access ------------------------------------------------------------------------------------------------------------------
 
@@ -1491,636 +1491,6 @@ inline static void Exec_Fmv_w_x(ArvissCpu* cpu, const DecodedInstruction* ins)
     cpu->pc += 4;
 }
 
-// --- Decoding --------------------------------------------------------------------------------------------------------------------
-//
-// Functions in this section decode instructions into their executable form.
-
-static inline DecodedInstruction MkNoArg(ExecFn opcode)
-{
-    return (DecodedInstruction){.opcode = opcode};
-}
-
-static inline DecodedInstruction MkTrap(ExecFn opcode, uint32_t instruction)
-{
-    return (DecodedInstruction){.opcode = opcode, .ins = instruction};
-}
-
-static inline DecodedInstruction MkFetchDecodeReplace(ExecFn opcode, uint32_t cacheLine, uint32_t index)
-{
-    return (DecodedInstruction){.opcode = opcode, .fdr = {.cacheLine = cacheLine, .index = index}};
-}
-
-static inline DecodedInstruction MkRdImm(ExecFn opcode, uint8_t rd, int32_t imm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_imm = {.rd = rd, .imm = imm}};
-}
-
-static inline DecodedInstruction MkRdRs1Imm(ExecFn opcode, uint8_t rd, uint8_t rs1, int32_t imm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1_imm = {.rd = rd, .rs1 = rs1, .imm = imm}};
-}
-
-static inline DecodedInstruction MkRdRs1(ExecFn opcode, uint8_t rd, uint8_t rs1)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1 = {.rd = rd, .rs1 = rs1}};
-}
-
-static inline DecodedInstruction MkRdRs1Rs2(ExecFn opcode, uint8_t rd, uint8_t rs1, uint8_t rs2)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rs2 = {.rd = rd, .rs1 = rs1, .rs2 = rs2}};
-}
-
-static inline DecodedInstruction MkRs1Rs2Imm(ExecFn opcode, uint8_t rs1, uint8_t rs2, int32_t imm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rs1_rs2_imm = {.rs1 = rs1, .rs2 = rs2, .imm = imm}};
-}
-
-static inline DecodedInstruction MkRdRs1Rs2Rs3Rm(ExecFn opcode, uint8_t rd, uint8_t rs1, uint8_t rs2, uint8_t rs3, uint8_t rm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rs2_rs3_rm = {.rd = rd, .rs1 = rs1, .rs2 = rs2, .rs3 = rs3, .rm = rm}};
-}
-
-static inline DecodedInstruction MkRdRs1Rm(ExecFn opcode, uint8_t rd, uint8_t rs1, uint8_t rm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rm = {.rd = rd, .rs1 = rs1, .rm = rm}};
-}
-
-static inline DecodedInstruction MkRdRs1Rs2Rm(ExecFn opcode, uint8_t rd, uint8_t rs1, uint8_t rs2, uint8_t rm)
-{
-    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rs2_rm = {.rd = rd, .rs1 = rs1, .rs2 = rs2, .rm = rm}};
-}
-
-static inline int32_t IImmediate(uint32_t instruction)
-{
-    return (int32_t)instruction >> 20; // inst[31:20] -> sext(imm[11:0])
-}
-
-static inline int32_t SImmediate(uint32_t instruction)
-{
-    return ((int32_t)(instruction & 0xfe000000) >> 20) // inst[31:25] -> sext(imm[11:5])
-            | (instruction & 0x00000f80) >> 7          // inst[11:7]  -> imm[4:0]
-            ;
-}
-
-static inline int32_t BImmediate(uint32_t instruction)
-{
-    return ((int32_t)(instruction & 0x80000000) >> 19) // inst[31]    -> sext(imm[12])
-            | (instruction & 0x00000080) << 4          // inst[7]     -> imm[11]
-            | (instruction & 0x7e000000) >> 20         // inst[30:25] -> imm[10:5]
-            | (instruction & 0x00000f00) >> 7          // inst[11:8]  -> imm[4:1]
-            ;
-}
-
-static inline int32_t UImmediate(uint32_t instruction)
-{
-    return instruction & 0xfffff000; // inst[31:12] -> imm[31:12]
-}
-
-static inline int32_t JImmediate(uint32_t instruction)
-{
-    return ((int32_t)(instruction & 0x80000000) >> 11) // inst[31]    -> sext(imm[20])
-            | (instruction & 0x000ff000)               // inst[19:12] -> imm[19:12]
-            | (instruction & 0x00100000) >> 9          // inst[20]    -> imm[11]
-            | (instruction & 0x7fe00000) >> 20         // inst[30:21] -> imm[10:1]
-            ;
-}
-
-static inline uint32_t Funct3(uint32_t instruction)
-{
-    return (instruction >> 12) & 7;
-}
-
-static inline uint32_t Funct7(uint32_t instruction)
-{
-    return instruction >> 25;
-}
-
-static inline uint32_t Funct12(uint32_t instruction)
-{
-    return instruction >> 20;
-}
-
-static inline uint32_t Opcode(uint32_t instruction)
-{
-    return instruction & 0x7f;
-}
-
-static inline uint32_t Rd(uint32_t instruction)
-{
-    return (instruction >> 7) & 0x1f;
-}
-
-static inline uint32_t Rs1(uint32_t instruction)
-{
-    return (instruction >> 15) & 0x1f;
-}
-
-static inline uint32_t Rs2(uint32_t instruction)
-{
-    return (instruction >> 20) & 0x1f;
-}
-
-static inline uint32_t Rs3(uint32_t instruction)
-{
-    return (instruction >> 27) & 0x1f;
-}
-
-static inline uint32_t Rm(uint32_t instruction)
-{
-    return (instruction >> 12) & 7;
-}
-
-// See: http://www.five-embeddev.com/riscv-isa-manual/latest/gmaps.html#rv3264g-instruction-set-listings
-// or riscv-spec-209191213.pdf.
-static DecodedInstruction ArvissDecode(uint32_t instruction)
-{
-    const uint32_t opcode = Opcode(instruction);
-    const uint32_t rd = Rd(instruction);
-    const uint32_t rs1 = Rs1(instruction);
-
-    switch (opcode)
-    {
-    case opLUI: {
-        const int32_t upper = UImmediate(instruction);
-        return MkRdImm(execLui, rd, upper);
-    }
-
-    case opAUIPC: {
-        const int32_t upper = UImmediate(instruction);
-        return MkRdImm(execAuipc, rd, upper);
-    }
-
-    case opJAL: {
-        const int32_t imm = JImmediate(instruction);
-        return MkRdImm(execJal, rd, imm);
-    }
-
-    case opJALR: {
-        const uint32_t funct3 = Funct3(instruction);
-        if (funct3 == 0b000)
-        {
-            const int32_t imm = IImmediate(instruction);
-            return MkRdRs1Imm(execJalr, rd, rs1, imm);
-        }
-        return MkTrap(execIllegalInstruction, instruction);
-    }
-
-    case opBRANCH: {
-        const uint32_t funct3 = Funct3(instruction);
-        const uint32_t rs2 = Rs2(instruction);
-        const int32_t imm = BImmediate(instruction);
-        switch (funct3)
-        {
-        case 0b000: // BEQ
-            return MkRs1Rs2Imm(execBeq, rs1, rs2, imm);
-        case 0b001: // BNE
-            return MkRs1Rs2Imm(execBne, rs1, rs2, imm);
-        case 0b100: // BLT
-            return MkRs1Rs2Imm(execBlt, rs1, rs2, imm);
-        case 0b101: // BGE
-            return MkRs1Rs2Imm(execBge, rs1, rs2, imm);
-        case 0b110: // BLTU
-            return MkRs1Rs2Imm(execBltu, rs1, rs2, imm);
-        case 0b111: // BGEU
-            return MkRs1Rs2Imm(execBgeu, rs1, rs2, imm);
-        default:
-            return MkTrap(execIllegalInstruction, instruction);
-        }
-    }
-
-    case opLOAD: {
-        const uint32_t funct3 = Funct3(instruction);
-        const int32_t imm = IImmediate(instruction);
-        switch (funct3)
-        {
-        case 0b000: // LB
-            return MkRdRs1Imm(execLb, rd, rs1, imm);
-        case 0b001: // LH
-            return MkRdRs1Imm(execLh, rd, rs1, imm);
-        case 0b010: // LW
-            return MkRdRs1Imm(execLw, rd, rs1, imm);
-        case 0b100: // LBU
-            return MkRdRs1Imm(execLbu, rd, rs1, imm);
-        case 0b101: // LHU
-            return MkRdRs1Imm(execLhu, rd, rs1, imm);
-        default:
-            return MkTrap(execIllegalInstruction, instruction);
-        }
-    }
-
-    case opSTORE: {
-        const uint32_t funct3 = Funct3(instruction);
-        const uint32_t rs2 = Rs2(instruction);
-        const int32_t imm = SImmediate(instruction);
-        switch (funct3)
-        {
-        case 0b000: // SB
-            return MkRs1Rs2Imm(execSb, rs1, rs2, imm);
-        case 0b001: // SH
-            return MkRs1Rs2Imm(execSh, rs1, rs2, imm);
-        case 0b010: // SW
-            return MkRs1Rs2Imm(execSw, rs1, rs2, imm);
-        default:
-            return MkTrap(execIllegalInstruction, instruction);
-        }
-    }
-
-    case opOPIMM: {
-        const uint32_t funct3 = Funct3(instruction);
-        const int32_t imm = IImmediate(instruction);
-        const uint32_t funct7 = Funct7(instruction);
-        switch (funct3)
-        {
-        case 0b000: // ADDI
-            return MkRdRs1Imm(execAddi, rd, rs1, imm);
-        case 0b010: // SLTI
-            return MkRdRs1Imm(execSlti, rd, rs1, imm);
-        case 0b011: // SLTIU
-            return MkRdRs1Imm(execSltiu, rd, rs1, imm & 0x1f);
-        case 0b100: // XORI
-            return MkRdRs1Imm(execXori, rd, rs1, imm);
-        case 0b110: // ORI
-            return MkRdRs1Imm(execOri, rd, rs1, imm);
-        case 0b111: // ANDI
-            return MkRdRs1Imm(execAndi, rd, rs1, imm);
-        case 0b001: // SLLI
-            return MkRdRs1Imm(execSlli, rd, rs1, imm & 0x1f);
-        case 0b101:
-            switch (funct7)
-            {
-            case 0b0000000: // SRLI
-                return MkRdRs1Imm(execSrli, rd, rs1, imm & 0x1f);
-            case 0b0100000: // SRAI
-                return MkRdRs1Imm(execSrai, rd, rs1, imm & 0x1f);
-            default:
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        default:
-            return MkTrap(execIllegalInstruction, instruction);
-        }
-    }
-
-    case opOP: {
-        const uint32_t funct3 = Funct3(instruction);
-        const uint32_t rs2 = Rs2(instruction);
-        const uint32_t funct7 = Funct7(instruction);
-        switch (funct3)
-        {
-        case 0b000:
-            switch (funct7)
-            {
-            case 0b0000000: // ADD
-                return MkRdRs1Rs2(execAdd, rd, rs1, rs2);
-            case 0b0100000: // SUB
-                return MkRdRs1Rs2(execSub, rd, rs1, rs2);
-            case 0b00000001: // MUL (RV32M)
-                return MkRdRs1Rs2(execMul, rd, rs1, rs2);
-            default:
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        case 0b001:
-            switch (funct7)
-            {
-            case 0b0000000: // SLL
-                return MkRdRs1Rs2(execSll, rd, rs1, rs2);
-            case 0b00000001: // MULH (RV32M)
-                return MkRdRs1Rs2(execMulh, rd, rs1, rs2);
-            default:
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        case 0b010:
-            switch (funct7)
-            {
-            case 0b0000000: // SLT
-                return MkRdRs1Rs2(execSlt, rd, rs1, rs2);
-            case 0b00000001: // MULHSU (RV32M)
-                return MkRdRs1Rs2(execMulhsu, rd, rs1, rs2);
-            default:
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        case 0b011:
-            switch (funct7)
-            {
-            case 0b0000000: // SLTU
-                return MkRdRs1Rs2(execSltu, rd, rs1, rs2);
-            case 0b00000001: // MULHU (RV32M)
-                return MkRdRs1Rs2(execMulhu, rd, rs1, rs2);
-            default:
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        case 0b100:
-            switch (funct7)
-            {
-            case 0b0000000: // XOR
-                return MkRdRs1Rs2(execXor, rd, rs1, rs2);
-            case 0b00000001: // DIV (RV32M)
-                return MkRdRs1Rs2(execDiv, rd, rs1, rs2);
-            default:
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        case 0b101:
-            switch (funct7)
-            {
-            case 0b0000000: // SRL
-                return MkRdRs1Rs2(execSrl, rd, rs1, rs2);
-            case 0b0100000: // SRA
-                return MkRdRs1Rs2(execSra, rd, rs1, rs2);
-            case 0b00000001: // DIVU (RV32M)
-                return MkRdRs1Rs2(execDivu, rd, rs1, rs2);
-            default:
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        case 0b110:
-            switch (funct7)
-            {
-            case 0b0000000: // OR
-                return MkRdRs1Rs2(execOr, rd, rs1, rs2);
-            case 0b00000001: // REM
-                return MkRdRs1Rs2(execRem, rd, rs1, rs2);
-            default:
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        case 0b111:
-            switch (funct7)
-            {
-            case 0b0000000: // AND
-                return MkRdRs1Rs2(execAnd, rd, rs1, rs2);
-            case 0b00000001: // REMU
-                return MkRdRs1Rs2(execRemu, rd, rs1, rs2);
-            default:
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        default:
-            return MkTrap(execIllegalInstruction, instruction);
-        }
-    }
-
-    case opMISCMEM: {
-        const uint32_t funct3 = Funct3(instruction);
-        if (funct3 == 0b000)
-        {
-            return MkNoArg(execFence);
-        }
-        else
-        {
-            return MkTrap(execIllegalInstruction, instruction);
-        }
-    }
-
-    case opSYSTEM:
-        if ((instruction & 0b00000000000011111111111110000000) == 0)
-        {
-            const uint32_t funct12 = Funct12(instruction);
-            switch (funct12)
-            {
-            case 0b000000000000: // ECALL
-                return MkNoArg(execEcall);
-            case 0b000000000001: // EBREAK
-                return MkNoArg(execEbreak);
-            case 0b000000000010: // URET
-                return MkNoArg(execUret);
-            case 0b000100000010: // SRET
-                return MkNoArg(execSret);
-            case 0b001100000010: // MRET
-                return MkNoArg(execMret);
-            default:
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        }
-        else
-        {
-            return MkTrap(execIllegalInstruction, instruction);
-        }
-
-    case opLOADFP: { // Floating point load (RV32F)
-        const uint32_t funct3 = Funct3(instruction);
-        if (funct3 == 0b010) // FLW
-        {
-            const int32_t imm = IImmediate(instruction);
-            return MkRdRs1Imm(execFlw, rd, rs1, imm);
-        }
-        else
-        {
-            return MkTrap(execIllegalInstruction, instruction);
-        }
-    }
-
-    case opSTOREFP: { // Floating point store (RV32F)
-        const uint32_t funct3 = Funct3(instruction);
-        if (funct3 == 0b010) // FSW
-        {
-            // f32(rs1 + imm_s) = rs2
-            const uint32_t rs2 = Rs2(instruction);
-            const int32_t imm = SImmediate(instruction);
-            return MkRs1Rs2Imm(execFsw, rs1, rs2, imm);
-        }
-        else
-        {
-            return MkTrap(execIllegalInstruction, instruction);
-        }
-    }
-
-    case opMADD: {                             // Floating point fused multiply-add (RV32F)
-        if (((instruction >> 25) & 0b11) == 0) // FMADD.S
-        {
-            const uint32_t rm = Rm(instruction);
-            const uint32_t rs2 = Rs2(instruction);
-            const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(execFmadd_s, rd, rs1, rs2, rs3, rm);
-        }
-        else
-        {
-            return MkTrap(execIllegalInstruction, instruction);
-        }
-    }
-
-    case opMSUB: {                             // Floating point fused multiply-sub (RV32F)
-        if (((instruction >> 25) & 0b11) == 0) // FMSUB.S
-        {
-            const uint32_t rm = Rm(instruction);
-            const uint32_t rs2 = Rs2(instruction);
-            const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(execFmsub_s, rd, rs1, rs2, rs3, rm);
-        }
-        else
-        {
-            return MkTrap(execIllegalInstruction, instruction);
-        }
-    }
-
-    case opNMSUB: {                            // Floating point negated fused multiply-sub (RV32F)
-        if (((instruction >> 25) & 0b11) == 0) // FNMSUB.S
-        {
-            const uint32_t rm = Rm(instruction);
-            const uint32_t rs2 = Rs2(instruction);
-            const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(execFnmsub_s, rd, rs1, rs2, rs3, rm);
-        }
-        else
-        {
-            return MkTrap(execIllegalInstruction, instruction);
-        }
-    }
-
-    case opNMADD: {                            // Floating point negated fused multiply-add (RV32F)
-        if (((instruction >> 25) & 0b11) == 0) // FNMADD.S
-        {
-            const uint32_t rm = Rm(instruction);
-            const uint32_t rs2 = Rs2(instruction);
-            const uint32_t rs3 = Rs3(instruction);
-            return MkRdRs1Rs2Rs3Rm(execFnmadd_s, rd, rs1, rs2, rs3, rm);
-        }
-        else
-        {
-            return MkTrap(execIllegalInstruction, instruction);
-        }
-    }
-
-    case opOPFP: { // Floating point operations (RV32F)
-        const uint32_t funct7 = Funct7(instruction);
-        const uint32_t funct3 = Funct3(instruction);
-        const uint32_t rm = funct3;
-        const uint32_t rs2 = Rs2(instruction);
-        switch (funct7)
-        {
-        case 0b0000000: // FADD.S
-            return MkRdRs1Rs2Rm(execFadd_s, rd, rs1, rs2, rm);
-        case 0b0000100: // FSUB.S
-            return MkRdRs1Rs2Rm(execFsub_s, rd, rs1, rs2, rm);
-        case 0b0001000: // FMUL.S
-            return MkRdRs1Rs2Rm(execFmul_s, rd, rs1, rs2, rm);
-        case 0b0001100: // FDIV.S
-            return MkRdRs1Rs2Rm(execFdiv_s, rd, rs1, rs2, rm);
-        case 0b0101100:
-            if (rs2 == 0b00000) // FSQRT.S
-            {
-                return MkRdRs1Rm(execFsqrt_s, rd, rs1, rm);
-            }
-            else
-            {
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        case 0b0010000: {
-            switch (funct3)
-            {
-            case 0b000: // FSGNJ.S
-                return MkRdRs1Rs2Rm(execFsgnj_s, rd, rs1, rs2, rm);
-            case 0b001: // FSGNJN.S
-                return MkRdRs1Rs2Rm(execFsgnjn_s, rd, rs1, rs2, rm);
-            case 0b010: // FSGNJX.S
-                return MkRdRs1Rs2Rm(execFsgnjx_s, rd, rs1, rs2, rm);
-            default:
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        }
-        case 0b0010100: {
-            switch (funct3)
-            {
-            case 0b000: // FMIN.S
-                return MkRdRs1Rs2(execFmin_s, rd, rs1, rs2);
-            case 0b001: // FMAX.S
-                return MkRdRs1Rs2(execFmax_s, rd, rs1, rs2);
-            default:
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        }
-        case 0b1100000: {
-            switch (rs2) // Not actually rs2 - just the same bits.
-            {
-            case 0b00000: // FCVT.W.S
-                return MkRdRs1Rm(execFcvt_w_s, rd, rs1, rm);
-            case 0b00001: // FVCT.WU.S
-                return MkRdRs1Rm(execFcvt_wu_s, rd, rs1, rm);
-            default:
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        }
-        case 0b1110000: {
-            if (rs2 == 0b00000) // Not actually rs2 - just the same bits.
-            {
-                switch (funct3)
-                {
-                case 0b000: // FMV.X.W
-                    return MkRdRs1(execFmv_x_w, rd, rs1);
-                case 0b001: // FCLASS.S
-                    return MkRdRs1(execFclass_s, rd, rs1);
-                default:
-                    return MkTrap(execIllegalInstruction, instruction);
-                }
-            }
-            return MkTrap(execIllegalInstruction, instruction);
-        }
-        case 0b1010000: {
-            switch (funct3)
-            {
-            case 0b010: // FEQ.S
-                return MkRdRs1Rs2(execFeq_s, rd, rs1, rs2);
-            case 0b001: // FLT.S
-                return MkRdRs1Rs2(execFlt_s, rd, rs1, rs2);
-            case 0b000: // FLE.S
-                return MkRdRs1Rs2(execFle_s, rd, rs1, rs2);
-            default:
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        }
-        case 0b1101000: {
-            switch (rs2) // No actually rs2 - just the same bits,
-            {
-            case 0b00000: // FCVT.S.W
-                return MkRdRs1(execFcvt_s_w, rd, rs1);
-            case 0b00001: // FVCT.S.WU
-                return MkRdRs1(execFcvt_s_wu, rd, rs1);
-            default:
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        }
-        case 0b1111000:
-            if (rs2 == 0b00000 && funct3 == 0b000) // FMV.W.X
-            {
-                return MkRdRs1(execFmv_w_x, rd, rs1);
-            }
-            else
-            {
-                return MkTrap(execIllegalInstruction, instruction);
-            }
-        default:
-            return MkTrap(execIllegalInstruction, instruction);
-        }
-    }
-
-    default:
-        return MkTrap(execIllegalInstruction, instruction);
-    }
-}
-
-static inline DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
-{
-    // Use the PC to figure out which cache line we need and where we are in it (the line index).
-    const uint32_t addr = cpu->pc;
-    const uint32_t owner = ((addr / 4) / CACHE_LINE_LENGTH);
-    const uint32_t cacheLine = owner % CACHE_LINES;
-    const uint32_t lineIndex = (addr / 4) % CACHE_LINE_LENGTH;
-    struct CacheLine* line = &cpu->cache.line[cacheLine];
-
-    // If we don't own the cache line, or it's invalid, then populate it.
-    if (owner != line->owner || !line->isValid)
-    {
-        // Populate this cache line with fetch/decode/replace operations which, when called, replace themselves with a decoded
-        // version of the instruction at the corresponding address. This way we don't incur an overhead for decoding instructions
-        // that are never run.
-        for (uint32_t i = 0u; i < CACHE_LINE_LENGTH; i++)
-        {
-            line->instructions[i] = MkFetchDecodeReplace(execFetchDecodeReplace, cacheLine, i);
-        }
-        line->isValid = true;
-        line->owner = owner;
-    }
-
-    return &line->instructions[lineIndex];
-}
-
-// --- The Arviss API --------------------------------------------------------------------------------------------------------------
-
 static void RunOne(ArvissCpu* cpu, DecodedInstruction* ins)
 {
     switch (ins->opcode)
@@ -2287,76 +1657,76 @@ static void RunOne(ArvissCpu* cpu, DecodedInstruction* ins)
     case execFsw:
         Exec_Fsw(cpu, ins);
         break;
-    case execFmadd_s:
+    case execFmaddS:
         Exec_Fmadd_s(cpu, ins);
         break;
-    case execFmsub_s:
+    case execFmsubS:
         Exec_Fmsub_s(cpu, ins);
         break;
-    case execFnmsub_s:
+    case execFnmsubS:
         Exec_Fnmsub_s(cpu, ins);
         break;
-    case execFnmadd_s:
+    case execFnmaddS:
         Exec_Fnmadd_s(cpu, ins);
         break;
-    case execFadd_s:
+    case execFaddS:
         Exec_Fadd_s(cpu, ins);
         break;
-    case execFsub_s:
+    case execFsubS:
         Exec_Fsub_s(cpu, ins);
         break;
-    case execFmul_s:
+    case execFmulS:
         Exec_Fmul_s(cpu, ins);
         break;
-    case execFdiv_s:
+    case execFdivS:
         Exec_Fdiv_s(cpu, ins);
         break;
-    case execFsqrt_s:
+    case execFsqrtS:
         Exec_Fsqrt_s(cpu, ins);
         break;
-    case execFsgnj_s:
+    case execFsgnjS:
         Exec_Fsgnj_s(cpu, ins);
         break;
-    case execFsgnjn_s:
+    case execFsgnjnS:
         Exec_Fsgnjn_s(cpu, ins);
         break;
-    case execFsgnjx_s:
+    case execFsgnjxS:
         Exec_Fsgnjx_s(cpu, ins);
         break;
-    case execFmin_s:
+    case execFminS:
         Exec_Fmin_s(cpu, ins);
         break;
-    case execFmax_s:
+    case execFmaxS:
         Exec_Fmax_s(cpu, ins);
         break;
-    case execFcvt_w_s:
+    case execFcvtWS:
         Exec_Fcvt_w_s(cpu, ins);
         break;
-    case execFcvt_wu_s:
+    case execFcvtWuS:
         Exec_Fcvt_wu_s(cpu, ins);
         break;
-    case execFmv_x_w:
+    case execFmvXW:
         Exec_Fmv_x_w(cpu, ins);
         break;
-    case execFclass_s:
+    case execFclassS:
         Exec_Fclass_s(cpu, ins);
         break;
-    case execFeq_s:
+    case execFeqS:
         Exec_Feq_s(cpu, ins);
         break;
-    case execFlt_s:
+    case execFltS:
         Exec_Flt_s(cpu, ins);
         break;
-    case execFle_s:
+    case execFleS:
         Exec_Fle_s(cpu, ins);
         break;
-    case execFcvt_s_w:
+    case execFcvtSW:
         Exec_Fcvt_s_w(cpu, ins);
         break;
-    case execFcvt_s_wu:
+    case execFcvtSWu:
         Exec_Fcvt_s_wu(cpu, ins);
         break;
-    case execFmv_w_x:
+    case execFmvWX:
         Exec_Fmv_w_x(cpu, ins);
         break;
     case execIllegalInstruction:
@@ -2365,6 +1735,703 @@ static void RunOne(ArvissCpu* cpu, DecodedInstruction* ins)
         break;
     }
 }
+
+// --- Decoding --------------------------------------------------------------------------------------------------------------------
+//
+// Functions in this section decode instructions into their executable form.
+
+static inline int32_t IImmediate(uint32_t instruction)
+{
+    return (int32_t)instruction >> 20; // inst[31:20] -> sext(imm[11:0])
+}
+
+static inline int32_t SImmediate(uint32_t instruction)
+{
+    return ((int32_t)(instruction & 0xfe000000) >> 20) // inst[31:25] -> sext(imm[11:5])
+            | (instruction & 0x00000f80) >> 7          // inst[11:7]  -> imm[4:0]
+            ;
+}
+
+static inline int32_t BImmediate(uint32_t instruction)
+{
+    return ((int32_t)(instruction & 0x80000000) >> 19) // inst[31]    -> sext(imm[12])
+            | (instruction & 0x00000080) << 4          // inst[7]     -> imm[11]
+            | (instruction & 0x7e000000) >> 20         // inst[30:25] -> imm[10:5]
+            | (instruction & 0x00000f00) >> 7          // inst[11:8]  -> imm[4:1]
+            ;
+}
+
+static inline int32_t UImmediate(uint32_t instruction)
+{
+    return instruction & 0xfffff000; // inst[31:12] -> imm[31:12]
+}
+
+static inline int32_t JImmediate(uint32_t instruction)
+{
+    return ((int32_t)(instruction & 0x80000000) >> 11) // inst[31]    -> sext(imm[20])
+            | (instruction & 0x000ff000)               // inst[19:12] -> imm[19:12]
+            | (instruction & 0x00100000) >> 9          // inst[20]    -> imm[11]
+            | (instruction & 0x7fe00000) >> 20         // inst[30:21] -> imm[10:1]
+            ;
+}
+
+static inline uint32_t Rd(uint32_t instruction)
+{
+    return (instruction >> 7) & 0x1f;
+}
+
+static inline uint32_t Rs1(uint32_t instruction)
+{
+    return (instruction >> 15) & 0x1f;
+}
+
+static inline uint32_t Rs2(uint32_t instruction)
+{
+    return (instruction >> 20) & 0x1f;
+}
+
+static inline uint32_t Rs3(uint32_t instruction)
+{
+    return (instruction >> 27) & 0x1f;
+}
+
+static inline uint32_t Rm(uint32_t instruction)
+{
+    return (instruction >> 12) & 7;
+}
+
+static inline uint32_t Bits(uint32_t n, uint32_t hi, uint32_t lo)
+{
+    const uint32_t run = (hi - lo) + 1;
+    const uint32_t mask = ((1 << run) - 1) << lo;
+    const uint32_t result = (n & mask) >> lo;
+    return result;
+}
+
+static inline DecodedInstruction GenFetchDecodeReplace(ExecFn opcode, uint32_t cacheLine, uint32_t index)
+{
+    return (DecodedInstruction){.opcode = opcode, .fdr = {.cacheLine = cacheLine, .index = index}};
+}
+
+static inline DecodedInstruction GenImm12RdRs1(ExecFn opcode, uint32_t ins)
+{
+    return (DecodedInstruction){.opcode = opcode, .rd_rs1_imm = {.rd = Rd(ins), .rs1 = Rs1(ins), .imm = IImmediate(ins)}};
+}
+
+static inline DecodedInstruction mk_trap(ExecFn opcode, uint32_t ins)
+{
+    return (DecodedInstruction){.opcode = opcode, .ins = ins};
+}
+
+static inline DecodedInstruction GenFmPredRdRs1Succ(ExecFn opcode, uint32_t ins)
+{
+    // TODO: implement this.
+    return (DecodedInstruction){.opcode = opcode};
+}
+
+static inline DecodedInstruction GenRdRs1Shamtw(ExecFn opcode, uint32_t ins)
+{
+    return (DecodedInstruction){.opcode = opcode, .rd_rs1_imm = {.rd = Rd(ins), .rs1 = Rs1(ins), .imm = IImmediate(ins) & 0x1f}};
+}
+
+static inline DecodedInstruction GenImm20Rd(ExecFn opcode, uint32_t ins)
+{
+    return (DecodedInstruction){.opcode = opcode, .rd_imm = {.rd = Rd(ins), .imm = UImmediate(ins)}};
+}
+
+static inline DecodedInstruction GenImm12hiImm12loRs1Rs2(ExecFn opcode, uint32_t ins)
+{
+    return (DecodedInstruction){.opcode = opcode, .rs1_rs2_imm = {.rs1 = Rs1(ins), .rs2 = Rs2(ins), .imm = SImmediate(ins)}};
+}
+
+static inline DecodedInstruction GenRdRs1Rs2(ExecFn opcode, uint32_t ins)
+{
+    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rs2 = {.rd = Rd(ins), .rs1 = Rs1(ins), .rs2 = Rs2(ins)}};
+}
+
+static inline DecodedInstruction GenRdRmRs1Rs2Rs3(ExecFn opcode, uint32_t ins)
+{
+    return (DecodedInstruction){
+            .opcode = opcode,
+            .rd_rs1_rs2_rs3_rm = {.rd = Rd(ins), .rs1 = Rs1(ins), .rs2 = Rs2(ins), .rs3 = Rs3(ins), .rm = Rm(ins)}};
+}
+
+static inline DecodedInstruction GenRdRs1(ExecFn opcode, uint32_t ins)
+{
+    return (DecodedInstruction){.opcode = opcode, .rd_rs1 = {.rd = Rd(ins), .rs1 = Rs1(ins)}};
+}
+
+static inline DecodedInstruction GenRdRmRs1(ExecFn opcode, uint32_t ins)
+{
+    return (DecodedInstruction){.opcode = opcode, .rd_rs1_rm = {.rd = Rd(ins), .rs1 = Rs1(ins), .rm = Rm(ins)}};
+}
+
+static inline DecodedInstruction GenRdRmRs1Rs2(ExecFn opcode, uint32_t ins)
+{
+    return (DecodedInstruction){.opcode = opcode,
+                                .rd_rs1_rs2_rm = {.rd = Rd(ins), .rs1 = Rs1(ins), .rs2 = Rs2(ins), .rm = Rm(ins)}};
+}
+
+static inline DecodedInstruction GenBimm12hiBimm12loRs1Rs2(ExecFn opcode, uint32_t ins)
+{
+    return (DecodedInstruction){.opcode = opcode, .rs1_rs2_imm = {.rs1 = Rs1(ins), .rs2 = Rs2(ins), .imm = BImmediate(ins)}};
+}
+
+static inline DecodedInstruction GenJimm20Rd(ExecFn opcode, uint32_t ins)
+{
+    return (DecodedInstruction){.opcode = opcode, .rd_imm = {.rd = Rd(ins), .imm = JImmediate(ins)}};
+}
+
+static inline DecodedInstruction GenNoArgs(ExecFn opcode, uint32_t ins)
+{
+    return (DecodedInstruction){.opcode = opcode};
+}
+
+static DecodedInstruction ArvissDecode(uint32_t ins)
+{
+    // This function is generated by make_decoder.py. Do not edit.
+    switch (Bits(ins, 1, 0))
+    {
+    case 0x3:
+        switch (Bits(ins, 6, 2))
+        {
+        case 0x0:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x0:
+                // lb
+                return GenImm12RdRs1(execLb, ins);
+            case 0x1:
+                // lh
+                return GenImm12RdRs1(execLh, ins);
+            case 0x2:
+                // lw
+                return GenImm12RdRs1(execLw, ins);
+            case 0x4:
+                // lbu
+                return GenImm12RdRs1(execLbu, ins);
+            case 0x5:
+                // lhu
+                return GenImm12RdRs1(execLhu, ins);
+            default:
+                break;
+            }
+        case 0x1:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x2:
+                // flw
+                return GenImm12RdRs1(execFlw, ins);
+            default:
+                break;
+            }
+        case 0x3:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x0:
+                // fence
+                return GenFmPredRdRs1Succ(execFence, ins);
+            case 0x1:
+                // fence.i
+                return GenImm12RdRs1(execFenceI, ins);
+            default:
+                break;
+            }
+        case 0x4:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x0:
+                // addi
+                return GenImm12RdRs1(execAddi, ins);
+            case 0x1:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x0:
+                    // slli
+                    return GenRdRs1Shamtw(execSlli, ins);
+                default:
+                    break;
+                }
+            case 0x2:
+                // slti
+                return GenImm12RdRs1(execSlti, ins);
+            case 0x3:
+                // sltiu
+                return GenImm12RdRs1(execSltiu, ins);
+            case 0x4:
+                // xori
+                return GenImm12RdRs1(execXori, ins);
+            case 0x5:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x0:
+                    // srli
+                    return GenRdRs1Shamtw(execSrli, ins);
+                case 0x20:
+                    // srai
+                    return GenRdRs1Shamtw(execSrai, ins);
+                default:
+                    break;
+                }
+            case 0x6:
+                // ori
+                return GenImm12RdRs1(execOri, ins);
+            case 0x7:
+                // andi
+                return GenImm12RdRs1(execAndi, ins);
+            default:
+                break;
+            }
+        case 0x5:
+            // auipc
+            return GenImm20Rd(execAuipc, ins);
+        case 0x8:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x0:
+                // sb
+                return GenImm12hiImm12loRs1Rs2(execSb, ins);
+            case 0x1:
+                // sh
+                return GenImm12hiImm12loRs1Rs2(execSh, ins);
+            case 0x2:
+                // sw
+                return GenImm12hiImm12loRs1Rs2(execSw, ins);
+            default:
+                break;
+            }
+        case 0x9:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x2:
+                // fsw
+                return GenImm12hiImm12loRs1Rs2(execFsw, ins);
+            default:
+                break;
+            }
+        case 0xc:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x0:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x0:
+                    // add
+                    return GenRdRs1Rs2(execAdd, ins);
+                case 0x1:
+                    // mul
+                    return GenRdRs1Rs2(execMul, ins);
+                case 0x20:
+                    // sub
+                    return GenRdRs1Rs2(execSub, ins);
+                default:
+                    break;
+                }
+            case 0x1:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x0:
+                    // sll
+                    return GenRdRs1Rs2(execSll, ins);
+                case 0x1:
+                    // mulh
+                    return GenRdRs1Rs2(execMulh, ins);
+                default:
+                    break;
+                }
+            case 0x2:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x0:
+                    // slt
+                    return GenRdRs1Rs2(execSlt, ins);
+                case 0x1:
+                    // mulhsu
+                    return GenRdRs1Rs2(execMulhsu, ins);
+                default:
+                    break;
+                }
+            case 0x3:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x0:
+                    // sltu
+                    return GenRdRs1Rs2(execSltu, ins);
+                case 0x1:
+                    // mulhu
+                    return GenRdRs1Rs2(execMulhu, ins);
+                default:
+                    break;
+                }
+            case 0x4:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x0:
+                    // xor
+                    return GenRdRs1Rs2(execXor, ins);
+                case 0x1:
+                    // div
+                    return GenRdRs1Rs2(execDiv, ins);
+                default:
+                    break;
+                }
+            case 0x5:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x0:
+                    // srl
+                    return GenRdRs1Rs2(execSrl, ins);
+                case 0x1:
+                    // divu
+                    return GenRdRs1Rs2(execDivu, ins);
+                case 0x20:
+                    // sra
+                    return GenRdRs1Rs2(execSra, ins);
+                default:
+                    break;
+                }
+            case 0x6:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x0:
+                    // or
+                    return GenRdRs1Rs2(execOr, ins);
+                case 0x1:
+                    // rem
+                    return GenRdRs1Rs2(execRem, ins);
+                default:
+                    break;
+                }
+            case 0x7:
+                switch (Bits(ins, 31, 25))
+                {
+                case 0x0:
+                    // and
+                    return GenRdRs1Rs2(execAnd, ins);
+                case 0x1:
+                    // remu
+                    return GenRdRs1Rs2(execRemu, ins);
+                default:
+                    break;
+                }
+            default:
+                break;
+            }
+        case 0xd:
+            // lui
+            return GenImm20Rd(execLui, ins);
+        case 0x10:
+            switch (Bits(ins, 26, 25))
+            {
+            case 0x0:
+                // fmadd.s
+                return GenRdRmRs1Rs2Rs3(execFmaddS, ins);
+            default:
+                break;
+            }
+        case 0x11:
+            switch (Bits(ins, 26, 25))
+            {
+            case 0x0:
+                // fmsub.s
+                return GenRdRmRs1Rs2Rs3(execFmsubS, ins);
+            default:
+                break;
+            }
+        case 0x12:
+            switch (Bits(ins, 26, 25))
+            {
+            case 0x0:
+                // fnmsub.s
+                return GenRdRmRs1Rs2Rs3(execFnmsubS, ins);
+            default:
+                break;
+            }
+        case 0x13:
+            switch (Bits(ins, 26, 25))
+            {
+            case 0x0:
+                // fnmadd.s
+                return GenRdRmRs1Rs2Rs3(execFnmaddS, ins);
+            default:
+                break;
+            }
+        case 0x14:
+            switch (Bits(ins, 26, 25))
+            {
+            case 0x0:
+                switch (Bits(ins, 14, 12))
+                {
+                case 0x0:
+                    switch (Bits(ins, 31, 27))
+                    {
+                    case 0x4:
+                        // fsgnj.s
+                        return GenRdRs1Rs2(execFsgnjS, ins);
+                    case 0x5:
+                        // fmin.s
+                        return GenRdRs1Rs2(execFminS, ins);
+                    case 0x14:
+                        // fle.s
+                        return GenRdRs1Rs2(execFleS, ins);
+                    case 0x1c:
+                        switch (Bits(ins, 24, 20))
+                        {
+                        case 0x0:
+                            // fmv.x.w
+                            return GenRdRs1(execFmvXW, ins);
+                        default:
+                            break;
+                        }
+                    case 0x1e:
+                        switch (Bits(ins, 24, 20))
+                        {
+                        case 0x0:
+                            // fmv.w.x
+                            return GenRdRs1(execFmvWX, ins);
+                        default:
+                            break;
+                        }
+                    default:
+                        break;
+                    }
+                case 0x1:
+                    switch (Bits(ins, 31, 27))
+                    {
+                    case 0x4:
+                        // fsgnjn.s
+                        return GenRdRs1Rs2(execFsgnjnS, ins);
+                    case 0x5:
+                        // fmax.s
+                        return GenRdRs1Rs2(execFmaxS, ins);
+                    case 0x14:
+                        // flt.s
+                        return GenRdRs1Rs2(execFltS, ins);
+                    case 0x1c:
+                        switch (Bits(ins, 24, 20))
+                        {
+                        case 0x0:
+                            // fclass.s
+                            return GenRdRs1(execFclassS, ins);
+                        default:
+                            break;
+                        }
+                    default:
+                        break;
+                    }
+                case 0x2:
+                    switch (Bits(ins, 31, 27))
+                    {
+                    case 0x4:
+                        // fsgnjx.s
+                        return GenRdRs1Rs2(execFsgnjxS, ins);
+                    case 0x14:
+                        // feq.s
+                        return GenRdRs1Rs2(execFeqS, ins);
+                    default:
+                        break;
+                    }
+                default:
+                    break;
+                }
+                switch (Bits(ins, 31, 27))
+                {
+                case 0x0:
+                    // fadd.s
+                    return GenRdRmRs1Rs2(execFaddS, ins);
+                case 0x1:
+                    // fsub.s
+                    return GenRdRmRs1Rs2(execFsubS, ins);
+                case 0x2:
+                    // fmul.s
+                    return GenRdRmRs1Rs2(execFmulS, ins);
+                case 0x3:
+                    // fdiv.s
+                    return GenRdRmRs1Rs2(execFdivS, ins);
+                case 0xb:
+                    switch (Bits(ins, 24, 20))
+                    {
+                    case 0x0:
+                        // fsqrt.s
+                        return GenRdRmRs1(execFsqrtS, ins);
+                    default:
+                        break;
+                    }
+                case 0x18:
+                    switch (Bits(ins, 24, 20))
+                    {
+                    case 0x0:
+                        // fcvt.w.s
+                        return GenRdRmRs1(execFcvtWS, ins);
+                    case 0x1:
+                        // fcvt.wu.s
+                        return GenRdRmRs1(execFcvtWuS, ins);
+                    default:
+                        break;
+                    }
+                case 0x1a:
+                    switch (Bits(ins, 24, 20))
+                    {
+                    case 0x0:
+                        // fcvt.s.w
+                        return GenRdRmRs1(execFcvtSW, ins);
+                    case 0x1:
+                        // fcvt.s.wu
+                        return GenRdRmRs1(execFcvtSWu, ins);
+                    default:
+                        break;
+                    }
+                default:
+                    break;
+                }
+            default:
+                break;
+            }
+        case 0x18:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x0:
+                // beq
+                return GenBimm12hiBimm12loRs1Rs2(execBeq, ins);
+            case 0x1:
+                // bne
+                return GenBimm12hiBimm12loRs1Rs2(execBne, ins);
+            case 0x4:
+                // blt
+                return GenBimm12hiBimm12loRs1Rs2(execBlt, ins);
+            case 0x5:
+                // bge
+                return GenBimm12hiBimm12loRs1Rs2(execBge, ins);
+            case 0x6:
+                // bltu
+                return GenBimm12hiBimm12loRs1Rs2(execBltu, ins);
+            case 0x7:
+                // bgeu
+                return GenBimm12hiBimm12loRs1Rs2(execBgeu, ins);
+            default:
+                break;
+            }
+        case 0x19:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x0:
+                // jalr
+                return GenImm12RdRs1(execJalr, ins);
+            default:
+                break;
+            }
+        case 0x1b:
+            // jal
+            return GenJimm20Rd(execJal, ins);
+        case 0x1c:
+            switch (Bits(ins, 14, 12))
+            {
+            case 0x0:
+                switch (Bits(ins, 31, 20))
+                {
+                case 0x0:
+                    switch (Bits(ins, 19, 15))
+                    {
+                    case 0x0:
+                        switch (Bits(ins, 11, 7))
+                        {
+                        case 0x0:
+                            // ecall
+                            return GenNoArgs(execEcall, ins);
+                        default:
+                            break;
+                        }
+                    default:
+                        break;
+                    }
+                case 0x1:
+                    switch (Bits(ins, 19, 15))
+                    {
+                    case 0x0:
+                        switch (Bits(ins, 11, 7))
+                        {
+                        case 0x0:
+                            // ebreak
+                            return GenNoArgs(execEbreak, ins);
+                        default:
+                            break;
+                        }
+                    default:
+                        break;
+                    }
+                case 0x102:
+                    switch (Bits(ins, 19, 15))
+                    {
+                    case 0x0:
+                        switch (Bits(ins, 11, 7))
+                        {
+                        case 0x0:
+                            // sret
+                            return GenNoArgs(execSret, ins);
+                        default:
+                            break;
+                        }
+                    default:
+                        break;
+                    }
+                case 0x302:
+                    switch (Bits(ins, 19, 15))
+                    {
+                    case 0x0:
+                        switch (Bits(ins, 11, 7))
+                        {
+                        case 0x0:
+                            // mret
+                            return GenNoArgs(execMret, ins);
+                        default:
+                            break;
+                        }
+                    default:
+                        break;
+                    }
+                default:
+                    break;
+                }
+            default:
+                break;
+            }
+        default:
+            break;
+        }
+    default:
+        break;
+    }
+    // Illegal instruction.
+    return mk_trap(execIllegalInstruction, ins);
+}
+
+static inline DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
+{
+    // Use the PC to figure out which cache line we need and where we are in it (the line index).
+    const uint32_t addr = cpu->pc;
+    const uint32_t owner = ((addr / 4) / CACHE_LINE_LENGTH);
+    const uint32_t cacheLine = owner % CACHE_LINES;
+    const uint32_t lineIndex = (addr / 4) % CACHE_LINE_LENGTH;
+    struct CacheLine* line = &cpu->cache.line[cacheLine];
+
+    // If we don't own the cache line, or it's invalid, then populate it.
+    if (owner != line->owner || !line->isValid)
+    {
+        // Populate this cache line with fetch/decode/replace operations which, when called, replace themselves with a decoded
+        // version of the instruction at the corresponding address. This way we don't incur an overhead for decoding instructions
+        // that are never run.
+        for (uint32_t i = 0u; i < CACHE_LINE_LENGTH; i++)
+        {
+            line->instructions[i] = GenFetchDecodeReplace(execFetchDecodeReplace, cacheLine, i);
+        }
+        line->isValid = true;
+        line->owner = owner;
+    }
+
+    return &line->instructions[lineIndex];
+}
+
+// --- The Arviss API --------------------------------------------------------------------------------------------------------------
 
 ArvissResult ArvissRun(ArvissCpu* cpu, int count)
 {
