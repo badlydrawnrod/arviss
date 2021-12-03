@@ -33,7 +33,7 @@ def generate_c_code(d, level=0):
 
     if level == 0:
         print(f"// Illegal instruction.")
-        print(f"return mk_trap(execIllegalInstruction, ins);")
+        print(f"return GenTrap(execIllegalInstruction, ins);")
 
 
 # From: https://stackoverflow.com/questions/7204805/how-to-merge-dictionaries-of-dictionaries

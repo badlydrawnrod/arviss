@@ -1818,7 +1818,7 @@ static inline DecodedInstruction GenImm12RdRs1(ExecFn opcode, uint32_t ins)
     return (DecodedInstruction){.opcode = opcode, .rd_rs1_imm = {.rd = Rd(ins), .rs1 = Rs1(ins), .imm = IImmediate(ins)}};
 }
 
-static inline DecodedInstruction mk_trap(ExecFn opcode, uint32_t ins)
+static inline DecodedInstruction GenTrap(ExecFn opcode, uint32_t ins)
 {
     return (DecodedInstruction){.opcode = opcode, .ins = ins};
 }
@@ -2402,7 +2402,7 @@ static DecodedInstruction ArvissDecode(uint32_t ins)
         break;
     }
     // Illegal instruction.
-    return mk_trap(execIllegalInstruction, ins);
+    return GenTrap(execIllegalInstruction, ins);
 }
 
 static inline DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
