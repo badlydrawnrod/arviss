@@ -535,35 +535,6 @@ void ArvissMret(ArvissCpu* cpu);
 extern "C" {
 #endif
 
-static void RunOne(ArvissCpu* cpu, DecodedInstruction* ins);
-
-static inline float U32AsFloat(const uint32_t a)
-{
-    union
-    {
-        uint32_t a;
-        float b;
-    } u;
-    u.a = a;
-    return u.b;
-}
-
-static inline uint32_t FloatAsU32(const float a)
-{
-    union
-    {
-        float a;
-        uint32_t b;
-    } u;
-    u.a = a;
-    return u.b;
-}
-
-static inline uint32_t BoolAsU32(const bool b)
-{
-    return b ? 1 : 0;
-}
-
 #if defined(ARVISS_TRACE_ENABLED)
 #include <stdio.h>
 #define TRACE(...)                                                                                                                 \
@@ -591,7 +562,35 @@ static char* fabiNames[] = {"ft0", "ft1", "ft2", "ft3", "ft4",  "ft5",  "ft6", "
 static char* roundingModes[] = {"rne", "rtz", "rdn", "rup", "rmm", "reserved5", "reserved6", "dyn"};
 #endif
 
+static void RunOne(ArvissCpu* cpu, DecodedInstruction* ins);
 static DecodedInstruction ArvissDecode(uint32_t instruction);
+
+static inline float U32AsFloat(const uint32_t a)
+{
+    union
+    {
+        uint32_t a;
+        float b;
+    } u;
+    u.a = a;
+    return u.b;
+}
+
+static inline uint32_t FloatAsU32(const float a)
+{
+    union
+    {
+        float a;
+        uint32_t b;
+    } u;
+    u.a = a;
+    return u.b;
+}
+
+static inline uint32_t BoolAsU32(const bool b)
+{
+    return b ? 1 : 0;
+}
 
 // --- Bus access ------------------------------------------------------------------------------------------------------------------
 
@@ -1492,6 +1491,251 @@ inline static void Exec_Fmv_w_x(ArvissCpu* cpu, const DecodedInstruction* ins)
     cpu->pc += 4;
 }
 
+static void RunOne(ArvissCpu* cpu, DecodedInstruction* ins)
+{
+    switch (ins->opcode)
+    {
+    case execFetchDecodeReplace:
+        Exec_FetchDecodeReplace(cpu, ins);
+        break;
+    case execLui:
+        Exec_Lui(cpu, ins);
+        break;
+    case execAuipc:
+        Exec_Auipc(cpu, ins);
+        break;
+    case execJal:
+        Exec_Jal(cpu, ins);
+        break;
+    case execJalr:
+        Exec_Jalr(cpu, ins);
+        break;
+    case execBeq:
+        Exec_Beq(cpu, ins);
+        break;
+    case execBne:
+        Exec_Bne(cpu, ins);
+        break;
+    case execBlt:
+        Exec_Blt(cpu, ins);
+        break;
+    case execBge:
+        Exec_Bge(cpu, ins);
+        break;
+    case execBltu:
+        Exec_Bltu(cpu, ins);
+        break;
+    case execBgeu:
+        Exec_Bgeu(cpu, ins);
+        break;
+    case execLb:
+        Exec_Lb(cpu, ins);
+        break;
+    case execLh:
+        Exec_Lh(cpu, ins);
+        break;
+    case execLw:
+        Exec_Lw(cpu, ins);
+        break;
+    case execLbu:
+        Exec_Lbu(cpu, ins);
+        break;
+    case execLhu:
+        Exec_Lhu(cpu, ins);
+        break;
+    case execSb:
+        Exec_Sb(cpu, ins);
+        break;
+    case execSh:
+        Exec_Sh(cpu, ins);
+        break;
+    case execSw:
+        Exec_Sw(cpu, ins);
+        break;
+    case execAddi:
+        Exec_Addi(cpu, ins);
+        break;
+    case execSlti:
+        Exec_Slti(cpu, ins);
+        break;
+    case execSltiu:
+        Exec_Sltiu(cpu, ins);
+        break;
+    case execXori:
+        Exec_Xori(cpu, ins);
+        break;
+    case execOri:
+        Exec_Ori(cpu, ins);
+        break;
+    case execAndi:
+        Exec_Andi(cpu, ins);
+        break;
+    case execSlli:
+        Exec_Slli(cpu, ins);
+        break;
+    case execSrli:
+        Exec_Srli(cpu, ins);
+        break;
+    case execSrai:
+        Exec_Srai(cpu, ins);
+        break;
+    case execAdd:
+        Exec_Add(cpu, ins);
+        break;
+    case execSub:
+        Exec_Sub(cpu, ins);
+        break;
+    case execMul:
+        Exec_Mul(cpu, ins);
+        break;
+    case execSll:
+        Exec_Sll(cpu, ins);
+        break;
+    case execMulh:
+        Exec_Mulh(cpu, ins);
+        break;
+    case execSlt:
+        Exec_Slt(cpu, ins);
+        break;
+    case execMulhsu:
+        Exec_Mulhsu(cpu, ins);
+        break;
+    case execSltu:
+        Exec_Sltu(cpu, ins);
+        break;
+    case execMulhu:
+        Exec_Mulhu(cpu, ins);
+        break;
+    case execXor:
+        Exec_Xor(cpu, ins);
+        break;
+    case execDiv:
+        Exec_Div(cpu, ins);
+        break;
+    case execSrl:
+        Exec_Srl(cpu, ins);
+        break;
+    case execSra:
+        Exec_Sra(cpu, ins);
+        break;
+    case execDivu:
+        Exec_Divu(cpu, ins);
+        break;
+    case execOr:
+        Exec_Or(cpu, ins);
+        break;
+    case execRem:
+        Exec_Rem(cpu, ins);
+        break;
+    case execAnd:
+        Exec_And(cpu, ins);
+        break;
+    case execRemu:
+        Exec_Remu(cpu, ins);
+        break;
+    case execFence:
+        Exec_Fence(cpu, ins);
+        break;
+    case execEcall:
+        Exec_Ecall(cpu, ins);
+        break;
+    case execEbreak:
+        Exec_Ebreak(cpu, ins);
+        break;
+    case execUret:
+        Exec_Uret(cpu, ins);
+        break;
+    case execSret:
+        Exec_Sret(cpu, ins);
+        break;
+    case execMret:
+        Exec_Mret(cpu, ins);
+        break;
+    case execFlw:
+        Exec_Flw(cpu, ins);
+        break;
+    case execFsw:
+        Exec_Fsw(cpu, ins);
+        break;
+    case execFmaddS:
+        Exec_Fmadd_s(cpu, ins);
+        break;
+    case execFmsubS:
+        Exec_Fmsub_s(cpu, ins);
+        break;
+    case execFnmsubS:
+        Exec_Fnmsub_s(cpu, ins);
+        break;
+    case execFnmaddS:
+        Exec_Fnmadd_s(cpu, ins);
+        break;
+    case execFaddS:
+        Exec_Fadd_s(cpu, ins);
+        break;
+    case execFsubS:
+        Exec_Fsub_s(cpu, ins);
+        break;
+    case execFmulS:
+        Exec_Fmul_s(cpu, ins);
+        break;
+    case execFdivS:
+        Exec_Fdiv_s(cpu, ins);
+        break;
+    case execFsqrtS:
+        Exec_Fsqrt_s(cpu, ins);
+        break;
+    case execFsgnjS:
+        Exec_Fsgnj_s(cpu, ins);
+        break;
+    case execFsgnjnS:
+        Exec_Fsgnjn_s(cpu, ins);
+        break;
+    case execFsgnjxS:
+        Exec_Fsgnjx_s(cpu, ins);
+        break;
+    case execFminS:
+        Exec_Fmin_s(cpu, ins);
+        break;
+    case execFmaxS:
+        Exec_Fmax_s(cpu, ins);
+        break;
+    case execFcvtWS:
+        Exec_Fcvt_w_s(cpu, ins);
+        break;
+    case execFcvtWuS:
+        Exec_Fcvt_wu_s(cpu, ins);
+        break;
+    case execFmvXW:
+        Exec_Fmv_x_w(cpu, ins);
+        break;
+    case execFclassS:
+        Exec_Fclass_s(cpu, ins);
+        break;
+    case execFeqS:
+        Exec_Feq_s(cpu, ins);
+        break;
+    case execFltS:
+        Exec_Flt_s(cpu, ins);
+        break;
+    case execFleS:
+        Exec_Fle_s(cpu, ins);
+        break;
+    case execFcvtSW:
+        Exec_Fcvt_s_w(cpu, ins);
+        break;
+    case execFcvtSWu:
+        Exec_Fcvt_s_wu(cpu, ins);
+        break;
+    case execFmvWX:
+        Exec_Fmv_w_x(cpu, ins);
+        break;
+    case execIllegalInstruction:
+    default:
+        Exec_IllegalInstruction(cpu, ins);
+        break;
+    }
+}
+
 // --- Decoding --------------------------------------------------------------------------------------------------------------------
 //
 // Functions in this section decode instructions into their executable form.
@@ -2188,251 +2432,6 @@ static inline DecodedInstruction* FetchFromCache(ArvissCpu* cpu)
 }
 
 // --- The Arviss API --------------------------------------------------------------------------------------------------------------
-
-static void RunOne(ArvissCpu* cpu, DecodedInstruction* ins)
-{
-    switch (ins->opcode)
-    {
-    case execFetchDecodeReplace:
-        Exec_FetchDecodeReplace(cpu, ins);
-        break;
-    case execLui:
-        Exec_Lui(cpu, ins);
-        break;
-    case execAuipc:
-        Exec_Auipc(cpu, ins);
-        break;
-    case execJal:
-        Exec_Jal(cpu, ins);
-        break;
-    case execJalr:
-        Exec_Jalr(cpu, ins);
-        break;
-    case execBeq:
-        Exec_Beq(cpu, ins);
-        break;
-    case execBne:
-        Exec_Bne(cpu, ins);
-        break;
-    case execBlt:
-        Exec_Blt(cpu, ins);
-        break;
-    case execBge:
-        Exec_Bge(cpu, ins);
-        break;
-    case execBltu:
-        Exec_Bltu(cpu, ins);
-        break;
-    case execBgeu:
-        Exec_Bgeu(cpu, ins);
-        break;
-    case execLb:
-        Exec_Lb(cpu, ins);
-        break;
-    case execLh:
-        Exec_Lh(cpu, ins);
-        break;
-    case execLw:
-        Exec_Lw(cpu, ins);
-        break;
-    case execLbu:
-        Exec_Lbu(cpu, ins);
-        break;
-    case execLhu:
-        Exec_Lhu(cpu, ins);
-        break;
-    case execSb:
-        Exec_Sb(cpu, ins);
-        break;
-    case execSh:
-        Exec_Sh(cpu, ins);
-        break;
-    case execSw:
-        Exec_Sw(cpu, ins);
-        break;
-    case execAddi:
-        Exec_Addi(cpu, ins);
-        break;
-    case execSlti:
-        Exec_Slti(cpu, ins);
-        break;
-    case execSltiu:
-        Exec_Sltiu(cpu, ins);
-        break;
-    case execXori:
-        Exec_Xori(cpu, ins);
-        break;
-    case execOri:
-        Exec_Ori(cpu, ins);
-        break;
-    case execAndi:
-        Exec_Andi(cpu, ins);
-        break;
-    case execSlli:
-        Exec_Slli(cpu, ins);
-        break;
-    case execSrli:
-        Exec_Srli(cpu, ins);
-        break;
-    case execSrai:
-        Exec_Srai(cpu, ins);
-        break;
-    case execAdd:
-        Exec_Add(cpu, ins);
-        break;
-    case execSub:
-        Exec_Sub(cpu, ins);
-        break;
-    case execMul:
-        Exec_Mul(cpu, ins);
-        break;
-    case execSll:
-        Exec_Sll(cpu, ins);
-        break;
-    case execMulh:
-        Exec_Mulh(cpu, ins);
-        break;
-    case execSlt:
-        Exec_Slt(cpu, ins);
-        break;
-    case execMulhsu:
-        Exec_Mulhsu(cpu, ins);
-        break;
-    case execSltu:
-        Exec_Sltu(cpu, ins);
-        break;
-    case execMulhu:
-        Exec_Mulhu(cpu, ins);
-        break;
-    case execXor:
-        Exec_Xor(cpu, ins);
-        break;
-    case execDiv:
-        Exec_Div(cpu, ins);
-        break;
-    case execSrl:
-        Exec_Srl(cpu, ins);
-        break;
-    case execSra:
-        Exec_Sra(cpu, ins);
-        break;
-    case execDivu:
-        Exec_Divu(cpu, ins);
-        break;
-    case execOr:
-        Exec_Or(cpu, ins);
-        break;
-    case execRem:
-        Exec_Rem(cpu, ins);
-        break;
-    case execAnd:
-        Exec_And(cpu, ins);
-        break;
-    case execRemu:
-        Exec_Remu(cpu, ins);
-        break;
-    case execFence:
-        Exec_Fence(cpu, ins);
-        break;
-    case execEcall:
-        Exec_Ecall(cpu, ins);
-        break;
-    case execEbreak:
-        Exec_Ebreak(cpu, ins);
-        break;
-    case execUret:
-        Exec_Uret(cpu, ins);
-        break;
-    case execSret:
-        Exec_Sret(cpu, ins);
-        break;
-    case execMret:
-        Exec_Mret(cpu, ins);
-        break;
-    case execFlw:
-        Exec_Flw(cpu, ins);
-        break;
-    case execFsw:
-        Exec_Fsw(cpu, ins);
-        break;
-    case execFmaddS:
-        Exec_Fmadd_s(cpu, ins);
-        break;
-    case execFmsubS:
-        Exec_Fmsub_s(cpu, ins);
-        break;
-    case execFnmsubS:
-        Exec_Fnmsub_s(cpu, ins);
-        break;
-    case execFnmaddS:
-        Exec_Fnmadd_s(cpu, ins);
-        break;
-    case execFaddS:
-        Exec_Fadd_s(cpu, ins);
-        break;
-    case execFsubS:
-        Exec_Fsub_s(cpu, ins);
-        break;
-    case execFmulS:
-        Exec_Fmul_s(cpu, ins);
-        break;
-    case execFdivS:
-        Exec_Fdiv_s(cpu, ins);
-        break;
-    case execFsqrtS:
-        Exec_Fsqrt_s(cpu, ins);
-        break;
-    case execFsgnjS:
-        Exec_Fsgnj_s(cpu, ins);
-        break;
-    case execFsgnjnS:
-        Exec_Fsgnjn_s(cpu, ins);
-        break;
-    case execFsgnjxS:
-        Exec_Fsgnjx_s(cpu, ins);
-        break;
-    case execFminS:
-        Exec_Fmin_s(cpu, ins);
-        break;
-    case execFmaxS:
-        Exec_Fmax_s(cpu, ins);
-        break;
-    case execFcvtWS:
-        Exec_Fcvt_w_s(cpu, ins);
-        break;
-    case execFcvtWuS:
-        Exec_Fcvt_wu_s(cpu, ins);
-        break;
-    case execFmvXW:
-        Exec_Fmv_x_w(cpu, ins);
-        break;
-    case execFclassS:
-        Exec_Fclass_s(cpu, ins);
-        break;
-    case execFeqS:
-        Exec_Feq_s(cpu, ins);
-        break;
-    case execFltS:
-        Exec_Flt_s(cpu, ins);
-        break;
-    case execFleS:
-        Exec_Fle_s(cpu, ins);
-        break;
-    case execFcvtSW:
-        Exec_Fcvt_s_w(cpu, ins);
-        break;
-    case execFcvtSWu:
-        Exec_Fcvt_s_wu(cpu, ins);
-        break;
-    case execFmvWX:
-        Exec_Fmv_w_x(cpu, ins);
-        break;
-    case execIllegalInstruction:
-    default:
-        Exec_IllegalInstruction(cpu, ins);
-        break;
-    }
-}
 
 ArvissResult ArvissRun(ArvissCpu* cpu, int count)
 {
